@@ -147,6 +147,7 @@ Realtime + 25s poll while browsing keep the feed in sync across browsers.
 ## Auth (Supabase email + password)
 
 Primary: **Sign up / Sign in** with email + password (`signUp` / `signInWithPassword`).
+**Forgot password?** → `resetPasswordForEmail` → open recovery link on this site → set new password (`updateUser`).
 Passwords are stored by **Supabase Auth** (not local fake sessions).
 
 Optional leftover magic-link callback handling remains harmless for old emails.

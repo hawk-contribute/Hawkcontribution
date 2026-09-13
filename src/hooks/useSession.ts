@@ -57,6 +57,7 @@ export function useSession() {
   const [session, setSessionState] = useState<Session | null>(null)
   const [authReady, setAuthReady] = useState(false)
   const [authError, setAuthError] = useState<string | null>(null)
+  const [passwordRecovery, setPasswordRecovery] = useState(false)
   const syncedUserRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -77,13 +78,14 @@ export function useSession() {
     }
 
     const boot = async () => {
-      // Harmless for leftover magic-link URLs from older emails
       try {
         const result = await consumeAuthCallback()
         if (cancelled) return
-        if (result.status === 'error') {
-          // Don't block password auth UX with old-link noise unless clearly useful
+        if (result.status === 'recovery') {
+          setPasswordRecovery(true)
+        } else if (result.status === 'error') {
           console.warn('[auth] leftover callback:', result.message)
+          setAuthError(result.message)
         }
       } catch (e) {
         console.warn('[auth] callback consume failed', e)
@@ -101,6 +103,11 @@ export function useSession() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, sbSession) => {
+      if (event === 'PASSWORD_RECOVERY' && !cancelled) {
+        setPasswordRecovery(true)
+        applyUser(sbSession?.user ?? null, false)
+        return
+      }
       const sync =
         event === 'SIGNED_IN' ||
         event === 'USER_UPDATED' ||
@@ -126,6 +133,7 @@ export function useSession() {
       })
       if (error) throw error
       if (!data.session) throw new Error('NO_SESSION')
+      setPasswordRecovery(false)
       return data.session
     },
     [],
@@ -152,17 +160,38 @@ export function useSession() {
         },
       })
       if (error) throw error
-      if (data.session) return 'signed_in'
-      // Project may require email confirmation before a session is issued
+      if (data.session) {
+        setPasswordRecovery(false)
+        return 'signed_in'
+      }
       return 'confirm_email'
     },
     [],
   )
 
+  const requestPasswordReset = useCallback(async (emailRaw: string) => {
+    const email = emailRaw.trim()
+    if (!isValidEmail(email)) throw new Error('INVALID_EMAIL')
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: authRedirectTo(),
+    })
+    if (error) throw error
+  }, [])
+
+  const updatePassword = useCallback(async (password: string) => {
+    if (password.length < 6) throw new Error('WEAK_PASSWORD')
+    const { data, error } = await supabase.auth.updateUser({ password })
+    if (error) throw error
+    setPasswordRecovery(false)
+    return data.user
+  }, [])
+
+  const clearPasswordRecovery = useCallback(() => setPasswordRecovery(false), [])
   const clearAuthError = useCallback(() => setAuthError(null), [])
 
   const signOut = useCallback(async () => {
     syncedUserRef.current = null
+    setPasswordRecovery(false)
     await supabase.auth.signOut()
     setSessionState(null)
   }, [])
@@ -171,9 +200,13 @@ export function useSession() {
     session,
     authReady,
     authError,
+    passwordRecovery,
     clearAuthError,
+    clearPasswordRecovery,
     signInWithPassword,
     signUpWithPassword,
+    requestPasswordReset,
+    updatePassword,
     signOut,
     isSignedIn: !!session,
   }

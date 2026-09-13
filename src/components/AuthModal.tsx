@@ -3,11 +3,13 @@ import { X } from 'lucide-react'
 import { useI18n } from '../i18n'
 import { isValidEmail } from '../lib/storage'
 
-type AuthMode = 'signin' | 'signup'
+type AuthMode = 'signin' | 'signup' | 'forgot' | 'recovery'
 
 interface AuthModalProps {
   open: boolean
   onClose: () => void
+  /** When true, force the set-new-password UI (recovery link landed). */
+  passwordRecovery?: boolean
   onSignIn: (input: {
     email: string
     password: string
@@ -17,6 +19,8 @@ interface AuthModalProps {
     password: string
     displayName?: string
   }) => Promise<'signed_in' | 'confirm_email'>
+  onRequestReset: (email: string) => Promise<void>
+  onUpdatePassword: (password: string) => Promise<void>
 }
 
 function mapAuthError(msg: string, t: (k: string) => string): string {
@@ -40,7 +44,7 @@ function mapAuthError(msg: string, t: (k: string) => string): string {
   ) {
     return t('auth.weakPassword')
   }
-  if (m.includes('rate') || m.includes('security')) {
+  if (m.includes('rate') || m.includes('security') || m.includes('over_email')) {
     return t('auth.rateLimited')
   }
   if (m.includes('email') && m.includes('invalid')) {
@@ -49,52 +53,111 @@ function mapAuthError(msg: string, t: (k: string) => string): string {
   if (m === 'WEAK_PASSWORD' || m === 'INVALID_EMAIL') {
     return m === 'WEAK_PASSWORD' ? t('auth.weakPassword') : t('auth.emailRequired')
   }
+  if (m === 'PASSWORD_MISMATCH') return t('auth.passwordMismatch')
   return t('auth.authFailed')
 }
 
 export function AuthModal({
   open,
   onClose,
+  passwordRecovery = false,
   onSignIn,
   onSignUp,
+  onRequestReset,
+  onUpdatePassword,
 }: AuthModalProps) {
   const { t } = useI18n()
   const [mode, setMode] = useState<AuthMode>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    if (open) {
-      setMode('signin')
-      setEmail('')
+    if (!open) return
+    if (passwordRecovery) {
+      setMode('recovery')
       setPassword('')
-      setDisplayName('')
+      setConfirmPassword('')
       setError('')
       setInfo('')
       setBusy(false)
+      return
     }
-  }, [open])
+    setMode('signin')
+    setEmail('')
+    setPassword('')
+    setConfirmPassword('')
+    setDisplayName('')
+    setError('')
+    setInfo('')
+    setBusy(false)
+  }, [open, passwordRecovery])
+
+  useEffect(() => {
+    if (passwordRecovery && open) setMode('recovery')
+  }, [passwordRecovery, open])
 
   if (!open) return null
 
+  const title =
+    mode === 'signup'
+      ? t('auth.titleSignUp')
+      : mode === 'forgot'
+        ? t('auth.titleForgot')
+        : mode === 'recovery'
+          ? t('auth.titleRecovery')
+          : t('auth.titleSignIn')
+
+  const hint =
+    mode === 'forgot'
+      ? t('auth.forgotHint')
+      : mode === 'recovery'
+        ? t('auth.recoveryHint')
+        : t('auth.hint')
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!isValidEmail(email)) {
-      setError(t('auth.emailRequired'))
-      return
-    }
-    if (password.length < 6) {
-      setError(t('auth.weakPassword'))
-      return
-    }
     setError('')
     setInfo('')
     setBusy(true)
     try {
+      if (mode === 'forgot') {
+        if (!isValidEmail(email)) {
+          setError(t('auth.emailRequired'))
+          return
+        }
+        await onRequestReset(email.trim())
+        setInfo(t('auth.resetEmailSent', { email: email.trim() }))
+        return
+      }
+
+      if (mode === 'recovery') {
+        if (password.length < 6) {
+          setError(t('auth.weakPassword'))
+          return
+        }
+        if (password !== confirmPassword) {
+          setError(t('auth.passwordMismatch'))
+          return
+        }
+        await onUpdatePassword(password)
+        onClose()
+        return
+      }
+
+      if (!isValidEmail(email)) {
+        setError(t('auth.emailRequired'))
+        return
+      }
+      if (password.length < 6) {
+        setError(t('auth.weakPassword'))
+        return
+      }
+
       if (mode === 'signin') {
         await onSignIn({ email: email.trim(), password })
         onClose()
@@ -131,10 +194,8 @@ export function AuthModal({
       <div className="relative w-full max-w-md rounded-2xl border border-hawk-border bg-hawk-panel p-6 shadow-2xl">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-lg font-bold text-hawk-cream">
-              {mode === 'signin' ? t('auth.titleSignIn') : t('auth.titleSignUp')}
-            </h2>
-            <p className="mt-1 text-sm text-hawk-muted">{t('auth.hint')}</p>
+            <h2 className="text-lg font-bold text-hawk-cream">{title}</h2>
+            <p className="mt-1 text-sm text-hawk-muted">{hint}</p>
           </div>
           <button
             type="button"
@@ -146,71 +207,94 @@ export function AuthModal({
           </button>
         </div>
 
-        <div className="mb-4 grid grid-cols-2 gap-1 rounded-xl border border-hawk-border/70 bg-black/20 p-1">
-          <button
-            type="button"
-            className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
-              mode === 'signin'
-                ? 'bg-hawk-gold/20 text-hawk-gold'
-                : 'text-hawk-muted hover:text-hawk-cream'
-            }`}
-            onClick={() => {
-              setMode('signin')
-              setError('')
-              setInfo('')
-            }}
-          >
-            {t('auth.modeSignIn')}
-          </button>
-          <button
-            type="button"
-            className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
-              mode === 'signup'
-                ? 'bg-hawk-gold/20 text-hawk-gold'
-                : 'text-hawk-muted hover:text-hawk-cream'
-            }`}
-            onClick={() => {
-              setMode('signup')
-              setError('')
-              setInfo('')
-            }}
-          >
-            {t('auth.modeSignUp')}
-          </button>
-        </div>
+        {mode !== 'forgot' && mode !== 'recovery' && (
+          <div className="mb-4 grid grid-cols-2 gap-1 rounded-xl border border-hawk-border/70 bg-black/20 p-1">
+            <button
+              type="button"
+              className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+                mode === 'signin'
+                  ? 'bg-hawk-gold/20 text-hawk-gold'
+                  : 'text-hawk-muted hover:text-hawk-cream'
+              }`}
+              onClick={() => {
+                setMode('signin')
+                setError('')
+                setInfo('')
+              }}
+            >
+              {t('auth.modeSignIn')}
+            </button>
+            <button
+              type="button"
+              className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+                mode === 'signup'
+                  ? 'bg-hawk-gold/20 text-hawk-gold'
+                  : 'text-hawk-muted hover:text-hawk-cream'
+              }`}
+              onClick={() => {
+                setMode('signup')
+                setError('')
+                setInfo('')
+              }}
+            >
+              {t('auth.modeSignUp')}
+            </button>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-hawk-cream">
-              {t('auth.email')} <span className="text-hawk-gold">*</span>
-            </span>
-            <input
-              className="hawk-input"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={t('auth.emailPlaceholder')}
-              autoFocus
-              disabled={busy}
-            />
-          </label>
+          {mode !== 'recovery' && (
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-hawk-cream">
+                {t('auth.email')} <span className="text-hawk-gold">*</span>
+              </span>
+              <input
+                className="hawk-input"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={t('auth.emailPlaceholder')}
+                autoFocus
+                disabled={busy}
+              />
+            </label>
+          )}
 
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-hawk-cream">
-              {t('auth.password')} <span className="text-hawk-gold">*</span>
-            </span>
-            <input
-              className="hawk-input"
-              type="password"
-              autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={t('auth.passwordPlaceholder')}
-              disabled={busy}
-              minLength={6}
-            />
-          </label>
+          {(mode === 'signin' || mode === 'signup') && (
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-hawk-cream">
+                {t('auth.password')} <span className="text-hawk-gold">*</span>
+              </span>
+              <input
+                className="hawk-input"
+                type="password"
+                autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={t('auth.passwordPlaceholder')}
+                disabled={busy}
+                minLength={6}
+              />
+            </label>
+          )}
+
+          {mode === 'signin' && (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                className="text-xs font-medium text-hawk-gold underline-offset-2 hover:underline"
+                onClick={() => {
+                  setMode('forgot')
+                  setPassword('')
+                  setError('')
+                  setInfo('')
+                }}
+              >
+                {t('auth.forgotLink')}
+              </button>
+            </div>
+          )}
 
           {mode === 'signup' && (
             <label className="block">
@@ -227,6 +311,42 @@ export function AuthModal({
             </label>
           )}
 
+          {mode === 'recovery' && (
+            <>
+              <label className="block">
+                <span className="mb-1.5 block text-sm font-medium text-hawk-cream">
+                  {t('auth.newPassword')} <span className="text-hawk-gold">*</span>
+                </span>
+                <input
+                  className="hawk-input"
+                  type="password"
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={t('auth.passwordPlaceholder')}
+                  autoFocus
+                  disabled={busy}
+                  minLength={6}
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-sm font-medium text-hawk-cream">
+                  {t('auth.confirmPassword')} <span className="text-hawk-gold">*</span>
+                </span>
+                <input
+                  className="hawk-input"
+                  type="password"
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder={t('auth.confirmPasswordPlaceholder')}
+                  disabled={busy}
+                  minLength={6}
+                />
+              </label>
+            </>
+          )}
+
           {error && <p className="text-sm text-red-400">{error}</p>}
           {info && (
             <p className="rounded-xl border border-hawk-gold/30 bg-hawk-gold/10 px-3 py-2 text-sm text-hawk-cream">
@@ -234,7 +354,12 @@ export function AuthModal({
             </p>
           )}
 
-          <p className="text-xs text-hawk-muted">{t('auth.supabaseNote')}</p>
+          {mode !== 'forgot' && mode !== 'recovery' && (
+            <p className="text-xs text-hawk-muted">{t('auth.supabaseNote')}</p>
+          )}
+          {mode === 'forgot' && (
+            <p className="text-xs text-hawk-muted">{t('auth.resetNote')}</p>
+          )}
 
           <button
             type="submit"
@@ -245,8 +370,28 @@ export function AuthModal({
               ? t('auth.working')
               : mode === 'signin'
                 ? t('auth.submitSignIn')
-                : t('auth.submitSignUp')}
+                : mode === 'signup'
+                  ? t('auth.submitSignUp')
+                  : mode === 'forgot'
+                    ? t('auth.submitForgot')
+                    : t('auth.submitRecovery')}
           </button>
+
+          {(mode === 'forgot' || mode === 'recovery') && !passwordRecovery && (
+            <button
+              type="button"
+              className="w-full text-center text-xs text-hawk-muted underline-offset-2 hover:text-hawk-cream hover:underline"
+              onClick={() => {
+                setMode('signin')
+                setError('')
+                setInfo('')
+                setPassword('')
+                setConfirmPassword('')
+              }}
+            >
+              {t('auth.backToSignIn')}
+            </button>
+          )}
         </form>
       </div>
     </div>

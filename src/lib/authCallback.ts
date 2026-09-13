@@ -3,6 +3,7 @@ import { supabase } from './supabase'
 export type AuthCallbackResult =
   | { status: 'none' }
   | { status: 'signed_in' }
+  | { status: 'recovery' }
   | { status: 'error'; message: string }
 
 function cleanAuthParamsFromUrl(): void {
@@ -62,9 +63,13 @@ function hasAuthCallbackParams(params: URLSearchParams): boolean {
   )
 }
 
+function isRecoveryType(type: string | null): boolean {
+  return (type ?? '').toLowerCase() === 'recovery'
+}
+
 /**
- * Consume magic-link / OTP redirect params BEFORE relying on getSession().
- * Handles PKCE `code`, email `token_hash`+`type`, and surfaces exchange errors.
+ * Consume auth redirect params BEFORE relying on getSession().
+ * Returns `recovery` when the link is a password-reset flow.
  */
 export async function consumeAuthCallback(): Promise<AuthCallbackResult> {
   if (typeof window === 'undefined') return { status: 'none' }
@@ -72,11 +77,13 @@ export async function consumeAuthCallback(): Promise<AuthCallbackResult> {
   const params = paramsFromLocation()
   if (!hasAuthCallbackParams(params)) return { status: 'none' }
 
-  // If a session already exists (e.g. SDK recovered it), just clean the URL.
+  const typeHint = params.get('type')
+  const recoveryHint = isRecoveryType(typeHint)
+
   const existing = await supabase.auth.getSession()
   if (existing.data.session) {
     cleanAuthParamsFromUrl()
-    return { status: 'signed_in' }
+    return { status: recoveryHint ? 'recovery' : 'signed_in' }
   }
 
   const errorDesc =
@@ -100,13 +107,18 @@ export async function consumeAuthCallback(): Promise<AuthCallbackResult> {
         status: 'error',
         message:
           error.message ||
-          'Could not complete sign-in from the email link. Open the link in this same browser, or enter the 6-digit code from the email.',
+          'Could not complete the email link. Request a new password reset.',
       }
     }
-    if (data.session) return { status: 'signed_in' }
+    if (data.session) {
+      const redirectType =
+        (data as { redirectType?: string | null }).redirectType ?? null
+      if (isRecoveryType(redirectType) || recoveryHint) return { status: 'recovery' }
+      return { status: 'signed_in' }
+    }
     return {
       status: 'error',
-      message: 'Sign-in link did not return a session. Try the 6-digit email code.',
+      message: 'Email link did not return a session.',
     }
   }
 
@@ -128,14 +140,15 @@ export async function consumeAuthCallback(): Promise<AuthCallbackResult> {
         message: error.message || 'Could not verify the email link. Request a new one.',
       }
     }
-    if (data.session) return { status: 'signed_in' }
+    if (data.session) {
+      return { status: isRecoveryType(type) ? 'recovery' : 'signed_in' }
+    }
     return {
       status: 'error',
       message: 'Email link verification returned no session.',
     }
   }
 
-  // Implicit hash tokens (legacy / some email templates)
   if (accessToken && refreshToken) {
     const { data, error } = await supabase.auth.setSession({
       access_token: accessToken,
@@ -145,7 +158,9 @@ export async function consumeAuthCallback(): Promise<AuthCallbackResult> {
     if (error) {
       return { status: 'error', message: error.message }
     }
-    if (data.session) return { status: 'signed_in' }
+    if (data.session) {
+      return { status: recoveryHint ? 'recovery' : 'signed_in' }
+    }
   }
 
   cleanAuthParamsFromUrl()

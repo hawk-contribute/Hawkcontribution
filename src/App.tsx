@@ -38,9 +38,12 @@ export default function App() {
   const {
     session,
     authError,
+    passwordRecovery,
     clearAuthError,
     signInWithPassword,
     signUpWithPassword,
+    requestPasswordReset,
+    updatePassword,
     signOut,
   } = useSession()
   const {
@@ -116,13 +119,19 @@ export default function App() {
     if (action === 'rewards') setTab('rewards')
   }, [session, t, pendingAction, pendingOpp])
 
-  // Surface magic-link / PKCE exchange failures (do not fail silently)
+  // Surface leftover auth-callback errors
   useEffect(() => {
     if (!authError) return
     setToast(authError)
     setAuthOpen(true)
     clearAuthError()
   }, [authError, clearAuthError])
+
+  // Recovery link → force set-new-password UI
+  useEffect(() => {
+    if (!passwordRecovery) return
+    setAuthOpen(true)
+  }, [passwordRecovery])
 
   const handlePasswordSignIn = useCallback(
     async (input: { email: string; password: string }) => {
@@ -143,6 +152,22 @@ export default function App() {
       return result
     },
     [signUpWithPassword, t],
+  )
+
+  const handleRequestReset = useCallback(
+    async (email: string) => {
+      await requestPasswordReset(email)
+      setToast(t('toast.resetSent'))
+    },
+    [requestPasswordReset, t],
+  )
+
+  const handleUpdatePassword = useCallback(
+    async (password: string) => {
+      await updatePassword(password)
+      setToast(t('toast.passwordUpdated'))
+    },
+    [updatePassword, t],
   )
 
   const handleSignOut = useCallback(async () => {
@@ -339,9 +364,12 @@ export default function App() {
 
       <AuthModal
         open={authOpen}
+        passwordRecovery={passwordRecovery}
         onClose={() => setAuthOpen(false)}
         onSignIn={handlePasswordSignIn}
         onSignUp={handlePasswordSignUp}
+        onRequestReset={handleRequestReset}
+        onUpdatePassword={handleUpdatePassword}
       />
 
       {session && (
