@@ -18,6 +18,7 @@ import { LedgerView } from './components/LedgerView'
 import { RewardsView } from './components/RewardsView'
 import { StatsBar } from './components/StatsBar'
 import { Toast } from './components/Toast'
+import { DonationCard } from './components/DonationCard'
 import { UploadModal } from './components/UploadModal'
 
 type Tab = 'game' | 'browse' | 'feed' | 'ledger' | 'rewards'
@@ -366,6 +367,9 @@ export default function App() {
       </main>
 
       <footer className="border-t border-hawk-border/60 py-6 text-center text-xs text-hawk-muted">
+        <div className="mx-auto mb-4 max-w-5xl px-4 sm:px-6">
+          <DonationCard variant="compact" />
+        </div>
         <p>{t('footer.line1')}</p>
         <p className="mt-1 opacity-70">{t('feed.localNote')}</p>
       </footer>

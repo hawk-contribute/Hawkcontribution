@@ -4,6 +4,7 @@ import type { PointsAccount, Session } from '../types'
 import { NFT_REDEEM_POINTS } from '../types'
 import { useI18n } from '../i18n'
 import { asset } from '../lib/asset'
+import { DonationCard } from './DonationCard'
 
 interface RewardsViewProps {
   session: Session | null
@@ -56,6 +57,8 @@ export function RewardsView({
 
   return (
     <section>
+      <DonationCard variant="full" />
+
       <div className="mb-6">
         <p className="mb-1 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-hawk-gold">
           <Gift className="h-3.5 w-3.5" />

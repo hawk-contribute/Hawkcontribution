@@ -4,6 +4,7 @@ import type { Opportunity, OpportunityType } from '../types'
 import { useI18n } from '../i18n'
 import { asset } from '../lib/asset'
 import { OpportunityCard } from './OpportunityCard'
+import { DonationCard } from './DonationCard'
 
 type Filter = 'all' | OpportunityType
 
@@ -74,6 +75,8 @@ export function BrowseView({ opportunities, onJoin, onProvide }: BrowseViewProps
           />
         </div>
       </div>
+
+      <DonationCard variant="compact" className="mb-6" />
 
       <div className="mb-5 flex flex-wrap gap-2">
         {filters.map((f) => (
