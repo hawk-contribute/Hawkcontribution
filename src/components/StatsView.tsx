@@ -1,14 +1,21 @@
 import {
   Activity,
   ExternalLink,
+  Flame,
   RefreshCw,
   Wallet,
   BarChart3,
 } from 'lucide-react'
 import { useI18n } from '../i18n'
-import { DONATION, shortDonationAddress } from '../lib/donation'
-import { txUrl, truncateAddress, type IncomingDonation } from '../lib/bscDonation'
-import type { BnbBalanceResult } from '../lib/bscDonation'
+import { DONATION, HAWK_TOKEN, shortDonationAddress } from '../lib/donation'
+import {
+  txUrl,
+  truncateAddress,
+  type IncomingDonation,
+  type BnbBalanceResult,
+  type BurnStatsResult,
+  type TokenBalanceResult,
+} from '../lib/bscDonation'
 import type { CountsResult } from '../lib/communityCounts'
 import { DonationCard } from './DonationCard'
 
@@ -17,6 +24,8 @@ interface StatsViewProps {
   communityLoading: boolean
   onRefreshCommunity: () => void
   balance: BnbBalanceResult | null
+  hawkBalance: TokenBalanceResult | null
+  burnStats: BurnStatsResult | null
   donations: IncomingDonation[]
   donationLoading: boolean
   donationError: string | null
@@ -35,11 +44,19 @@ function formatWhen(iso: string, locale: string): string {
   }
 }
 
+function formatHawkAmount(raw: string): string {
+  const n = Number(raw)
+  if (!Number.isFinite(n)) return raw
+  return n.toLocaleString(undefined, { maximumFractionDigits: 4 })
+}
+
 export function StatsView({
   community,
   communityLoading,
   onRefreshCommunity,
   balance,
+  hawkBalance,
+  burnStats,
   donations,
   donationLoading,
   donationError,
@@ -127,6 +144,79 @@ export function StatsView({
         )}
       </div>
 
+      {/* Active burn */}
+      <div className="hawk-card mb-6 border-orange-500/30 p-5 sm:p-6">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="inline-flex items-center gap-2 text-lg font-bold text-hawk-cream">
+              <Flame className="h-5 w-5 text-orange-400" />
+              {t('burnStats.title')}
+            </h2>
+            <p className="mt-1 text-xs text-hawk-muted">{t('burnStats.hint')}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => onRefreshDonation()}
+            className="hawk-btn hawk-btn-ghost px-3 py-2 text-sm"
+            disabled={donationLoading}
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${donationLoading ? 'animate-spin' : ''}`} />
+            {t('liveStats.refresh')}
+          </button>
+        </div>
+
+        {burnStats?.ok ? (
+          <>
+            <div className="rounded-xl border border-orange-400/30 bg-orange-500/10 px-4 py-4">
+              <p className="text-xs text-hawk-muted">{t('burnStats.totalLabel')}</p>
+              <p className="mt-1 text-3xl font-bold text-orange-300">
+                {formatHawkAmount(burnStats.totalBurned)}{' '}
+                <span className="text-base font-semibold text-hawk-muted">
+                  {HAWK_TOKEN.symbol}
+                </span>
+              </p>
+              <p className="mt-2 text-[11px] text-hawk-muted">
+                {t('liveStats.updated', {
+                  time: formatWhen(burnStats.updatedAt, locale),
+                })}
+              </p>
+            </div>
+            <p className="mt-3 text-[11px] leading-relaxed text-hawk-muted">
+              {t('burnStats.methodNote')}
+            </p>
+            <ul className="mt-3 space-y-1.5 text-xs text-hawk-muted">
+              {burnStats.bySink.map((s) => (
+                <li key={s.address} className="flex flex-wrap justify-between gap-2">
+                  <code className="font-mono text-hawk-cream/80">
+                    {truncateAddress(s.address, 6)}
+                  </code>
+                  <span>
+                    {formatHawkAmount(s.amount)} {HAWK_TOKEN.symbol}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-xs text-hawk-muted">
+              {t('burnStats.countUnavailable')}
+            </p>
+            <a
+              href={HAWK_TOKEN.explorerUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-hawk-blue-bright hover:underline"
+            >
+              <ExternalLink className="h-3 w-3" />
+              {t('donation.tokenLink')}
+            </a>
+          </>
+        ) : (
+          <p className="rounded-xl border border-hawk-border/80 bg-hawk-ink/40 px-4 py-3 text-sm text-hawk-muted">
+            {t('burnStats.unavailable')}
+            {burnStats && !burnStats.ok ? ` — ${burnStats.error}` : ''}
+          </p>
+        )}
+      </div>
+
       {/* Donation wallet */}
       <div className="hawk-card mb-6 border-hawk-gold/30 p-5 sm:p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -164,24 +254,48 @@ export function StatsView({
           </a>
         </div>
 
-        {balance?.ok ? (
-          <div className="rounded-xl border border-hawk-gold/25 bg-hawk-gold/10 px-4 py-4">
-            <p className="text-xs text-hawk-muted">{t('liveStats.bnbBalance')}</p>
-            <p className="mt-1 text-3xl font-bold text-hawk-gold">
-              {balance.bnb}{' '}
-              <span className="text-base font-semibold text-hawk-muted">BNB</span>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {hawkBalance?.ok ? (
+            <div className="rounded-xl border border-hawk-gold/25 bg-hawk-gold/10 px-4 py-4">
+              <p className="text-xs text-hawk-muted">{t('liveStats.hawkBalance')}</p>
+              <p className="mt-1 text-2xl font-bold text-hawk-gold sm:text-3xl">
+                {formatHawkAmount(hawkBalance.formatted)}{' '}
+                <span className="text-base font-semibold text-hawk-muted">
+                  {HAWK_TOKEN.symbol}
+                </span>
+              </p>
+              <p className="mt-2 text-[11px] text-hawk-muted">
+                {t('liveStats.updated', {
+                  time: formatWhen(hawkBalance.updatedAt, locale),
+                })}
+              </p>
+            </div>
+          ) : (
+            <p className="rounded-xl border border-hawk-border/80 bg-hawk-ink/40 px-4 py-3 text-sm text-hawk-muted">
+              {t('liveStats.hawkBalanceUnavailable')}
+              {hawkBalance && !hawkBalance.ok ? ` — ${hawkBalance.error}` : ''}
             </p>
-            <p className="mt-2 text-[11px] text-hawk-muted">
-              {t('liveStats.updated', { time: formatWhen(balance.updatedAt, locale) })}
+          )}
+
+          {balance?.ok ? (
+            <div className="rounded-xl border border-hawk-border bg-hawk-ink/50 px-4 py-4">
+              <p className="text-xs text-hawk-muted">{t('liveStats.bnbBalance')}</p>
+              <p className="mt-1 text-2xl font-bold text-hawk-cream sm:text-3xl">
+                {balance.bnb}{' '}
+                <span className="text-base font-semibold text-hawk-muted">BNB</span>
+              </p>
+              <p className="mt-2 text-[11px] text-hawk-muted">
+                {t('liveStats.updated', { time: formatWhen(balance.updatedAt, locale) })}
+              </p>
+            </div>
+          ) : (
+            <p className="rounded-xl border border-hawk-border/80 bg-hawk-ink/40 px-4 py-3 text-sm text-hawk-muted">
+              {t('liveStats.balanceUnavailable')}
+              {balance && !balance.ok ? ` — ${balance.error}` : ''}
+              {donationError && !balance ? ` — ${donationError}` : ''}
             </p>
-          </div>
-        ) : (
-          <p className="rounded-xl border border-hawk-border/80 bg-hawk-ink/40 px-4 py-3 text-sm text-hawk-muted">
-            {t('liveStats.balanceUnavailable')}
-            {balance && !balance.ok ? ` — ${balance.error}` : ''}
-            {donationError && !balance ? ` — ${donationError}` : ''}
-          </p>
-        )}
+          )}
+        </div>
 
         <div className="mt-5">
           <h3 className="text-sm font-semibold text-hawk-cream">
@@ -194,12 +308,12 @@ export function StatsView({
             <ul className="mt-3 divide-y divide-hawk-border/60 overflow-hidden rounded-xl border border-hawk-border">
               {donations.slice(0, 12).map((d) => (
                 <li
-                  key={d.hash}
+                  key={d.id}
                   className="flex flex-wrap items-center justify-between gap-2 bg-hawk-ink/40 px-3 py-2.5 text-sm"
                 >
                   <div>
                     <p className="font-medium text-hawk-cream">
-                      +{d.amountBnb} BNB
+                      +{d.amount} {d.asset}
                       <span className="ml-2 text-xs font-normal text-hawk-muted">
                         {t('liveStats.from', { name: truncateAddress(d.from) })}
                       </span>

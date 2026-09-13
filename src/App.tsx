@@ -383,6 +383,8 @@ export default function App() {
             communityLoading={liveStats.loading}
             onRefreshCommunity={() => void liveStats.refresh()}
             balance={donationFeed.balance}
+            hawkBalance={donationFeed.hawkBalance}
+            burnStats={donationFeed.burnStats}
             donations={donationFeed.donations}
             donationLoading={donationFeed.loading}
             donationError={donationFeed.error}
