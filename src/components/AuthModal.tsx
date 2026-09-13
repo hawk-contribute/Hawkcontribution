@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { useI18n } from '../i18n'
 import { isValidEmail } from '../lib/storage'
@@ -12,6 +12,32 @@ interface AuthModalProps {
     displayName?: string
   }) => Promise<void>
   onVerifyOtp: (input: { email: string; token: string }) => Promise<void>
+}
+
+function classifyAuthError(msg: string, t: (k: string) => string): string {
+  const m = msg.toLowerCase()
+  if (m.includes('rate') || m.includes('security') || m.includes('over_email')) {
+    return t('auth.rateLimited')
+  }
+  if (
+    m.includes('expired') ||
+    m.includes('otp_expired') ||
+    m.includes('invalid_otp') ||
+    m.includes('invalid otp') ||
+    m.includes('token has expired') ||
+    m.includes('invalid_otp') ||
+    m.includes('invalid_token') ||
+    m.includes('invalid_otp') ||
+    msg === 'INVALID_OTP' ||
+    m.includes('otp_disabled')
+  ) {
+    if (m.includes('expired')) return t('auth.otpExpired')
+    return t('auth.otpInvalid')
+  }
+  if (m.includes('email') && (m.includes('invalid') || m.includes('not'))) {
+    return t('auth.emailRequired')
+  }
+  return t('auth.otpFailed')
 }
 
 export function AuthModal({
@@ -28,6 +54,7 @@ export function AuthModal({
   const [sending, setSending] = useState(false)
   const [verifying, setVerifying] = useState(false)
   const [sentTo, setSentTo] = useState<string | null>(null)
+  const otpRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (open) {
@@ -42,11 +69,18 @@ export function AuthModal({
     }
   }, [open])
 
+  useEffect(() => {
+    if (sentTo) {
+      const id = window.setTimeout(() => otpRef.current?.focus(), 50)
+      return () => window.clearTimeout(id)
+    }
+  }, [sentTo])
+
   if (!open) return null
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!isValidEmail(email)) {
+  const sendCode = async (opts?: { resend?: boolean }) => {
+    const target = (opts?.resend ? sentTo || email : email).trim()
+    if (!isValidEmail(target)) {
       setError(t('auth.emailRequired'))
       return
     }
@@ -54,50 +88,58 @@ export function AuthModal({
     setSending(true)
     try {
       await onRequestLink({
-        email: email.trim(),
+        email: target,
         displayName: displayName.trim() || undefined,
       })
-      setSentTo(email.trim())
+      setSentTo(target)
+      setOtp('')
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      if (msg.includes('rate') || msg.includes('Rate') || msg.includes('security')) {
-        setError(t('auth.rateLimited'))
-      } else {
-        setError(t('auth.sendFailed'))
-      }
+      setError(
+        msg.toLowerCase().includes('rate') ||
+          msg.toLowerCase().includes('security')
+          ? t('auth.rateLimited')
+          : t('auth.sendFailed'),
+      )
     } finally {
       setSending(false)
     }
   }
 
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await sendCode()
+  }
+
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault()
     const target = (sentTo || email).trim()
+    const token = otp.replace(/\D/g, '').trim()
     if (!isValidEmail(target)) {
       setError(t('auth.emailRequired'))
       return
     }
-    if (!/^\d{6,8}$/.test(otp.trim())) {
+    if (!/^\d{6,8}$/.test(token)) {
       setError(t('auth.otpRequired'))
       return
     }
     setError('')
     setVerifying(true)
     try {
-      await onVerifyOtp({ email: target, token: otp.trim() })
+      await onVerifyOtp({ email: target, token })
       onClose()
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      if (msg.includes('INVALID_OTP') || msg.toLowerCase().includes('token')) {
-        setError(t('auth.otpInvalid'))
-      } else if (msg.includes('rate') || msg.includes('Rate')) {
-        setError(t('auth.rateLimited'))
-      } else {
-        setError(t('auth.otpFailed'))
-      }
+      setError(classifyAuthError(msg, t))
     } finally {
       setVerifying(false)
     }
+  }
+
+  const onOtpChange = (raw: string) => {
+    // Paste-friendly: strip spaces/dashes from Outlook/Safari pastes
+    const digits = raw.replace(/\D/g, '').slice(0, 8)
+    setOtp(digits)
   }
 
   return (
@@ -112,7 +154,9 @@ export function AuthModal({
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-bold text-hawk-cream">{t('auth.title')}</h2>
-            <p className="mt-1 text-sm text-hawk-muted">{t('auth.hint')}</p>
+            <p className="mt-1 text-sm text-hawk-muted">
+              {sentTo ? t('auth.otpStepHint') : t('auth.hint')}
+            </p>
           </div>
           <button
             type="button"
@@ -125,41 +169,56 @@ export function AuthModal({
         </div>
 
         {sentTo ? (
-          <div className="space-y-4">
-            <p className="rounded-xl border border-hawk-gold/30 bg-hawk-gold/10 px-4 py-3 text-sm text-hawk-cream">
-              {t('auth.checkInbox', { email: sentTo })}
+          <form onSubmit={handleVerifyOtp} className="space-y-4">
+            <p className="rounded-xl border border-hawk-gold/40 bg-hawk-gold/10 px-4 py-3 text-sm text-hawk-cream">
+              {t('auth.checkInboxCode', { email: sentTo })}
             </p>
-            <p className="text-xs text-hawk-muted">{t('auth.sameBrowserHint')}</p>
-            <p className="text-xs text-hawk-muted">{t('auth.rateNote')}</p>
+            <p className="text-xs text-hawk-muted">{t('auth.outlookHint')}</p>
 
-            <form onSubmit={handleVerifyOtp} className="space-y-3 border-t border-hawk-border/60 pt-4">
-              <p className="text-sm font-medium text-hawk-cream">{t('auth.otpTitle')}</p>
-              <p className="text-xs text-hawk-muted">{t('auth.otpHint')}</p>
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-hawk-cream">
-                  {t('auth.otpLabel')}
-                </span>
-                <input
-                  className="hawk-input tracking-widest"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  maxLength={8}
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 8))}
-                  placeholder={t('auth.otpPlaceholder')}
-                  disabled={verifying}
-                  autoFocus
-                />
-              </label>
-              {error && <p className="text-sm text-red-400">{error}</p>}
-              <button
-                type="submit"
-                className="hawk-btn hawk-btn-primary w-full px-4 py-2.5"
+            <label className="block">
+              <span className="mb-2 block text-sm font-semibold text-hawk-cream">
+                {t('auth.otpLabel')}
+              </span>
+              <input
+                ref={otpRef}
+                className="hawk-input w-full py-3 text-center text-2xl font-semibold tracking-[0.35em] text-hawk-cream"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                autoCorrect="off"
+                spellCheck={false}
+                maxLength={8}
+                value={otp}
+                onChange={(e) => onOtpChange(e.target.value)}
+                onPaste={(e) => {
+                  e.preventDefault()
+                  onOtpChange(e.clipboardData.getData('text'))
+                }}
+                placeholder={t('auth.otpPlaceholder')}
                 disabled={verifying}
-              >
-                {verifying ? t('auth.verifying') : t('auth.otpSubmit')}
-              </button>
-            </form>
+              />
+            </label>
+
+            {error && <p className="text-sm text-red-400">{error}</p>}
+
+            <button
+              type="submit"
+              className="hawk-btn hawk-btn-primary w-full px-4 py-3 text-base"
+              disabled={verifying || sending || otp.length < 6}
+            >
+              {verifying ? t('auth.verifying') : t('auth.otpSubmit')}
+            </button>
+
+            <button
+              type="button"
+              className="hawk-btn w-full border border-hawk-border bg-transparent px-4 py-2.5 text-sm text-hawk-cream hover:bg-white/5"
+              disabled={sending || verifying}
+              onClick={() => void sendCode({ resend: true })}
+            >
+              {sending ? t('auth.sending') : t('auth.resend')}
+            </button>
+
+            <p className="text-xs text-hawk-muted">{t('auth.linkSecondaryNote')}</p>
+            <p className="text-xs text-hawk-muted">{t('auth.rateNote')}</p>
 
             <button
               type="button"
@@ -172,9 +231,9 @@ export function AuthModal({
             >
               {t('auth.useDifferentEmail')}
             </button>
-          </div>
+          </form>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleEmailSubmit} className="space-y-4">
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium text-hawk-cream">
                 {t('auth.email')} <span className="text-hawk-gold">*</span>
@@ -203,7 +262,7 @@ export function AuthModal({
               />
             </label>
             {error && <p className="text-sm text-red-400">{error}</p>}
-            <p className="text-xs text-hawk-muted">{t('auth.sameBrowserHint')}</p>
+            <p className="text-xs text-hawk-muted">{t('auth.outlookHint')}</p>
             <p className="text-xs text-hawk-muted">{t('auth.rateNote')}</p>
             <button
               type="submit"

@@ -158,18 +158,26 @@ export function useSession() {
 
   const verifyEmailOtp = useCallback(async (input: { email: string; token: string }) => {
     const email = input.email.trim()
-    const token = input.token.trim()
+    const token = input.token.replace(/\D/g, '').trim()
     if (!isValidEmail(email)) throw new Error('INVALID_EMAIL')
     if (!/^\d{6,8}$/.test(token)) throw new Error('INVALID_OTP')
-    const { data, error } = await supabase.auth.verifyOtp({
-      email,
-      token,
-      type: 'email',
-    })
-    if (error) throw error
-    if (!data.session) throw new Error('NO_SESSION')
-    localStorage.removeItem(PENDING_EMAIL_KEY)
-    return data.session
+
+    const tryTypes = ['email', 'magiclink'] as const
+    let lastError: Error | null = null
+    for (const type of tryTypes) {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email,
+        token,
+        type,
+      })
+      if (!error && data.session) {
+        localStorage.removeItem(PENDING_EMAIL_KEY)
+        return data.session
+      }
+      if (error) lastError = error
+    }
+    if (lastError) throw lastError
+    throw new Error('NO_SESSION')
   }, [])
 
   const clearAuthError = useCallback(() => setAuthError(null), [])

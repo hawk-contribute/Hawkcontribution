@@ -146,13 +146,22 @@ Realtime + 25s poll while browsing keep the feed in sync across browsers.
 
 ## Auth (Supabase magic link)
 
-Sign-in flow: enter email → receive magic link → **open the link in the same browser** → signed in.
-Fallback: enter the **6-digit code** from the email in the sign-in modal (works cross-device).
-The app explicitly exchanges PKCE `code` / verifies `token_hash` on return and toasts errors.
+Sign-in flow (recommended): enter email → receive email → enter the **6-digit code** in the modal → signed in.
+Magic-link callback remains a secondary path (often fails when Outlook/Safari open a different browser).
 
 **Env (Vite):** `.env.production` / `.env.development` set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (anon key is public). See `.env.example`.
 
 **Tables used (RLS):** `profiles`, `game_points`, `nft_claims`.
+
+### Email template (admin)
+
+Supabase Dashboard → **Authentication → Email Templates → Magic Link**: put the OTP **prominently** in the body, e.g.
+
+```
+驗證碼 / Code: {{ .Token }}
+```
+
+Users should enter this 6-digit code in the app. Magic-link clicks often open Outlook/Safari’s in-app browser and never complete PKCE on the GitHub Pages tab (`last_sign_in_at` stays null).
 
 ### Required Dashboard URL config
 
