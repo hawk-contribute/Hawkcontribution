@@ -24,6 +24,8 @@ type TargetKind =
   | 'dance'
   | 'rocket'
   | 'reward'
+  | 'rareToken'
+  | 'rareSuper'
   | 'ghost'
 
 interface TargetDef {
@@ -40,6 +42,9 @@ const TARGETS: TargetDef[] = [
   { kind: 'rocket', src: 'game/eagle-rocket.jpg', points: 20, weight: 16 },
   { kind: 'dance', src: 'game/hawk-dance.gif', points: 30, weight: 12 },
   { kind: 'reward', src: 'game/hawk-reward.jpg', points: 35, weight: 8 },
+  // Rare high-value hawks (occasionally; not ghosts)
+  { kind: 'rareToken', src: 'game/rare-hawk-token.png', points: 60, weight: 8 },
+  { kind: 'rareSuper', src: 'game/rare-super-hawk.png', points: 80, weight: 4 },
   { kind: 'ghost', points: 0, weight: 14, isGhost: true },
 ]
 
