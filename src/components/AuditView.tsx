@@ -39,6 +39,8 @@ function statusClass(s: AuditStatus): string {
   switch (s) {
     case 'remediated':
       return 'border-emerald-400/50 bg-emerald-500/20 text-emerald-100'
+    case 'needs_pro':
+      return 'border-slate-400/50 bg-slate-500/20 text-slate-100'
     case 'partial':
     case 'dashboard':
       return 'border-violet-400/50 bg-violet-500/20 text-violet-100'
@@ -147,7 +149,7 @@ export function AuditView() {
               <span
                 className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${statusClass(f.status)}`}
               >
-                {t(`audit.status.${f.status === 'dashboard' ? 'dashboard' : f.status}`)}
+                {t(`audit.status.${f.status}`)}
               </span>
               <span className="text-xs text-hawk-muted">
                 {zh ? f.areaZh : f.areaEn}

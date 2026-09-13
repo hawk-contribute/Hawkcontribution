@@ -14,7 +14,7 @@ No **Critical** issues were found (no service-role key, no hardcoded user passwo
 
 **Remediated on 2026-09-13 (app + DB):** proof/news URL `http(s)` allowlist (`safeHttpUrl` + CHECK), public UI email masking, password minimum **10**, SECURITY DEFINER EXECUTE grants tightened, env files untracked + README hygiene.
 
-**Still needs Dashboard (Partial):** **Leaked password protection** — enable in Supabase Authentication settings (not reliably toggleable via ordinary SQL / this SPA).
+**Needs Pro plan (N/A on Free):** **Leaked password protection** requires Supabase **Pro+** per docs. Project is on **Free** — cannot enable; not a failed app remediation. Client password min 10 remains in place.
 
 ---
 
@@ -25,7 +25,7 @@ No **Critical** issues were found (no service-role key, no hardcoded user passwo
 | **High** | **Remediated** 2026-09-13 | XSS / uploads | `proofUrl` as raw `href` | `safeHttpUrl()` on UploadModal / communityCloud / LedgerView; DB CHECK `^https?://`. |
 | **Medium** | **Remediated** 2026-09-13 | Privacy / API | Public emails in UI | `maskEmail` / `displayEmail` in Ledger + Feed likes; owners/admins may see full. DB `mask_email` helper. |
 | **Medium** | **Remediated** 2026-09-13 | Auth | Password min was 6 | Client min raised to **10** (`useSession`, `AuthModal`, i18n). |
-| **Medium** | **Partial / Dashboard** | Supabase Auth | Leaked password protection off | Marked in Audit UI with Dashboard link. Enable under Authentication → Attack Protection / password settings. |
+| **Medium** | **Needs Pro plan** (N/A on Free) | Supabase Auth | Leaked password protection off | Confirmed Free plan. Feature requires Pro+ per Supabase docs — not applicable until upgrade. Not a code remediation failure. |
 | **Medium** | **Remediated** 2026-09-13 (DB) | SECURITY DEFINER | Broad EXECUTE | `is_site_admin`: EXECUTE revoked from anon/public, granted to `authenticated`. `handle_new_user`: revoked from anon/authenticated/public (trigger-only). |
 | **Medium** | **Remediated** 2026-09-13 | Config hygiene | Tracked `.env.production` | `.gitignore` ignores `.env` / `.env.production` / `.env.development`; removed from git index (local kept); README: never commit `service_role`. |
 | **Low** | Open | Admin UX | Admin emails in bundle | `admins.ts` UX-only; RLS authority. |
@@ -47,9 +47,9 @@ No **Critical** issues were found (no service-role key, no hardcoded user passwo
 
 ---
 
-## Remaining / Dashboard checklist
+## Remaining / plan notes
 
-1. **Enable Leaked password protection** in [Supabase Auth settings](https://supabase.com/dashboard/project/bqccemvnwmtcuzaoouwr/auth/providers) (project `bqccemvnwmtcuzaoouwr`).  
+1. **Leaked password protection:** Requires Supabase **Pro+**. On **Free** this finding is **not applicable** (accepted residual until upgrade). Docs: https://supabase.com/docs/guides/auth/password-security  
 2. Optional: narrow public SELECT columns so emails are not returned to anon at all.  
 3. Optional: Low items (admins.ts disclosure; console email logging).
 

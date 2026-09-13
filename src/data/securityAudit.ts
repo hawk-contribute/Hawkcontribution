@@ -1,6 +1,6 @@
 export type AuditSeverity = 'critical' | 'high' | 'medium' | 'low' | 'info'
 
-export type AuditStatus = 'open' | 'remediated' | 'partial' | 'dashboard'
+export type AuditStatus = 'open' | 'remediated' | 'partial' | 'dashboard' | 'needs_pro'
 
 export type AuditFinding = {
   id: string
@@ -75,28 +75,27 @@ export const SECURITY_AUDIT_FINDINGS: AuditFinding[] = [
     titleEn: 'Minimum password length is only 6 characters',
     titleZh: '密碼最短僅 6 碼',
     detailZh:
-      '【已於 2026-09-13 Remediated】客戶端最短密碼改為 10（useSession／AuthModal／i18n）。洩漏密碼防護見下方 Dashboard 項目。',
+      '【已於 2026-09-13 Remediated】客戶端最短密碼改為 10（useSession／AuthModal／i18n）。洩漏密碼防護需 Pro+（見下方 Needs Pro plan）；Free 無法啟用。',
     detailEn:
-      '[Remediated 2026-09-13] Client minimum password length raised to 10 (useSession / AuthModal / i18n). See Dashboard item for leaked-password protection.',
+      '[Remediated 2026-09-13] Client minimum password length raised to 10 (useSession / AuthModal / i18n). Leaked-password protection needs Pro+ (see Needs Pro plan item); N/A on Free.',
     paths: ['src/hooks/useSession.ts', 'src/components/AuthModal.tsx'],
   },
   {
     id: 'leaked-pw-advisor',
     severity: 'medium',
-    status: 'dashboard',
+    status: 'needs_pro',
     areaEn: 'Supabase Auth advisor',
     areaZh: 'Supabase Auth 建議',
     titleEn: 'Leaked password protection disabled (WARN)',
     titleZh: '已洩漏密碼防護未啟用（WARN）',
     detailZh:
-      '【Partial／需 Dashboard】無法僅靠前端或一般 SQL 可靠開關。請到 Supabase Dashboard → Authentication → 啟用 Leaked password protection（Attack Protection／Providers 相關設定）。',
+      '【Needs Pro plan／Free 不適用】專案確認為 Supabase Free。依官方文件，Leaked password protection 需 Pro+，無法在 Free 啟用——非本 repo 修復失敗。客戶端密碼最短 10 已落地。升級 Pro 後可於 Auth 設定開啟。',
     detailEn:
-      '[Partial — needs Dashboard] Not reliably toggleable via SPA or ordinary SQL. Enable Leaked password protection in Supabase Dashboard → Authentication (Attack Protection / password settings).',
-    paths: ['Supabase Dashboard → Auth'],
-    actionUrl:
-      'https://supabase.com/dashboard/project/bqccemvnwmtcuzaoouwr/auth/providers',
-    actionLabelEn: 'Open Auth settings (enable leaked password protection)',
-    actionLabelZh: '開啟 Auth 設定（啟用洩漏密碼防護）',
+      '[Needs Pro plan — N/A on Free] Project is on Supabase Free. Per Supabase docs, leaked password protection requires Pro+ and cannot be enabled on Free — not a failed app remediation. Client password min 10 is in place. After upgrading to Pro, enable it in Auth settings.',
+    paths: ['Supabase Auth (Pro+ feature)', 'docs: password-security'],
+    actionUrl: 'https://supabase.com/docs/guides/auth/password-security',
+    actionLabelEn: 'Supabase password security docs (Pro+)',
+    actionLabelZh: 'Supabase 密碼安全文件（需 Pro+）',
   },
   {
     id: 'security-definer',
@@ -223,13 +222,13 @@ export const SECURITY_AUDIT_OK_EN = [
 ]
 
 export const SECURITY_AUDIT_NEXT_ZH = [
-  '【需 Dashboard】啟用 Supabase Leaked password protection。',
+  '洩漏密碼防護：需升級 Supabase Pro+ 後啟用（Free 不適用）。',
   '可選：進一步收窄公開 SELECT 欄位（不回傳 email）。',
   '可選：移除／隱藏 admins.ts 信箱白名單；auth console 勿記 email。',
 ]
 
 export const SECURITY_AUDIT_NEXT_EN = [
-  '[Needs Dashboard] Enable Supabase Leaked password protection.',
+  'Leaked password protection: upgrade to Supabase Pro+ to enable (N/A on Free).',
   'Optional: narrow public SELECT columns (omit emails).',
   'Optional: hide admins.ts email allowlist; stop logging email in auth console.',
 ]
