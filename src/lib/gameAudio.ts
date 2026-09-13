@@ -231,6 +231,18 @@ export const gameAudio = {
     tone(40, 0.4, 'sine', 0.12, 0.6)
   },
 
+  playCatch(points = 10): void {
+    const boost = Math.min(1.4, 0.75 + points / 40)
+    tone(740, 0.07, 'square', 0, boost)
+    tone(988, 0.1, 'sine', 0.05, boost)
+  },
+
+  playStun(): void {
+    tone(160, 0.12, 'sawtooth', 0, 0.55)
+    tone(110, 0.18, 'triangle', 0.08, 0.45)
+    noiseBurst(0.1, 0.12)
+  },
+
   playEnd(keepTrying: boolean): void {
     if (keepTrying) {
       tone(330, 0.15, 'triangle', 0, 0.6)

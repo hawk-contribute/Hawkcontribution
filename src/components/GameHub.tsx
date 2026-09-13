@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { Gamepad2, Lock, Swords, Target } from 'lucide-react'
+import { Bird, Gamepad2, Lock, Swords, Target } from 'lucide-react'
 import type { PointsAccount, Session } from '../types'
 import { useI18n } from '../i18n'
 import { asset } from '../lib/asset'
 import { GameView } from './GameView'
 import { FruitSliceView } from './FruitSliceView'
+import { EagleCatchView } from './EagleCatchView'
 
-type GameId = 'hub' | 'whack' | 'fruit'
+type GameId = 'hub' | 'whack' | 'fruit' | 'catch'
 
 interface GameHubProps {
   session: Session | null
@@ -39,6 +40,18 @@ export function GameHub({
   if (game === 'fruit') {
     return (
       <FruitSliceView
+        session={session}
+        account={account}
+        onRequireAuth={onRequireAuth}
+        onRoundComplete={onRoundComplete}
+        onBack={() => setGame('hub')}
+      />
+    )
+  }
+
+  if (game === 'catch') {
+    return (
+      <EagleCatchView
         session={session}
         account={account}
         onRequireAuth={onRequireAuth}
@@ -86,7 +99,7 @@ export function GameHub({
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <button
           type="button"
           onClick={() => setGame('whack')}
@@ -128,6 +141,28 @@ export function GameHub({
           <div className="p-5">
             <h2 className="text-lg font-bold text-hawk-cream">{t('fruit.title')}</h2>
             <p className="mt-1.5 text-sm text-hawk-muted">{t('gameHub.fruitBlurb')}</p>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setGame('catch')}
+          className="hawk-card group flex flex-col overflow-hidden p-0 text-left transition hover:border-hawk-gold/50 sm:col-span-2 lg:col-span-1"
+        >
+          <div className="relative h-36 overflow-hidden bg-black/30">
+            <img
+              src={asset('game/hawk-fly.jpg')}
+              alt=""
+              className="h-full w-full object-cover opacity-90 transition group-hover:scale-105"
+            />
+            <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-xs font-medium text-hawk-gold">
+              <Bird className="h-3.5 w-3.5" />
+              {t('gameHub.catchTag')}
+            </span>
+          </div>
+          <div className="p-5">
+            <h2 className="text-lg font-bold text-hawk-cream">{t('catch.title')}</h2>
+            <p className="mt-1.5 text-sm text-hawk-muted">{t('gameHub.catchBlurb')}</p>
           </div>
         </button>
       </div>
