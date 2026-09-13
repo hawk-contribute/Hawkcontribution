@@ -108,6 +108,7 @@ export function GameView({
   const [endReason, setEndReason] = useState<EndReason>(null)
   const [showKeepTrying, setShowKeepTrying] = useState(false)
   const [muted, setMuted] = useState(() => gameAudio.isMuted())
+  const [volume, setVolume] = useState(() => gameAudio.getVolume())
 
   const phaseRef = useRef<Phase>('idle')
   const scoreRef = useRef(0)
@@ -333,22 +334,51 @@ export function GameView({
         </div>
       </div>
 
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs text-hawk-muted">{t('game.audioHint')}</p>
-        <button
-          type="button"
-          className="hawk-btn hawk-btn-ghost px-3 py-1.5 text-sm"
-          onClick={() => {
-            const next = gameAudio.toggleMute()
-            setMuted(next)
-            if (!next && phaseRef.current === 'playing') gameAudio.startBgm()
-            if (next) gameAudio.stopBgm()
-          }}
-          aria-pressed={muted}
-        >
-          {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-          {muted ? t('game.unmute') : t('game.mute')}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <label
+            className={`flex items-center gap-2 text-sm ${
+              muted ? 'opacity-50' : 'text-hawk-cream'
+            }`}
+          >
+            <span className="whitespace-nowrap text-xs text-hawk-muted">
+              {t('game.volume')}
+            </span>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={volume}
+              disabled={false}
+              aria-label={t('game.volume')}
+              className="h-2 w-28 cursor-pointer accent-hawk-gold disabled:cursor-not-allowed sm:w-36"
+              onChange={(e) => {
+                const v = Number(e.target.value)
+                setVolume(v)
+                gameAudio.setVolume(v)
+              }}
+            />
+            <span className="w-8 text-right text-xs tabular-nums text-hawk-muted">
+              {Math.round(volume * 100)}
+            </span>
+          </label>
+          <button
+            type="button"
+            className="hawk-btn hawk-btn-ghost px-3 py-1.5 text-sm"
+            onClick={() => {
+              const next = gameAudio.toggleMute()
+              setMuted(next)
+              if (!next && phaseRef.current === 'playing') gameAudio.startBgm()
+              if (next) gameAudio.stopBgm()
+            }}
+            aria-pressed={muted}
+          >
+            {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+            {muted ? t('game.unmute') : t('game.mute')}
+          </button>
+        </div>
       </div>
 
       <div className="mb-4 grid grid-cols-3 gap-2 sm:gap-3">

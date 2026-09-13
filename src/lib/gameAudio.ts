@@ -4,6 +4,8 @@
  */
 
 const MUTE_KEY = 'hawk-contribute:game-mute'
+const VOLUME_KEY = 'hawk-contribute:game-volume'
+const DEFAULT_VOLUME = 0.45
 
 let ctx: AudioContext | null = null
 let master: GainNode | null = null
@@ -11,7 +13,13 @@ let bgmGain: GainNode | null = null
 let sfxGain: GainNode | null = null
 let bgmTimer: number | null = null
 let muted = false
+let volume = DEFAULT_VOLUME
 let unlocked = false
+
+function clamp01(v: number): number {
+  if (Number.isNaN(v)) return DEFAULT_VOLUME
+  return Math.min(1, Math.max(0, v))
+}
 
 function loadMute(): boolean {
   try {
@@ -29,7 +37,33 @@ function saveMute(value: boolean): void {
   }
 }
 
+function loadVolume(): number {
+  try {
+    const raw = localStorage.getItem(VOLUME_KEY)
+    if (raw == null) return DEFAULT_VOLUME
+    return clamp01(parseFloat(raw))
+  } catch {
+    return DEFAULT_VOLUME
+  }
+}
+
+function saveVolume(value: number): void {
+  try {
+    localStorage.setItem(VOLUME_KEY, String(clamp01(value)))
+  } catch {
+    /* ignore */
+  }
+}
+
+function applyMasterGain(): void {
+  const c = ensureCtx()
+  if (!master || !c) return
+  const target = muted ? 0 : volume
+  master.gain.setTargetAtTime(target, c.currentTime, 0.02)
+}
+
 muted = loadMute()
+volume = loadVolume()
 
 function ensureCtx(): AudioContext | null {
   if (typeof window === 'undefined') return null
@@ -40,13 +74,13 @@ function ensureCtx(): AudioContext | null {
     if (!AC) return null
     ctx = new AC()
     master = ctx.createGain()
-    master.gain.value = muted ? 0 : 1
+    master.gain.value = muted ? 0 : volume
     master.connect(ctx.destination)
     bgmGain = ctx.createGain()
-    bgmGain.gain.value = 0.12
+    bgmGain.gain.value = 0.08
     bgmGain.connect(master)
     sfxGain = ctx.createGain()
-    sfxGain.gain.value = 0.35
+    sfxGain.gain.value = 0.28
     sfxGain.connect(master)
   }
   return ctx
@@ -63,6 +97,7 @@ async function resume(): Promise<void> {
     }
   }
   unlocked = true
+  applyMasterGain()
 }
 
 function tone(
@@ -114,7 +149,6 @@ function stopBgmLoop(): void {
 
 function scheduleBgmBar(): void {
   if (!unlocked || muted || !ctx || !bgmGain) return
-  // Soft arpeggio loop — Hawk-ish minor motif
   const notes = [196, 246.94, 293.66, 246.94, 220, 196, 164.81, 196]
   notes.forEach((f, i) => {
     tone(f, 0.28, 'triangle', i * 0.32, 0.55, bgmGain)
@@ -127,7 +161,17 @@ export const gameAudio = {
     return muted
   },
 
-  /** Call from Start button (user gesture) before sounds */
+  getVolume(): number {
+    return volume
+  },
+
+  setVolume(v: number): void {
+    volume = clamp01(v)
+    saveVolume(volume)
+    ensureCtx()
+    applyMasterGain()
+  },
+
   async unlock(): Promise<void> {
     await resume()
   },
@@ -135,10 +179,8 @@ export const gameAudio = {
   setMuted(next: boolean): void {
     muted = next
     saveMute(next)
-    const c = ensureCtx()
-    if (master && c) {
-      master.gain.setTargetAtTime(next ? 0 : 1, c.currentTime, 0.02)
-    }
+    ensureCtx()
+    applyMasterGain()
     if (next) stopBgmLoop()
   },
 
