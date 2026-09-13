@@ -144,35 +144,22 @@ Attachment **names** only are stored (no base64 blobs). Proof URL optional.
 
 Realtime + 25s poll while browsing keep the feed in sync across browsers.
 
-## Auth (Supabase magic link)
+## Auth (Supabase email + password)
 
-Sign-in flow (recommended): enter email → receive email → enter the **6-digit code** in the modal → signed in.
-Magic-link callback remains a secondary path (often fails when Outlook/Safari open a different browser).
+Primary: **Sign up / Sign in** with email + password (`signUp` / `signInWithPassword`).
+Passwords are stored by **Supabase Auth** (not local fake sessions).
 
-**Env (Vite):** `.env.production` / `.env.development` set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (anon key is public). See `.env.example`.
-
-**Tables used (RLS):** `profiles`, `game_points`, `nft_claims`.
-
-### Email template (admin)
-
-Supabase Dashboard → **Authentication → Email Templates → Magic Link**: put the OTP **prominently** in the body, e.g.
-
-```
-驗證碼 / Code: {{ .Token }}
-```
-
-Users should enter this 6-digit code in the app. Magic-link clicks often open Outlook/Safari’s in-app browser and never complete PKCE on the GitHub Pages tab (`last_sign_in_at` stays null).
+Optional leftover magic-link callback handling remains harmless for old emails.
 
 ### Required Dashboard URL config
 
 Supabase Dashboard → **Authentication → URL Configuration**:
 
 - **Site URL:** `https://hawk-contribute.github.io/Hawkcontribution/`
-- **Redirect URLs** (allow list):
-  - `https://hawk-contribute.github.io/Hawkcontribution/`
-  - `http://localhost:5173/` (local `npm run dev`)
+- **Redirect URLs:** same + `http://localhost:5173/` (local `npm run dev`)
 
-Without these, magic-link redirects will fail after email click.
+If **Confirm email** is enabled, new sign-ups must confirm before `signInWithPassword` works.
+
 
 ## Deploy (GitHub Pages)
 

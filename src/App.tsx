@@ -39,8 +39,8 @@ export default function App() {
     session,
     authError,
     clearAuthError,
-    requestMagicLink,
-    verifyEmailOtp,
+    signInWithPassword,
+    signUpWithPassword,
     signOut,
   } = useSession()
   const {
@@ -124,20 +124,25 @@ export default function App() {
     clearAuthError()
   }, [authError, clearAuthError])
 
-  const handleRequestLink = useCallback(
-    async (input: { email: string; displayName?: string }) => {
-      await requestMagicLink(input)
-      setToast(t('toast.linkSent'))
-    },
-    [requestMagicLink, t],
-  )
-
-  const handleVerifyOtp = useCallback(
-    async (input: { email: string; token: string }) => {
-      await verifyEmailOtp(input)
+  const handlePasswordSignIn = useCallback(
+    async (input: { email: string; password: string }) => {
+      await signInWithPassword(input)
       setToast(t('toast.signedIn'))
     },
-    [verifyEmailOtp, t],
+    [signInWithPassword, t],
+  )
+
+  const handlePasswordSignUp = useCallback(
+    async (input: {
+      email: string
+      password: string
+      displayName?: string
+    }) => {
+      const result = await signUpWithPassword(input)
+      if (result === 'signed_in') setToast(t('toast.signedIn'))
+      return result
+    },
+    [signUpWithPassword, t],
   )
 
   const handleSignOut = useCallback(async () => {
@@ -335,8 +340,8 @@ export default function App() {
       <AuthModal
         open={authOpen}
         onClose={() => setAuthOpen(false)}
-        onRequestLink={handleRequestLink}
-        onVerifyOtp={handleVerifyOtp}
+        onSignIn={handlePasswordSignIn}
+        onSignUp={handlePasswordSignUp}
       />
 
       {session && (

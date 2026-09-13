@@ -13,16 +13,6 @@ import {
   upsertProfile,
 } from '../lib/cloudSync'
 
-const PENDING_EMAIL_KEY = 'hawk-contribute:pending-auth-email'
-
-export function savePendingAuthEmail(email: string): void {
-  localStorage.setItem(PENDING_EMAIL_KEY, email.trim())
-}
-
-export function loadPendingAuthEmail(): string | null {
-  return localStorage.getItem(PENDING_EMAIL_KEY)
-}
-
 function sessionFromUser(user: User): Session {
   const email = (user.email ?? '').trim()
   const metaName =
@@ -45,7 +35,6 @@ function sessionFromUser(user: User): Session {
 async function afterSignedIn(user: User, appSession: Session): Promise<void> {
   registerMemberEmail(appSession.email)
   takePendingDisplayName()
-  localStorage.removeItem(PENDING_EMAIL_KEY)
   await upsertProfile({
     userId: user.id,
     email: appSession.email,
@@ -88,27 +77,21 @@ export function useSession() {
     }
 
     const boot = async () => {
-      // 1) Explicitly consume redirect params before treating getSession as source of truth
+      // Harmless for leftover magic-link URLs from older emails
       try {
         const result = await consumeAuthCallback()
         if (cancelled) return
         if (result.status === 'error') {
-          setAuthError(result.message)
+          // Don't block password auth UX with old-link noise unless clearly useful
+          console.warn('[auth] leftover callback:', result.message)
         }
       } catch (e) {
-        if (!cancelled) {
-          setAuthError(
-            e instanceof Error ? e.message : 'Sign-in callback failed unexpectedly',
-          )
-        }
+        console.warn('[auth] callback consume failed', e)
       }
 
-      // 2) Read session (awaits SDK initialize / any remaining URL detection)
       const { data, error } = await supabase.auth.getSession()
       if (cancelled) return
-      if (error) {
-        setAuthError((prev) => prev ?? error.message)
-      }
+      if (error) setAuthError((prev) => prev ?? error.message)
       applyUser(data.session?.user ?? null, true)
       setAuthReady(true)
     }
@@ -123,9 +106,7 @@ export function useSession() {
         event === 'USER_UPDATED' ||
         event === 'INITIAL_SESSION'
       applyUser(sbSession?.user ?? null, sync)
-      if (event === 'SIGNED_IN' && !cancelled) {
-        setAuthError(null)
-      }
+      if (event === 'SIGNED_IN' && !cancelled) setAuthError(null)
     })
 
     return () => {
@@ -134,51 +115,49 @@ export function useSession() {
     }
   }, [])
 
-  const requestMagicLink = useCallback(
-    async (input: { email: string; displayName?: string }) => {
+  const signInWithPassword = useCallback(
+    async (input: { email: string; password: string }) => {
       const email = input.email.trim()
-      if (!isValidEmail(email)) {
-        throw new Error('INVALID_EMAIL')
-      }
-      const displayName = input.displayName?.trim()
-      savePendingDisplayName(displayName)
-      savePendingAuthEmail(email)
-      const { error } = await supabase.auth.signInWithOtp({
+      if (!isValidEmail(email)) throw new Error('INVALID_EMAIL')
+      if (input.password.length < 6) throw new Error('WEAK_PASSWORD')
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        options: {
-          emailRedirectTo: authRedirectTo(),
-          data: displayName ? { display_name: displayName } : undefined,
-          shouldCreateUser: true,
-        },
+        password: input.password,
       })
       if (error) throw error
+      if (!data.session) throw new Error('NO_SESSION')
+      return data.session
     },
     [],
   )
 
-  const verifyEmailOtp = useCallback(async (input: { email: string; token: string }) => {
-    const email = input.email.trim()
-    const token = input.token.replace(/\D/g, '').trim()
-    if (!isValidEmail(email)) throw new Error('INVALID_EMAIL')
-    if (!/^\d{6,8}$/.test(token)) throw new Error('INVALID_OTP')
+  const signUpWithPassword = useCallback(
+    async (input: {
+      email: string
+      password: string
+      displayName?: string
+    }): Promise<'signed_in' | 'confirm_email'> => {
+      const email = input.email.trim()
+      if (!isValidEmail(email)) throw new Error('INVALID_EMAIL')
+      if (input.password.length < 6) throw new Error('WEAK_PASSWORD')
+      const displayName = input.displayName?.trim()
+      if (displayName) savePendingDisplayName(displayName)
 
-    const tryTypes = ['email', 'magiclink'] as const
-    let lastError: Error | null = null
-    for (const type of tryTypes) {
-      const { data, error } = await supabase.auth.verifyOtp({
+      const { data, error } = await supabase.auth.signUp({
         email,
-        token,
-        type,
+        password: input.password,
+        options: {
+          emailRedirectTo: authRedirectTo(),
+          data: displayName ? { display_name: displayName } : undefined,
+        },
       })
-      if (!error && data.session) {
-        localStorage.removeItem(PENDING_EMAIL_KEY)
-        return data.session
-      }
-      if (error) lastError = error
-    }
-    if (lastError) throw lastError
-    throw new Error('NO_SESSION')
-  }, [])
+      if (error) throw error
+      if (data.session) return 'signed_in'
+      // Project may require email confirmation before a session is issued
+      return 'confirm_email'
+    },
+    [],
+  )
 
   const clearAuthError = useCallback(() => setAuthError(null), [])
 
@@ -193,8 +172,8 @@ export function useSession() {
     authReady,
     authError,
     clearAuthError,
-    requestMagicLink,
-    verifyEmailOtp,
+    signInWithPassword,
+    signUpWithPassword,
     signOut,
     isSignedIn: !!session,
   }

@@ -1,145 +1,123 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { useI18n } from '../i18n'
 import { isValidEmail } from '../lib/storage'
-import { loadPendingAuthEmail } from '../hooks/useSession'
+
+type AuthMode = 'signin' | 'signup'
 
 interface AuthModalProps {
   open: boolean
   onClose: () => void
-  onRequestLink: (input: {
+  onSignIn: (input: {
     email: string
-    displayName?: string
+    password: string
   }) => Promise<void>
-  onVerifyOtp: (input: { email: string; token: string }) => Promise<void>
+  onSignUp: (input: {
+    email: string
+    password: string
+    displayName?: string
+  }) => Promise<'signed_in' | 'confirm_email'>
 }
 
-function classifyAuthError(msg: string, t: (k: string) => string): string {
+function mapAuthError(msg: string, t: (k: string) => string): string {
   const m = msg.toLowerCase()
-  if (m.includes('rate') || m.includes('security') || m.includes('over_email')) {
-    return t('auth.rateLimited')
+  if (m.includes('invalid login') || m.includes('invalid_credentials')) {
+    return t('auth.wrongPassword')
   }
   if (
-    m.includes('expired') ||
-    m.includes('otp_expired') ||
-    m.includes('invalid_otp') ||
-    m.includes('invalid otp') ||
-    m.includes('token has expired') ||
-    m.includes('invalid_otp') ||
-    m.includes('invalid_token') ||
-    m.includes('invalid_otp') ||
-    msg === 'INVALID_OTP' ||
-    m.includes('otp_disabled')
+    m.includes('user already') ||
+    m.includes('already registered') ||
+    m.includes('already been registered')
   ) {
-    if (m.includes('expired')) return t('auth.otpExpired')
-    return t('auth.otpInvalid')
+    return t('auth.userExists')
   }
-  if (m.includes('email') && (m.includes('invalid') || m.includes('not'))) {
+  if (
+    m.includes('password') &&
+    (m.includes('weak') ||
+      m.includes('least') ||
+      m.includes('short') ||
+      m.includes('6'))
+  ) {
+    return t('auth.weakPassword')
+  }
+  if (m.includes('rate') || m.includes('security')) {
+    return t('auth.rateLimited')
+  }
+  if (m.includes('email') && m.includes('invalid')) {
     return t('auth.emailRequired')
   }
-  return t('auth.otpFailed')
+  if (m === 'WEAK_PASSWORD' || m === 'INVALID_EMAIL') {
+    return m === 'WEAK_PASSWORD' ? t('auth.weakPassword') : t('auth.emailRequired')
+  }
+  return t('auth.authFailed')
 }
 
 export function AuthModal({
   open,
   onClose,
-  onRequestLink,
-  onVerifyOtp,
+  onSignIn,
+  onSignUp,
 }: AuthModalProps) {
   const { t } = useI18n()
+  const [mode, setMode] = useState<AuthMode>('signin')
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
-  const [otp, setOtp] = useState('')
   const [error, setError] = useState('')
-  const [sending, setSending] = useState(false)
-  const [verifying, setVerifying] = useState(false)
-  const [sentTo, setSentTo] = useState<string | null>(null)
-  const otpRef = useRef<HTMLInputElement>(null)
+  const [info, setInfo] = useState('')
+  const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     if (open) {
-      const pending = loadPendingAuthEmail()
-      setEmail(pending ?? '')
+      setMode('signin')
+      setEmail('')
+      setPassword('')
       setDisplayName('')
-      setOtp('')
       setError('')
-      setSending(false)
-      setVerifying(false)
-      setSentTo(pending)
+      setInfo('')
+      setBusy(false)
     }
   }, [open])
 
-  useEffect(() => {
-    if (sentTo) {
-      const id = window.setTimeout(() => otpRef.current?.focus(), 50)
-      return () => window.clearTimeout(id)
-    }
-  }, [sentTo])
-
   if (!open) return null
 
-  const sendCode = async (opts?: { resend?: boolean }) => {
-    const target = (opts?.resend ? sentTo || email : email).trim()
-    if (!isValidEmail(target)) {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!isValidEmail(email)) {
       setError(t('auth.emailRequired'))
       return
     }
-    setError('')
-    setSending(true)
-    try {
-      await onRequestLink({
-        email: target,
-        displayName: displayName.trim() || undefined,
-      })
-      setSentTo(target)
-      setOtp('')
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      setError(
-        msg.toLowerCase().includes('rate') ||
-          msg.toLowerCase().includes('security')
-          ? t('auth.rateLimited')
-          : t('auth.sendFailed'),
-      )
-    } finally {
-      setSending(false)
-    }
-  }
-
-  const handleEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    await sendCode()
-  }
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const target = (sentTo || email).trim()
-    const token = otp.replace(/\D/g, '').trim()
-    if (!isValidEmail(target)) {
-      setError(t('auth.emailRequired'))
-      return
-    }
-    if (!/^\d{6,8}$/.test(token)) {
-      setError(t('auth.otpRequired'))
+    if (password.length < 6) {
+      setError(t('auth.weakPassword'))
       return
     }
     setError('')
-    setVerifying(true)
+    setInfo('')
+    setBusy(true)
     try {
-      await onVerifyOtp({ email: target, token })
-      onClose()
+      if (mode === 'signin') {
+        await onSignIn({ email: email.trim(), password })
+        onClose()
+      } else {
+        const result = await onSignUp({
+          email: email.trim(),
+          password,
+          displayName: displayName.trim() || undefined,
+        })
+        if (result === 'confirm_email') {
+          setInfo(t('auth.confirmEmail'))
+          setMode('signin')
+          setPassword('')
+        } else {
+          onClose()
+        }
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      setError(classifyAuthError(msg, t))
+      setError(mapAuthError(msg, t))
     } finally {
-      setVerifying(false)
+      setBusy(false)
     }
-  }
-
-  const onOtpChange = (raw: string) => {
-    // Paste-friendly: strip spaces/dashes from Outlook/Safari pastes
-    const digits = raw.replace(/\D/g, '').slice(0, 8)
-    setOtp(digits)
   }
 
   return (
@@ -153,10 +131,10 @@ export function AuthModal({
       <div className="relative w-full max-w-md rounded-2xl border border-hawk-border bg-hawk-panel p-6 shadow-2xl">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-lg font-bold text-hawk-cream">{t('auth.title')}</h2>
-            <p className="mt-1 text-sm text-hawk-muted">
-              {sentTo ? t('auth.otpStepHint') : t('auth.hint')}
-            </p>
+            <h2 className="text-lg font-bold text-hawk-cream">
+              {mode === 'signin' ? t('auth.titleSignIn') : t('auth.titleSignUp')}
+            </h2>
+            <p className="mt-1 text-sm text-hawk-muted">{t('auth.hint')}</p>
           </div>
           <button
             type="button"
@@ -168,87 +146,73 @@ export function AuthModal({
           </button>
         </div>
 
-        {sentTo ? (
-          <form onSubmit={handleVerifyOtp} className="space-y-4">
-            <p className="rounded-xl border border-hawk-gold/40 bg-hawk-gold/10 px-4 py-3 text-sm text-hawk-cream">
-              {t('auth.checkInboxCode', { email: sentTo })}
-            </p>
-            <p className="text-xs text-hawk-muted">{t('auth.outlookHint')}</p>
+        <div className="mb-4 grid grid-cols-2 gap-1 rounded-xl border border-hawk-border/70 bg-black/20 p-1">
+          <button
+            type="button"
+            className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+              mode === 'signin'
+                ? 'bg-hawk-gold/20 text-hawk-gold'
+                : 'text-hawk-muted hover:text-hawk-cream'
+            }`}
+            onClick={() => {
+              setMode('signin')
+              setError('')
+              setInfo('')
+            }}
+          >
+            {t('auth.modeSignIn')}
+          </button>
+          <button
+            type="button"
+            className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+              mode === 'signup'
+                ? 'bg-hawk-gold/20 text-hawk-gold'
+                : 'text-hawk-muted hover:text-hawk-cream'
+            }`}
+            onClick={() => {
+              setMode('signup')
+              setError('')
+              setInfo('')
+            }}
+          >
+            {t('auth.modeSignUp')}
+          </button>
+        </div>
 
-            <label className="block">
-              <span className="mb-2 block text-sm font-semibold text-hawk-cream">
-                {t('auth.otpLabel')}
-              </span>
-              <input
-                ref={otpRef}
-                className="hawk-input w-full py-3 text-center text-2xl font-semibold tracking-[0.35em] text-hawk-cream"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                autoCorrect="off"
-                spellCheck={false}
-                maxLength={8}
-                value={otp}
-                onChange={(e) => onOtpChange(e.target.value)}
-                onPaste={(e) => {
-                  e.preventDefault()
-                  onOtpChange(e.clipboardData.getData('text'))
-                }}
-                placeholder={t('auth.otpPlaceholder')}
-                disabled={verifying}
-              />
-            </label>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-hawk-cream">
+              {t('auth.email')} <span className="text-hawk-gold">*</span>
+            </span>
+            <input
+              className="hawk-input"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder={t('auth.emailPlaceholder')}
+              autoFocus
+              disabled={busy}
+            />
+          </label>
 
-            {error && <p className="text-sm text-red-400">{error}</p>}
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-hawk-cream">
+              {t('auth.password')} <span className="text-hawk-gold">*</span>
+            </span>
+            <input
+              className="hawk-input"
+              type="password"
+              autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={t('auth.passwordPlaceholder')}
+              disabled={busy}
+              minLength={6}
+            />
+          </label>
 
-            <button
-              type="submit"
-              className="hawk-btn hawk-btn-primary w-full px-4 py-3 text-base"
-              disabled={verifying || sending || otp.length < 6}
-            >
-              {verifying ? t('auth.verifying') : t('auth.otpSubmit')}
-            </button>
-
-            <button
-              type="button"
-              className="hawk-btn w-full border border-hawk-border bg-transparent px-4 py-2.5 text-sm text-hawk-cream hover:bg-white/5"
-              disabled={sending || verifying}
-              onClick={() => void sendCode({ resend: true })}
-            >
-              {sending ? t('auth.sending') : t('auth.resend')}
-            </button>
-
-            <p className="text-xs text-hawk-muted">{t('auth.linkSecondaryNote')}</p>
-            <p className="text-xs text-hawk-muted">{t('auth.rateNote')}</p>
-
-            <button
-              type="button"
-              className="w-full text-center text-xs text-hawk-muted underline-offset-2 hover:text-hawk-cream hover:underline"
-              onClick={() => {
-                setSentTo(null)
-                setOtp('')
-                setError('')
-              }}
-            >
-              {t('auth.useDifferentEmail')}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={handleEmailSubmit} className="space-y-4">
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-medium text-hawk-cream">
-                {t('auth.email')} <span className="text-hawk-gold">*</span>
-              </span>
-              <input
-                className="hawk-input"
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={t('auth.emailPlaceholder')}
-                autoFocus
-                disabled={sending}
-              />
-            </label>
+          {mode === 'signup' && (
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium text-hawk-cream">
                 {t('auth.name')}
@@ -258,21 +222,32 @@ export function AuthModal({
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder={t('auth.namePlaceholder')}
-                disabled={sending}
+                disabled={busy}
               />
             </label>
-            {error && <p className="text-sm text-red-400">{error}</p>}
-            <p className="text-xs text-hawk-muted">{t('auth.outlookHint')}</p>
-            <p className="text-xs text-hawk-muted">{t('auth.rateNote')}</p>
-            <button
-              type="submit"
-              className="hawk-btn hawk-btn-primary w-full px-4 py-2.5"
-              disabled={sending}
-            >
-              {sending ? t('auth.sending') : t('auth.submit')}
-            </button>
-          </form>
-        )}
+          )}
+
+          {error && <p className="text-sm text-red-400">{error}</p>}
+          {info && (
+            <p className="rounded-xl border border-hawk-gold/30 bg-hawk-gold/10 px-3 py-2 text-sm text-hawk-cream">
+              {info}
+            </p>
+          )}
+
+          <p className="text-xs text-hawk-muted">{t('auth.supabaseNote')}</p>
+
+          <button
+            type="submit"
+            className="hawk-btn hawk-btn-primary w-full px-4 py-2.5"
+            disabled={busy}
+          >
+            {busy
+              ? t('auth.working')
+              : mode === 'signin'
+                ? t('auth.submitSignIn')
+                : t('auth.submitSignUp')}
+          </button>
+        </form>
       </div>
     </div>
   )
