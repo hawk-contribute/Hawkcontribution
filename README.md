@@ -103,8 +103,9 @@ Private demo / internal MVP for Hawk.
 
 ## Deploy (GitHub Pages)
 
-Pushes to `main` build and deploy via `.github/workflows/deploy-pages.yml`.
-
-Public URL: https://jeffyu-jpg.github.io/Hawkcontribution/
+**Live:** https://jeffyu-jpg.github.io/Hawkcontribution/
 
 Vite `base` is `/Hawkcontribution/`. Asset paths go through `src/lib/asset.ts`.
+
+Current publish source: **`gh-pages` branch** (built `dist`).  
+Actions workflow is prepared at `.github/workflows/deploy-pages.yml` — pushing it requires a token with the `workflow` scope (`gh auth refresh -h github.com -s workflow`), then switch Pages to **GitHub Actions**.
