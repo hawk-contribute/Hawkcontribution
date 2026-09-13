@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { ExternalLink } from 'lucide-react'
 import type { Opportunity, OpportunityType } from '../types'
 import { useI18n } from '../i18n'
 import { asset } from '../lib/asset'
@@ -37,15 +38,27 @@ export function BrowseView({ opportunities, onJoin }: BrowseViewProps) {
             <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-hawk-blue/30 bg-hawk-blue/10 px-2.5 py-0.5 text-xs font-semibold text-hawk-blue-bright">
               {t('hero.badge')}
             </p>
+            <p className="mb-3 text-sm font-semibold tracking-wide text-hawk-gold sm:text-base">
+              {t('brand.slogan')}
+            </p>
             <h1 className="text-2xl font-bold tracking-tight text-hawk-cream sm:text-3xl">
               {t('hero.title')}
             </h1>
             <p className="mt-2 text-sm leading-relaxed text-hawk-muted sm:text-base">
               {t('hero.body')}
             </p>
+            <a
+              href="https://hawk.city"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hawk-btn hawk-btn-primary mt-5 px-4 py-2.5 text-sm"
+            >
+              <ExternalLink className="h-4 w-4" />
+              {t('brand.officialSite')}
+            </a>
           </div>
           <img
-            src={asset("brand/hawk-token.png")}
+            src={asset('brand/hawk-token.png')}
             alt="Hawk Token"
             className="mx-auto h-28 w-28 shrink-0 drop-shadow-[0_8px_28px_rgba(0,113,188,0.45)] sm:mx-0 sm:h-36 sm:w-36"
           />

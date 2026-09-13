@@ -13,6 +13,9 @@ type Dict = Record<string, string>
 export const translations: Record<Locale, Dict> = {
   en: {
     'brand.subtitle': 'Community contribution log',
+    'brand.slogan': 'Freedom as our banner, guardians of the ecosystem',
+    'brand.officialSite': 'Hawk Official Site',
+
     'nav.opportunities': 'Opportunities',
     'nav.ledger': 'My contributions',
     'nav.setIdentity': 'Set identity',
@@ -71,6 +74,9 @@ export const translations: Record<Locale, Dict> = {
   },
   'zh-CN': {
     'brand.subtitle': '社群生态贡献记录',
+    'brand.slogan': '以自由为帜，生态守护',
+    'brand.officialSite': 'Hawk 官网',
+
     'nav.opportunities': '机会',
     'nav.ledger': '我的贡献',
     'nav.setIdentity': '设置身份',
@@ -128,6 +134,9 @@ export const translations: Record<Locale, Dict> = {
   },
   'zh-TW': {
     'brand.subtitle': '社群生態貢獻紀錄',
+    'brand.slogan': '以自由為幟，生態守護',
+    'brand.officialSite': 'Hawk 官網',
+
     'nav.opportunities': '機會',
     'nav.ledger': '我的貢獻',
     'nav.setIdentity': '設定身分',
