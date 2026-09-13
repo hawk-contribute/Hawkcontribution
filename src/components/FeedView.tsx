@@ -4,6 +4,7 @@ import {
   MessageCircle,
   Quote as QuoteIcon,
   Search,
+  Trash2,
 } from 'lucide-react'
 import type {
   Comment,
@@ -14,6 +15,7 @@ import type {
   SocialState,
 } from '../types'
 import { useI18n } from '../i18n'
+import { isSiteAdmin } from '../lib/admins'
 
 type Filter = 'all' | ContributionCategory
 
@@ -26,6 +28,10 @@ interface FeedViewProps {
   onAddComment: (c: Contribution, body: string) => void | Promise<void>
   onAddQuote: (quoted: Contribution, remark: string) => void | Promise<void>
   onFocusContribution?: (id: string) => void
+  onAdminDeleteContribution?: (id: string) => void | Promise<void>
+  onAdminDeleteComment?: (id: string) => void | Promise<void>
+  onAdminDeleteQuote?: (id: string) => void | Promise<void>
+  onAdminDeleteLike?: (contributionId: string, userEmail: string) => void | Promise<void>
 }
 
 export function FeedView({
@@ -36,8 +42,13 @@ export function FeedView({
   onToggleLike,
   onAddComment,
   onAddQuote,
+  onAdminDeleteContribution,
+  onAdminDeleteComment,
+  onAdminDeleteQuote,
+  onAdminDeleteLike,
 }: FeedViewProps) {
   const { t } = useI18n()
+  const admin = isSiteAdmin(session?.email)
   const [filter, setFilter] = useState<Filter>('all')
   const [q, setQ] = useState('')
   const [openComments, setOpenComments] = useState<string | null>(null)
@@ -81,6 +92,11 @@ export function FeedView({
       return
     }
     fn()
+  }
+
+  const confirmAdmin = (message: string, fn: () => void) => {
+    if (!admin) return
+    if (window.confirm(message)) fn()
   }
 
   return (
@@ -142,6 +158,20 @@ export function FeedView({
                   <span className="text-xs text-hawk-muted">
                     {c.participantName}
                   </span>
+                  {admin && onAdminDeleteContribution && (
+                    <button
+                      type="button"
+                      className="ml-auto hawk-btn hawk-btn-ghost px-2 py-1 text-xs text-red-300 hover:border-red-400/40 hover:text-red-200"
+                      onClick={() =>
+                        confirmAdmin(t('admin.confirmContribution'), () => {
+                          void onAdminDeleteContribution(c.id)
+                        })
+                      }
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      {t('admin.deleteContribution')}
+                    </button>
+                  )}
                 </div>
                 <h3 className="mt-2 text-base font-bold text-hawk-cream">{c.title}</h3>
                 <p className="mt-1 text-sm leading-relaxed text-hawk-muted">
@@ -163,9 +193,25 @@ export function FeedView({
                           key={q.id}
                           className="rounded-lg border border-hawk-gold/20 bg-hawk-gold/5 px-3 py-2 text-xs text-hawk-muted"
                         >
-                          <p className="font-medium text-hawk-gold">
-                            {t('feed.quotedFrom')}：{q.quotedTitle}
-                          </p>
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="font-medium text-hawk-gold">
+                              {t('feed.quotedFrom')}：{q.quotedTitle}
+                            </p>
+                            {admin && onAdminDeleteQuote && (
+                              <button
+                                type="button"
+                                className="shrink-0 text-red-300 hover:text-red-200"
+                                title={t('admin.deleteQuote')}
+                                onClick={() =>
+                                  confirmAdmin(t('admin.confirmQuote'), () => {
+                                    void onAdminDeleteQuote(q.id)
+                                  })
+                                }
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
                           {q.remark && (
                             <p className="mt-1 text-hawk-cream/90">{q.remark}</p>
                           )}
@@ -229,16 +275,63 @@ export function FeedView({
                     <p className="mb-2 text-xs font-semibold text-hawk-muted">
                       {t('feed.commentsTitle')}
                     </p>
+                    {admin && (social.likes[c.id]?.length ?? 0) > 0 && (
+                      <div className="mb-3 rounded-lg border border-hawk-border/60 bg-hawk-panel/40 px-2 py-2">
+                        <p className="mb-1 text-[11px] font-semibold uppercase text-hawk-muted">
+                          {t('admin.likesTitle')}
+                        </p>
+                        <ul className="space-y-1">
+                          {(social.likes[c.id] ?? []).map((email) => (
+                            <li
+                              key={email}
+                              className="flex items-center justify-between gap-2 text-xs text-hawk-cream/90"
+                            >
+                              <span className="truncate">{email}</span>
+                              {onAdminDeleteLike && (
+                                <button
+                                  type="button"
+                                  className="shrink-0 text-red-300 hover:text-red-200"
+                                  title={t('admin.deleteLike')}
+                                  onClick={() =>
+                                    confirmAdmin(t('admin.confirmLike'), () => {
+                                      void onAdminDeleteLike(c.id, email)
+                                    })
+                                  }
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                     <ul className="mb-3 max-h-48 space-y-2 overflow-y-auto">
                       {comments.length === 0 && (
                         <li className="text-xs text-hawk-muted">{t('feed.empty')}</li>
                       )}
                       {comments.map((cm) => (
-                        <li key={cm.id} className="text-sm">
-                          <span className="font-semibold text-hawk-blue-bright">
-                            {cm.authorName}
-                          </span>
-                          <span className="text-hawk-cream"> — {cm.body}</span>
+                        <li key={cm.id} className="flex items-start justify-between gap-2 text-sm">
+                          <p>
+                            <span className="font-semibold text-hawk-blue-bright">
+                              {cm.authorName}
+                            </span>
+                            <span className="text-hawk-cream"> — {cm.body}</span>
+                          </p>
+                          {admin && onAdminDeleteComment && (
+                            <button
+                              type="button"
+                              className="shrink-0 text-red-300 hover:text-red-200"
+                              title={t('admin.deleteComment')}
+                              onClick={() =>
+                                confirmAdmin(t('admin.confirmComment'), () => {
+                                  void onAdminDeleteComment(cm.id)
+                                })
+                              }
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                         </li>
                       ))}
                     </ul>

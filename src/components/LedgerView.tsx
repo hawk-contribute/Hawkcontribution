@@ -1,6 +1,7 @@
-import { ExternalLink, FileText } from 'lucide-react'
+import { ExternalLink, FileText, Trash2 } from 'lucide-react'
 import type { Contribution } from '../types'
 import { useI18n } from '../i18n'
+import { isSiteAdmin } from '../lib/admins'
 import { asset } from '../lib/asset'
 
 interface LedgerViewProps {
@@ -8,6 +9,8 @@ interface LedgerViewProps {
   onBrowse: () => void
   onProvide: () => void
   signedIn: boolean
+  sessionEmail?: string | null
+  onAdminDeleteContribution?: (id: string) => void | Promise<void>
 }
 
 function formatDate(iso: string, locale: string): string {
@@ -30,8 +33,11 @@ export function LedgerView({
   onBrowse,
   onProvide,
   signedIn,
+  sessionEmail,
+  onAdminDeleteContribution,
 }: LedgerViewProps) {
   const { t, locale } = useI18n()
+  const admin = isSiteAdmin(sessionEmail)
 
   return (
     <section>
@@ -92,7 +98,23 @@ export function LedgerView({
                   {formatDate(c.createdAt, locale)}
                 </span>
               </div>
-              <h3 className="mt-2 text-base font-bold text-hawk-cream">{c.title}</h3>
+              <div className="mt-2 flex flex-wrap items-start justify-between gap-2">
+                <h3 className="text-base font-bold text-hawk-cream">{c.title}</h3>
+                {admin && onAdminDeleteContribution && (
+                  <button
+                    type="button"
+                    className="hawk-btn hawk-btn-ghost px-2 py-1 text-xs text-red-300 hover:text-red-200"
+                    onClick={() => {
+                      if (window.confirm(t('admin.confirmContribution'))) {
+                        void onAdminDeleteContribution(c.id)
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    {t('admin.deleteContribution')}
+                  </button>
+                )}
+              </div>
               <p className="mt-1 text-sm text-hawk-muted">{c.description}</p>
               <p className="mt-3 text-xs text-hawk-muted">
                 {t('ledger.forOpportunity')}：

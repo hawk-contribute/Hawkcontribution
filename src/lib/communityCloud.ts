@@ -475,3 +475,44 @@ export function subscribeCommunityRealtime(onChange: () => void): () => void {
     void supabase.removeChannel(channel)
   }
 }
+
+/** Admin moderation deletes — RLS enforces is_site_admin(). */
+
+export async function adminDeleteContribution(id: string): Promise<void> {
+  const { error } = await supabase.from('contributions').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function adminDeleteComment(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('contribution_comments')
+    .delete()
+    .eq('id', id)
+  if (error) throw error
+}
+
+export async function adminDeleteQuote(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('contribution_quotes')
+    .delete()
+    .eq('id', id)
+  if (error) throw error
+}
+
+export async function adminDeleteLike(
+  contributionId: string,
+  userEmail: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from('contribution_likes')
+    .delete()
+    .eq('contribution_id', contributionId)
+    .eq('user_email', userEmail)
+  if (error) throw error
+}
+
+export async function adminDeleteActivity(id: string): Promise<void> {
+  const { error } = await supabase.from('activities').delete().eq('id', id)
+  if (error) throw error
+}
+

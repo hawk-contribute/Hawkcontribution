@@ -9,6 +9,11 @@ import type {
 import {
   addCommentCloud,
   addQuoteCloud,
+  adminDeleteActivity,
+  adminDeleteComment,
+  adminDeleteContribution,
+  adminDeleteLike,
+  adminDeleteQuote,
   createContributionCloud,
   fetchCommunitySnapshot,
   subscribeCommunityRealtime,
@@ -156,6 +161,47 @@ export function useCommunity(options?: { live?: boolean }) {
     }
   }, [contributions, social])
 
+
+  const deleteContribution = useCallback(
+    async (id: string) => {
+      await adminDeleteContribution(id)
+      await refresh()
+    },
+    [refresh],
+  )
+
+  const deleteComment = useCallback(
+    async (id: string) => {
+      await adminDeleteComment(id)
+      await refresh()
+    },
+    [refresh],
+  )
+
+  const deleteQuote = useCallback(
+    async (id: string) => {
+      await adminDeleteQuote(id)
+      await refresh()
+    },
+    [refresh],
+  )
+
+  const deleteLike = useCallback(
+    async (contributionId: string, userEmail: string) => {
+      await adminDeleteLike(contributionId, userEmail)
+      await refresh()
+    },
+    [refresh],
+  )
+
+  const deleteActivity = useCallback(
+    async (id: string) => {
+      await adminDeleteActivity(id)
+      await refresh()
+    },
+    [refresh],
+  )
+
   return {
     contributions,
     social,
@@ -167,5 +213,10 @@ export function useCommunity(options?: { live?: boolean }) {
     toggleLike,
     addComment,
     addQuote,
+    deleteContribution,
+    deleteComment,
+    deleteQuote,
+    deleteLike,
+    deleteActivity,
   }
 }

@@ -61,6 +61,11 @@ export default function App() {
     addComment,
     addQuote,
     refresh,
+    deleteContribution,
+    deleteComment,
+    deleteQuote,
+    deleteLike,
+    deleteActivity,
   } = useCommunity({ live: tab === 'feed' || tab === 'browse' || tab === 'ledger' || tab === 'stats' })
   const { account, communityPoints, recordRound } = usePoints(
     session?.email,
@@ -330,7 +335,18 @@ export default function App() {
         contributionCount={myContributions.length}
       />
 
-      <ActivityMarquee activities={marqueeActivities} />
+      <ActivityMarquee
+        activities={marqueeActivities}
+        sessionEmail={session?.email}
+        onAdminDeleteActivity={async (id) => {
+          try {
+            await deleteActivity(id)
+            setToast(t('admin.deleted'))
+          } catch {
+            setToast(t('admin.deleteFailed'))
+          }
+        }}
+      />
       <StatsBar stats={statsWithPoints} />
 
       <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
@@ -358,6 +374,38 @@ export default function App() {
             onToggleLike={handleToggleLike}
             onAddComment={handleAddComment}
             onAddQuote={handleAddQuote}
+            onAdminDeleteContribution={async (id) => {
+              try {
+                await deleteContribution(id)
+                setToast(t('admin.deleted'))
+              } catch {
+                setToast(t('admin.deleteFailed'))
+              }
+            }}
+            onAdminDeleteComment={async (id) => {
+              try {
+                await deleteComment(id)
+                setToast(t('admin.deleted'))
+              } catch {
+                setToast(t('admin.deleteFailed'))
+              }
+            }}
+            onAdminDeleteQuote={async (id) => {
+              try {
+                await deleteQuote(id)
+                setToast(t('admin.deleted'))
+              } catch {
+                setToast(t('admin.deleteFailed'))
+              }
+            }}
+            onAdminDeleteLike={async (contributionId, userEmail) => {
+              try {
+                await deleteLike(contributionId, userEmail)
+                setToast(t('admin.deleted'))
+              } catch {
+                setToast(t('admin.deleteFailed'))
+              }
+            }}
           />
         )}
         {tab === 'ledger' && (
@@ -366,6 +414,15 @@ export default function App() {
             onBrowse={() => setTab('browse')}
             onProvide={handleProvide}
             signedIn={!!session}
+            sessionEmail={session?.email}
+            onAdminDeleteContribution={async (id) => {
+              try {
+                await deleteContribution(id)
+                setToast(t('admin.deleted'))
+              } catch {
+                setToast(t('admin.deleteFailed'))
+              }
+            }}
           />
         )}
         {tab === 'rewards' && (
