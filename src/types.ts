@@ -47,7 +47,7 @@ export interface Contribution {
   seeded?: boolean
 }
 
-export type ActivityKind = 'contribute' | 'like' | 'comment' | 'quote'
+export type ActivityKind = 'contribute' | 'like' | 'comment' | 'quote' | 'game'
 
 export interface ActivityEvent {
   id: string
@@ -103,3 +103,18 @@ export type FutureRewardHook = {
 
 export const MAX_UPLOAD_BYTES = 2.5 * 1024 * 1024
 export const MAX_ACTIVITIES = 30
+
+/** Per-email cumulative game points (local demo) */
+export interface PointsRound {
+  at: string
+  score: number
+  hits: number
+}
+
+export interface PointsAccount {
+  total: number
+  history: PointsRound[]
+}
+
+/** email -> points account */
+export type PointsMap = Record<string, PointsAccount>

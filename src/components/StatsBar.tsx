@@ -7,6 +7,7 @@ export interface CommunityStats {
   comments: number
   quotes: number
   members: number
+  points?: number
 }
 
 export function StatsBar({ stats }: { stats: CommunityStats }) {
@@ -20,11 +21,14 @@ export function StatsBar({ stats }: { stats: CommunityStats }) {
     { label: t('stats.comments'), value: stats.comments },
     { label: t('stats.quotes'), value: stats.quotes },
     { label: t('stats.members'), value: stats.members },
+    ...(stats.points !== undefined
+      ? [{ label: t('stats.points'), value: stats.points }]
+      : []),
   ]
 
   return (
     <div className="mx-auto max-w-5xl px-4 pt-4 sm:px-6">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-3 lg:grid-cols-9">
         {cells.map((c) => (
           <div
             key={c.label}

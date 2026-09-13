@@ -34,6 +34,13 @@ npm run preview  # preview production build
 
 
 
+
+## Mini-game (Bald Eagle Whack)
+
+- Nav: **小遊戲 / Game** — login required.
+- Whack eagles for 30s; points saved in `hawk-contribute:points` (`email → { total, history }`).
+- Points accumulate toward **future reward eligibility** (no redemption catalog yet).
+
 ## Community feed & live activity
 
 - **Marquee** under the header thanks contributors in realtime (last 30 events).

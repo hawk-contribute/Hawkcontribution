@@ -229,3 +229,20 @@ export function pushActivity(
 }
 
 export type { LikesMap, Comment, Quote }
+
+export function recordGameActivity(input: {
+  actorName: string
+  actorEmail: string
+  score: number
+}): void {
+  let social = loadSocial()
+  social = pushActivity(social, {
+    kind: 'game',
+    at: new Date().toISOString(),
+    actorName: input.actorName,
+    actorEmail: input.actorEmail,
+    contributionId: 'game-eagle',
+    contributionTitle: String(input.score),
+  })
+  saveSocial(social)
+}

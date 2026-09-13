@@ -1,6 +1,7 @@
 import {
   BookOpen,
   ExternalLink,
+  Gamepad2,
   LogOut,
   Newspaper,
   Upload,
@@ -11,7 +12,7 @@ import { useI18n } from '../i18n'
 import { asset } from '../lib/asset'
 import { LanguageSwitcher } from './LanguageSwitcher'
 
-type Tab = 'browse' | 'feed' | 'ledger'
+type Tab = 'browse' | 'feed' | 'ledger' | 'game'
 
 interface HeaderProps {
   tab: Tab
@@ -74,6 +75,7 @@ export function Header({
         <nav className="flex items-center gap-1 rounded-xl border border-hawk-border bg-hawk-panel/80 p-1">
           {tabBtn('browse', t('nav.opportunities'))}
           {tabBtn('feed', t('nav.feed'), <Newspaper className="h-3.5 w-3.5" />)}
+          {tabBtn('game', t('nav.game'), <Gamepad2 className="h-3.5 w-3.5" />)}
           {tabBtn(
             'ledger',
             t('nav.ledger'),

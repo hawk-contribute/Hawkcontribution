@@ -1,20 +1,23 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { SEEDED_OPPORTUNITIES } from './data/opportunities'
 import { useCommunity } from './hooks/useCommunity'
+import { usePoints } from './hooks/usePoints'
 import { useSession } from './hooks/useSession'
 import { useI18n } from './i18n'
+import { recordGameActivity } from './lib/storage'
 import type { Contribution, Opportunity } from './types'
 import { ActivityMarquee } from './components/ActivityMarquee'
 import { AuthModal } from './components/AuthModal'
 import { BrowseView } from './components/BrowseView'
 import { FeedView } from './components/FeedView'
+import { GameView } from './components/GameView'
 import { Header } from './components/Header'
 import { LedgerView } from './components/LedgerView'
 import { StatsBar } from './components/StatsBar'
 import { Toast } from './components/Toast'
 import { UploadModal } from './components/UploadModal'
 
-type Tab = 'browse' | 'feed' | 'ledger'
+type Tab = 'browse' | 'feed' | 'ledger' | 'game'
 
 export default function App() {
   const { t } = useI18n()
@@ -23,7 +26,9 @@ export default function App() {
   const [uploadOpen, setUploadOpen] = useState(false)
   const [presetOpp, setPresetOpp] = useState<Opportunity | null>(null)
   const [toast, setToast] = useState<string | null>(null)
-  const [pendingAction, setPendingAction] = useState<'upload' | 'join' | null>(null)
+  const [pendingAction, setPendingAction] = useState<'upload' | 'join' | 'game' | null>(
+    null,
+  )
   const [pendingOpp, setPendingOpp] = useState<Opportunity | null>(null)
 
   const { session, signIn, signOut } = useSession()
@@ -35,7 +40,14 @@ export default function App() {
     toggleLike,
     addComment,
     addQuote,
+    refresh,
   } = useCommunity()
+  const { account, communityPoints, recordRound } = usePoints(session?.email)
+
+  const statsWithPoints = useMemo(
+    () => ({ ...stats, points: communityPoints }),
+    [stats, communityPoints],
+  )
 
   const openUpload = useCallback(
     (opp?: Opportunity | null) => {
@@ -52,10 +64,14 @@ export default function App() {
     [session, t],
   )
 
-  const requireAuth = useCallback(() => {
-    setAuthOpen(true)
-    setToast(t('toast.needAuth'))
-  }, [t])
+  const requireAuth = useCallback(
+    (intent: 'upload' | 'join' | 'game' | null = null) => {
+      if (intent) setPendingAction(intent)
+      setAuthOpen(true)
+      setToast(t('toast.needAuth'))
+    },
+    [t],
+  )
 
   const handleJoin = useCallback(
     (opportunity: Opportunity) => openUpload(opportunity),
@@ -74,6 +90,9 @@ export default function App() {
       if (action === 'join' || action === 'upload') {
         setPresetOpp(opp)
         setUploadOpen(true)
+      }
+      if (action === 'game') {
+        setTab('game')
       }
     },
     [signIn, t, pendingAction, pendingOpp],
@@ -136,6 +155,21 @@ export default function App() {
     [session, addQuote, requireAuth, t],
   )
 
+  const handleRoundComplete = useCallback(
+    (score: number, hits: number) => {
+      if (!session || score <= 0) return
+      recordRound(score, hits)
+      recordGameActivity({
+        actorName: session.displayName,
+        actorEmail: session.email,
+        score,
+      })
+      refresh()
+      setToast(t('toast.gamePoints', { n: score }))
+    },
+    [session, recordRound, refresh, t],
+  )
+
   const myContributions = session
     ? contributions.filter(
         (c) =>
@@ -159,7 +193,7 @@ export default function App() {
       />
 
       <ActivityMarquee activities={social.activities} />
-      <StatsBar stats={stats} />
+      <StatsBar stats={statsWithPoints} />
 
       <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
         {tab === 'browse' && (
@@ -174,7 +208,7 @@ export default function App() {
             contributions={contributions}
             social={social}
             session={session}
-            onRequireAuth={requireAuth}
+            onRequireAuth={() => requireAuth()}
             onToggleLike={handleToggleLike}
             onAddComment={handleAddComment}
             onAddQuote={handleAddQuote}
@@ -186,6 +220,14 @@ export default function App() {
             onBrowse={() => setTab('browse')}
             onProvide={handleProvide}
             signedIn={!!session}
+          />
+        )}
+        {tab === 'game' && (
+          <GameView
+            session={session}
+            account={account}
+            onRequireAuth={() => requireAuth('game')}
+            onRoundComplete={handleRoundComplete}
           />
         )}
       </main>
