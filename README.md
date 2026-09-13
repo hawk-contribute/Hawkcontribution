@@ -1,0 +1,99 @@
+# Hawk Contribute（Hawk 貢獻）
+
+Local MVP web app for Hawk's brand / community ecosystem. Participants browse opportunities (活動 / 合作 / 內容貢獻), set a simple local identity, join, and **record** contributions. Points and redemption are **not** implemented in this MVP.
+
+## What it does
+
+- Browse seeded opportunities in three types: **活動** / **合作** / **內容貢獻**
+- Local identity via `localStorage` (display name + optional email) — no OAuth
+- Join an opportunity and submit a contribution (title, description, optional proof URL)
+- Personal contribution ledger (history) persisted in the browser
+- zh-TW UI copy; English in code and comments
+- Dark, bold Hawk-forward responsive UI
+
+## How to run
+
+```bash
+cd /workspace/hawk-contribute
+npm install
+npm run dev
+```
+
+Open the URL Vite prints (default **http://localhost:5173**).
+
+Other scripts:
+
+```bash
+npm run build    # production build
+npm run preview  # preview production build
+```
+
+
+## Languages (i18n)
+
+UI supports **English / 简体中文 / 繁體中文**.
+
+- Switcher: header `EN | 简 | 繁` (`src/components/LanguageSwitcher.tsx`)
+- Strings: `src/i18n/translations.ts`
+- Context: `src/i18n/context.tsx` (`t()`, `lx()`, `lxList()`)
+- Locale persisted in `localStorage` key `hawk-contribute:locale`
+- Default: browser language when recognizable, else **繁體中文**
+- Seeded opportunities store keyed copy (`en` / `zh-CN` / `zh-TW`) in `src/data/opportunities.ts`
+
+## Opportunity photos
+
+Local covers under `public/photos/` (Unsplash downloads; see `public/photos/SOURCES.md`). Each `OpportunityCard` shows a 16:9 cover.
+
+## Brand assets
+
+Bundled under `public/brand/` (copied into the project; no external attachment paths):
+
+- `hawk-logo.png` — full logo (eagle circle + Hawk wordmark)
+- `hawk-mark.png` — circular eagle mark (header + favicon)
+- `hawk-token.png` — coin art (hero accent + ledger empty / count badge)
+
+Favicons: `public/favicon.png`, `public/favicon-32.png`.
+
+## Tech stack
+
+- Vite + React + TypeScript
+- Tailwind CSS v4 (`@tailwindcss/vite`)
+- `localStorage` for identity + contributions
+
+## Data & persistence
+
+| Key | Purpose |
+|-----|---------|
+| `hawk-contribute:identity` | Display name (+ optional email) |
+| `hawk-contribute:contributions` | Contribution ledger array |
+
+Seeded opportunities live in `src/data/opportunities.ts` (static sample data).
+
+## Where future rewards plug in
+
+MVP **records contributions only**. When points / redemption land:
+
+1. **`src/types.ts`** — `FutureRewardHook` documents the intended `evaluate(contribution, opportunity) => number` shape.
+2. **`src/hooks/useContributions.ts`** — after `addContribution` persists an entry, call the reward evaluator and store/display points (commented hook in code).
+3. Do **not** bake points into the contribution write path until the rule engine exists.
+
+## Project layout
+
+```
+src/
+  App.tsx                 # Shell + tab routing
+  i18n/                   # Locale context + EN/简/繁 dictionaries
+  components/             # UI (Header, LanguageSwitcher, cards, modals, ledger)
+  data/opportunities.ts   # Seeded opportunities (localized + photo paths)
+  hooks/                  # Identity + contributions
+  lib/storage.ts          # localStorage helpers
+  types.ts                # Shared types + rewards hook comment
+  index.css               # Tailwind + Hawk theme
+public/
+  brand/                  # Hawk logo mark + token
+  photos/                 # Opportunity cover images
+```
+
+## License
+
+Private demo / internal MVP for Hawk.

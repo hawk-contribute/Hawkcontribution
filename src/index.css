@@ -1,0 +1,124 @@
+@import "tailwindcss";
+
+@theme {
+  --color-hawk-black: #05070c;
+  --color-hawk-ink: #0a0f18;
+  --color-hawk-panel: #0f1520;
+  --color-hawk-border: #1e2a3d;
+  --color-hawk-muted: #8a96ab;
+  --color-hawk-cream: #eef2f8;
+  /* Brand blue from logo circle */
+  --color-hawk-blue: #0071bc;
+  --color-hawk-blue-bright: #1a8fd4;
+  --color-hawk-blue-dim: #005a96;
+  /* Brand gold from beak / token rim */
+  --color-hawk-gold: #feba45;
+  --color-hawk-gold-dim: #e09a28;
+  --color-hawk-amber: #feba45;
+  --color-hawk-amber-dim: #e09a28;
+  --font-sans: "Inter", "Noto Sans TC", system-ui, -apple-system, sans-serif;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100svh;
+    font-family: var(--font-sans);
+    background:
+      radial-gradient(ellipse 70% 45% at 15% -10%, rgba(0, 113, 188, 0.22), transparent 55%),
+      radial-gradient(ellipse 50% 35% at 95% 5%, rgba(254, 186, 69, 0.08), transparent 50%),
+      var(--color-hawk-black);
+    color: var(--color-hawk-cream);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #root {
+    min-height: 100svh;
+  }
+
+  ::selection {
+    background: rgba(0, 113, 188, 0.45);
+    color: #fff;
+  }
+}
+
+@layer utilities {
+  .hawk-grid {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  .hawk-card {
+    background: linear-gradient(165deg, rgba(0, 113, 188, 0.08), transparent 42%),
+      var(--color-hawk-panel);
+    border: 1px solid var(--color-hawk-border);
+    border-radius: 1rem;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+  }
+
+  .hawk-card:hover {
+    border-color: rgba(0, 113, 188, 0.45);
+    box-shadow: 0 0 0 1px rgba(0, 113, 188, 0.12), 0 12px 40px rgba(0, 0, 0, 0.4);
+  }
+
+  .hawk-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    transition: background 0.15s, color 0.15s, transform 0.1s, opacity 0.15s, border-color 0.15s;
+  }
+
+  .hawk-btn:active {
+    transform: scale(0.98);
+  }
+
+  .hawk-btn-primary {
+    background: linear-gradient(135deg, var(--color-hawk-blue-bright), var(--color-hawk-blue));
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(0, 113, 188, 0.35);
+  }
+
+  .hawk-btn-primary:hover {
+    filter: brightness(1.08);
+  }
+
+  .hawk-btn-ghost {
+    background: transparent;
+    border: 1px solid var(--color-hawk-border);
+    color: var(--color-hawk-cream);
+  }
+
+  .hawk-btn-ghost:hover {
+    border-color: rgba(0, 113, 188, 0.55);
+    color: var(--color-hawk-blue-bright);
+  }
+
+  .hawk-input {
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid var(--color-hawk-border);
+    background: var(--color-hawk-ink);
+    color: var(--color-hawk-cream);
+    padding: 0.75rem 1rem;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .hawk-input:focus {
+    border-color: rgba(0, 113, 188, 0.65);
+    box-shadow: 0 0 0 3px rgba(0, 113, 188, 0.2);
+  }
+
+  .hawk-input::placeholder {
+    color: #5a667a;
+  }
+}
