@@ -449,7 +449,7 @@ export default function App() {
             onRefreshDonation={() => void donationFeed.refresh()}
           />
         )}
-        {tab === 'news' && <NewsView />}
+        {tab === 'news' && <NewsView session={session} />}
       </main>
 
       <footer className="border-t border-hawk-border/60 py-6 text-center text-xs text-hawk-muted">

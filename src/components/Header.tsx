@@ -15,6 +15,7 @@ import type { Session } from '../types'
 import { useI18n } from '../i18n'
 import { asset } from '../lib/asset'
 import { LanguageSwitcher } from './LanguageSwitcher'
+import { HawkPricePill } from './HawkPricePill'
 
 type Tab = 'game' | 'browse' | 'feed' | 'ledger' | 'rewards' | 'stats' | 'news'
 
@@ -89,6 +90,7 @@ export function Header({
         </nav>
 
         <div className="flex flex-wrap items-center gap-2">
+          <HawkPricePill />
           <a
             href="https://hawk.city"
             target="_blank"

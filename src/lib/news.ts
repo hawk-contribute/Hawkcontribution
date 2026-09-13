@@ -1,58 +1,46 @@
-/** Official Hawk news source on X (Twitter). */
-export const NEWS_SOURCE = {
-  platform: 'X',
-  handle: 'hawk_killshib',
-  handleAt: '@hawk_killshib',
-  profileUrl: 'https://x.com/hawk_killshib',
-  embedProfileUrl: 'https://twitter.com/hawk_killshib',
-  widgetsScript: 'https://platform.twitter.com/widgets.js',
-} as const
-
-/** Only surface posts from this rolling window. */
-export const NEWS_WINDOW_DAYS = 30
-
-/** After an empty / unavailable result, do not re-search until this elapses. */
-export const NEWS_EMPTY_COOLDOWN_MS = 8 * 60 * 60 * 1000 // 8 hours
-
-/** Positive hit cache TTL (still re-filter by 30d on read). */
-export const NEWS_POSTS_CACHE_MS = 2 * 60 * 60 * 1000 // 2 hours
-
-export const NEWS_CACHE_KEY = 'hawk-contribute:news-v2'
-export const NEWS_SESSION_ATTEMPTED_KEY = 'hawk-contribute:news-attempted-session'
+import { supabase } from './supabase'
+export { NEWS_SOURCE, NEWS_WINDOW_DAYS, NEWS_EMPTY_COOLDOWN_MS } from './newsSource'
+import {
+  NEWS_SOURCE,
+  NEWS_WINDOW_DAYS,
+  NEWS_EMPTY_COOLDOWN_MS,
+  NEWS_CACHE_KEY,
+  NEWS_SESSION_ATTEMPTED_KEY,
+} from './newsSource'
 
 export type NewsPost = {
   id: string
   url: string
-  publishedAt: string // ISO
+  publishedAt: string
   text: string
-}
-
-export type NewsCachePayload = {
-  version: 2
-  fetchedAt: string
-  windowDays: number
-  status: 'posts' | 'empty' | 'unavailable'
-  source: 'syndication' | 'rss' | 'embed' | 'none'
-  posts: NewsPost[]
+  authorHandle?: string
+  source?: string
 }
 
 export type NewsLoadResult = {
   status: 'posts' | 'empty' | 'unavailable'
   posts: NewsPost[]
-  source: NewsCachePayload['source']
+  source: 'supabase' | 'syndication' | 'rss' | 'none'
   fetchedAt: string
   fromCache: boolean
   cooldownUntil: string | null
 }
 
-/**
- * Optional curated fallback. Keep empty unless manually verified — never invent.
- */
-export type CuratedNewsItem = NewsPost
-export const CURATED_NEWS: CuratedNewsItem[] = []
+export type NewsUpsertInput = {
+  id: string
+  url: string
+  body: string
+  publishedAt: string
+  authorHandle?: string
+  source?: string
+}
 
-export function windowCutoff(now = Date.now()): Date {
-  return new Date(now - NEWS_WINDOW_DAYS * 24 * 60 * 60 * 1000)
+type CachePayload = {
+  version: 3
+  fetchedAt: string
+  status: 'posts' | 'empty' | 'unavailable'
+  source: NewsLoadResult['source']
+  posts: NewsPost[]
 }
 
 export function filterPostsLastDays(
@@ -69,19 +57,19 @@ export function filterPostsLastDays(
     .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt))
 }
 
-function readCache(): NewsCachePayload | null {
+function readCache(): CachePayload | null {
   try {
     const raw = localStorage.getItem(NEWS_CACHE_KEY)
     if (!raw) return null
-    const parsed = JSON.parse(raw) as NewsCachePayload
-    if (!parsed || parsed.version !== 2) return null
+    const parsed = JSON.parse(raw) as CachePayload
+    if (!parsed || parsed.version !== 3) return null
     return parsed
   } catch {
     return null
   }
 }
 
-function writeCache(payload: NewsCachePayload): void {
+function writeCache(payload: CachePayload): void {
   try {
     localStorage.setItem(NEWS_CACHE_KEY, JSON.stringify(payload))
   } catch {
@@ -113,357 +101,336 @@ function sessionAlreadyAttempted(): boolean {
   }
 }
 
-function cooldownRemaining(cache: NewsCachePayload, now = Date.now()): number {
-  if (cache.status === 'posts') {
-    const age = now - Date.parse(cache.fetchedAt)
-    return Math.max(0, NEWS_POSTS_CACHE_MS - age)
-  }
+function cooldownRemaining(cache: CachePayload, now = Date.now()): number {
   const age = now - Date.parse(cache.fetchedAt)
+  if (cache.status === 'posts' && cache.posts.length > 0) {
+    // Soft TTL for positive cloud hits — still allow remount from cache
+    return Math.max(0, 5 * 60 * 1000 - age)
+  }
   return Math.max(0, NEWS_EMPTY_COOLDOWN_MS - age)
 }
 
-function resultFromCache(cache: NewsCachePayload, now = Date.now()): NewsLoadResult {
-  const posts = filterPostsLastDays(cache.posts, NEWS_WINDOW_DAYS, now)
-  const remain = cooldownRemaining(cache, now)
-  const cooldownUntil =
-    remain > 0 ? new Date(now + remain).toISOString() : null
 
-  if (cache.status === 'posts') {
-    if (posts.length === 0) {
-      // Cached posts aged out of the 30d window → treat as empty, keep cooldown.
+function coerceIsoDate(raw: string): string | null {
+  const trimmed = raw.trim()
+  if (!trimmed) return null
+  const direct = Date.parse(trimmed)
+  if (Number.isFinite(direct)) return new Date(direct).toISOString()
+  // Twitter-style: "8:07 AM · Aug 23, 2026"
+  const m = trimmed.match(
+    /^(\d{1,2}):(\d{2})\s*(AM|PM)\s*[·.•]\s*([A-Za-z]{3})\s+(\d{1,2}),\s*(\d{4})$/i,
+  )
+  if (m) {
+    const [, hh, mm, ap, mon, day, year] = m
+    const months: Record<string, number> = {
+      jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+      jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+    }
+    const mi = months[mon.toLowerCase()]
+    if (mi == null) return null
+    let h = Number(hh) % 12
+    if (ap.toUpperCase() === 'PM') h += 12
+    const d = new Date(Date.UTC(Number(year), mi, Number(day), h, Number(mm)))
+    if (Number.isNaN(d.getTime())) return null
+    return d.toISOString()
+  }
+  return null
+}
+
+function idFromUrl(url: string): string | null {
+  const m = url.match(/status\/(\d+)/)
+  return m?.[1] ?? null
+}
+
+type NewsRow = {
+  id: string
+  url: string
+  published_at: string
+  body: string
+  author_handle: string | null
+  source: string | null
+}
+
+function mapRow(row: NewsRow): NewsPost {
+  return {
+    id: row.id,
+    url: row.url,
+    publishedAt: row.published_at,
+    text: row.body,
+    authorHandle: row.author_handle ?? NEWS_SOURCE.handleAt,
+    source: row.source ?? 'supabase',
+  }
+}
+
+/** Public read of pasted/cloud news for the last N days. */
+export async function fetchNewsFromSupabase(): Promise<NewsPost[]> {
+  const cutoff = new Date(
+    Date.now() - NEWS_WINDOW_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString()
+  const { data, error } = await supabase
+    .from('news_posts')
+    .select('id,url,published_at,body,author_handle,source')
+    .gte('published_at', cutoff)
+    .order('published_at', { ascending: false })
+    .limit(50)
+  if (error) throw error
+  return ((data as NewsRow[]) ?? []).map(mapRow)
+}
+
+export async function upsertNewsPost(input: NewsUpsertInput): Promise<void> {
+  const id = input.id.trim() || idFromUrl(input.url) || ''
+  if (!id) throw new Error('MISSING_ID')
+  const body = input.body.trim()
+  if (!body) throw new Error('EMPTY_BODY')
+  const url =
+    input.url.trim() ||
+    `https://x.com/${NEWS_SOURCE.handle}/status/${id}`
+  const publishedAt =
+    coerceIsoDate(input.publishedAt) || new Date().toISOString()
+  const { error } = await supabase.from('news_posts').upsert(
+    {
+      id,
+      url,
+      published_at: publishedAt,
+      body,
+      author_handle: input.authorHandle?.trim() || NEWS_SOURCE.handle,
+      source: input.source?.trim() || 'admin-paste',
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'id' },
+  )
+  if (error) throw error
+}
+
+export async function deleteNewsPost(id: string): Promise<void> {
+  const { error } = await supabase.from('news_posts').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function upsertNewsPostsBatch(
+  items: NewsUpsertInput[],
+): Promise<number> {
+  let n = 0
+  for (const item of items) {
+    await upsertNewsPost(item)
+    n += 1
+  }
+  return n
+}
+
+/** Optional: import from a JSON file shape [{id,url,publishedAt|published_at,body|text,authorHandle?}]. */
+export function parseNewsImportJson(raw: string): NewsUpsertInput[] {
+  const data = JSON.parse(raw) as unknown
+  const list = Array.isArray(data)
+    ? data
+    : data && typeof data === 'object' && Array.isArray((data as { posts?: unknown }).posts)
+      ? ((data as { posts: unknown[] }).posts)
+      : null
+  if (!list) throw new Error('INVALID_JSON')
+  const out: NewsUpsertInput[] = []
+  for (const row of list) {
+    if (!row || typeof row !== 'object') continue
+    const o = row as Record<string, unknown>
+    const id = String(o.id ?? idFromUrl(String(o.url ?? '')) ?? '').trim()
+    const body = String(o.body ?? o.text ?? '').trim()
+    const url = String(o.url ?? '').trim()
+    const publishedRaw = String(
+      o.publishedAt ?? o.published_at ?? o.created_at ?? '',
+    ).trim()
+    const publishedAt = coerceIsoDate(publishedRaw)
+    if (!id || !body || !publishedAt) continue
+    out.push({
+      id,
+      url: url || `https://x.com/${NEWS_SOURCE.handle}/status/${id}`,
+      body,
+      publishedAt,
+      authorHandle: String(o.authorHandle ?? o.author_handle ?? NEWS_SOURCE.handle),
+      source: String(o.source ?? 'import'),
+    })
+  }
+  return out
+}
+
+/**
+ * Load news: Supabase first. Third-party scrape only as a light one-shot
+ * when cloud is empty and not in cooldown — never invents posts.
+ */
+export async function loadNews(options?: {
+  force?: boolean
+  allowScrape?: boolean
+}): Promise<NewsLoadResult> {
+  const force = options?.force ?? false
+  const allowScrape = options?.allowScrape ?? false
+  const now = Date.now()
+  const cache = readCache()
+
+  if (cache && !force) {
+    const remain = cooldownRemaining(cache, now)
+    const posts = filterPostsLastDays(cache.posts)
+    if (cache.status === 'posts' && posts.length > 0) {
       return {
-        status: 'empty',
+        status: 'posts',
+        posts,
+        source: cache.source,
+        fetchedAt: cache.fetchedAt,
+        fromCache: true,
+        cooldownUntil: remain > 0 ? new Date(now + remain).toISOString() : null,
+      }
+    }
+    if (
+      (cache.status === 'empty' || cache.status === 'unavailable') &&
+      remain > 0
+    ) {
+      return {
+        status: cache.status,
         posts: [],
         source: cache.source,
         fetchedAt: cache.fetchedAt,
         fromCache: true,
-        cooldownUntil,
+        cooldownUntil: new Date(now + remain).toISOString(),
       }
     }
-    return {
-      status: 'posts',
-      posts,
-      source: cache.source,
-      fetchedAt: cache.fetchedAt,
-      fromCache: true,
-      cooldownUntil,
-    }
   }
 
-  return {
-    status: cache.status,
-    posts: [],
-    source: cache.source,
-    fetchedAt: cache.fetchedAt,
-    fromCache: true,
-    cooldownUntil,
-  }
-}
+  const fetchedAt = new Date().toISOString()
 
-function parseLooseDate(raw: string): string | null {
-  const t = Date.parse(raw)
-  if (Number.isFinite(t)) return new Date(t).toISOString()
-  return null
-}
-
-function stripHtml(html: string): string {
-  return html
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
-/** Best-effort syndication JSON/HTML parse (format varies). */
-function parseSyndicationPayload(raw: string): NewsPost[] {
-  const posts: NewsPost[] = []
   try {
-    const data = JSON.parse(raw) as Record<string, unknown>
-    const body = typeof data.body === 'string' ? data.body : raw
-    // Prefer structured tweets if present
-    const candidates = (data.tweets ?? data.entries ?? data.items) as unknown
-    if (Array.isArray(candidates)) {
-      for (const item of candidates) {
-        if (!item || typeof item !== 'object') continue
-        const o = item as Record<string, unknown>
-        const id = String(o.id_str ?? o.id ?? '')
-        const text = String(o.text ?? o.full_text ?? o.body ?? '')
-        const created = String(o.created_at ?? o.createdAt ?? o.time ?? '')
-        const iso = created ? parseLooseDate(created) : null
-        if (!id || !iso || !text) continue
-        posts.push({
-          id,
-          url: `https://x.com/${NEWS_SOURCE.handle}/status/${id}`,
-          publishedAt: iso,
-          text: stripHtml(text).slice(0, 400),
+    const cloud = filterPostsLastDays(await fetchNewsFromSupabase())
+    if (cloud.length > 0) {
+      writeCache({
+        version: 3,
+        fetchedAt,
+        status: 'posts',
+        source: 'supabase',
+        posts: cloud,
+      })
+      return {
+        status: 'posts',
+        posts: cloud,
+        source: 'supabase',
+        fetchedAt,
+        fromCache: false,
+        cooldownUntil: null,
+      }
+    }
+
+    // Cloud empty — optional light scrape (admin / force), once per session max
+    if ((allowScrape || force) && (force || !sessionAlreadyAttempted())) {
+      markSessionAttempted()
+      const scraped = await tryLightScrape()
+      if (scraped && scraped.posts.length > 0) {
+        writeCache({
+          version: 3,
+          fetchedAt,
+          status: 'posts',
+          source: scraped.source,
+          posts: scraped.posts,
         })
+        return {
+          status: 'posts',
+          posts: scraped.posts,
+          source: scraped.source,
+          fetchedAt,
+          fromCache: false,
+          cooldownUntil: null,
+        }
       }
     }
-    if (posts.length) return posts
-    return parseTimelineHtml(typeof body === 'string' ? body : raw)
+
+    markSessionAttempted()
+    writeCache({
+      version: 3,
+      fetchedAt,
+      status: 'empty',
+      source: 'supabase',
+      posts: [],
+    })
+    return {
+      status: 'empty',
+      posts: [],
+      source: 'supabase',
+      fetchedAt,
+      fromCache: false,
+      cooldownUntil: new Date(now + NEWS_EMPTY_COOLDOWN_MS).toISOString(),
+    }
   } catch {
-    return parseTimelineHtml(raw)
-  }
-}
-
-function parseTimelineHtml(html: string): NewsPost[] {
-  const posts: NewsPost[] = []
-  const blocks = html.split(/data-tweet-id="/i).slice(1)
-  for (const block of blocks) {
-    const id = block.slice(0, block.indexOf('"'))
-    if (!/^\d+$/.test(id)) continue
-    const timeMatch = block.match(
-      /datetime="([^"]+)"|data-time="(\d+)"|title="([^"]+)"/i,
-    )
-    let iso: string | null = null
-    if (timeMatch?.[1]) iso = parseLooseDate(timeMatch[1])
-    else if (timeMatch?.[2]) {
-      const sec = Number(timeMatch[2])
-      if (Number.isFinite(sec))
-        iso = new Date(sec > 1e12 ? sec : sec * 1000).toISOString()
-    } else if (timeMatch?.[3]) iso = parseLooseDate(timeMatch[3])
-    const textMatch = block.match(
-      /tweet-text[^>]*>([\s\S]*?)<\/p>|dir="auto"[^>]*>([\s\S]*?)<\//i,
-    )
-    const text = stripHtml(textMatch?.[1] || textMatch?.[2] || '').slice(0, 400)
-    if (!iso || !text) continue
-    posts.push({
-      id,
-      url: `https://x.com/${NEWS_SOURCE.handle}/status/${id}`,
-      publishedAt: iso,
-      text,
+    writeCache({
+      version: 3,
+      fetchedAt,
+      status: 'unavailable',
+      source: 'none',
+      posts: [],
     })
-  }
-  return posts
-}
-
-function parseRssXml(xml: string): NewsPost[] {
-  const posts: NewsPost[] = []
-  const items = xml.match(/<item[\s>][\s\S]*?<\/item>/gi) ?? []
-  for (const item of items) {
-    const title =
-      item.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/i)?.[1] ||
-      item.match(/<title>([\s\S]*?)<\/title>/i)?.[1] ||
-      ''
-    const link =
-      item.match(/<link><!\[CDATA\[([\s\S]*?)\]\]><\/link>/i)?.[1] ||
-      item.match(/<link>([\s\S]*?)<\/link>/i)?.[1] ||
-      ''
-    const pub =
-      item.match(/<pubDate>([\s\S]*?)<\/pubDate>/i)?.[1]?.trim() || ''
-    const cleanedTitle = stripHtml(title)
-    // Skip whitelist / error stubs
-    if (/not yet whitelisted|Attention Required/i.test(cleanedTitle)) continue
-    const iso = pub ? parseLooseDate(pub) : null
-    if (!iso || !cleanedTitle) continue
-    const idMatch = link.match(/status\/(\d+)/)
-    const id = idMatch?.[1] || `rss-${iso}-${cleanedTitle.slice(0, 12)}`
-    const url = link.startsWith('http')
-      ? link.replace('http://', 'https://')
-      : `https://x.com/${NEWS_SOURCE.handle}`
-    posts.push({
-      id,
-      url: url.includes('xcancel') || url.includes('nitter')
-        ? `https://x.com/${NEWS_SOURCE.handle}/status/${idMatch?.[1] ?? ''}`
-        : url,
-      publishedAt: iso,
-      text: cleanedTitle.slice(0, 400),
-    })
-  }
-  return posts.filter((p) => /\/status\/\d+/.test(p.url) || p.text.length > 0)
-}
-
-async function fetchText(url: string, timeoutMs = 10000): Promise<string> {
-  const ctrl = new AbortController()
-  const timer = window.setTimeout(() => ctrl.abort(), timeoutMs)
-  try {
-    const res = await fetch(url, {
-      signal: ctrl.signal,
-      headers: { Accept: 'application/json, application/rss+xml, text/html, */*' },
-    })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    return await res.text()
-  } finally {
-    window.clearTimeout(timer)
-  }
-}
-
-/**
- * Try free dated sources (no API key). May fail due to CORS / rate limits —
- * never invents posts.
- */
-export async function fetchDatedNewsPosts(): Promise<{
-  posts: NewsPost[]
-  source: 'syndication' | 'rss'
-} | null> {
-  const endpoints: { source: 'syndication' | 'rss'; url: string }[] = [
-    {
-      source: 'syndication',
-      url: `https://cdn.syndication.twimg.com/timeline/profile?screen_name=${NEWS_SOURCE.handle}&with_replies=false&limit=40`,
-    },
-    {
-      source: 'rss',
-      url: `https://xcancel.com/${NEWS_SOURCE.handle}/rss`,
-    },
-    {
-      source: 'rss',
-      url: `https://rss.xcancel.com/${NEWS_SOURCE.handle}/rss`,
-    },
-  ]
-
-  for (const ep of endpoints) {
-    try {
-      const text = await fetchText(ep.url)
-      if (!text || text.length < 20) continue
-      const parsed =
-        ep.source === 'syndication'
-          ? parseSyndicationPayload(text)
-          : parseRssXml(text)
-      const filtered = filterPostsLastDays(parsed)
-      // Even if filtered empty, a successful parse counts as a real fetch
-      if (parsed.length > 0 || /<item[\s>]/i.test(text) || /tweet/i.test(text)) {
-        return { posts: filtered, source: ep.source }
-      }
-    } catch {
-      /* try next */
-    }
-  }
-  return null
-}
-
-/**
- * Load news with 30-day filter + cache/cooldown.
- * - Does not auto-poll.
- * - Remount within cooldown after empty/unavailable does NOT re-fetch.
- * - force=true (manual Reload) allows one network attempt, then re-enters cooldown if still empty.
- */
-export async function loadNews(options?: {
-  force?: boolean
-}): Promise<NewsLoadResult> {
-  const force = options?.force ?? false
-  const now = Date.now()
-  const cache = readCache()
-
-  if (cache) {
-    const remain = cooldownRemaining(cache, now)
-    if (!force && remain > 0) {
-      return resultFromCache(cache, now)
-    }
-    // Soft: same browser session already attempted and cache exists → don't hammer
-    if (!force && sessionAlreadyAttempted() && remain > 0) {
-      return resultFromCache(cache, now)
-    }
-  } else if (!force && sessionAlreadyAttempted()) {
-    // No cache but already tried this session → unavailable without re-search
     return {
       status: 'unavailable',
       posts: [],
       source: 'none',
-      fetchedAt: new Date().toISOString(),
-      fromCache: true,
+      fetchedAt,
+      fromCache: false,
       cooldownUntil: new Date(now + NEWS_EMPTY_COOLDOWN_MS).toISOString(),
     }
   }
+}
 
-  markSessionAttempted()
-  const fetchedAt = new Date().toISOString()
+async function tryLightScrape(): Promise<{
+  posts: NewsPost[]
+  source: 'syndication' | 'rss'
+} | null> {
+  // Best-effort only; failures are silent. Never invent.
+  const urls: { source: 'syndication' | 'rss'; url: string }[] = [
+    {
+      source: 'syndication',
+      url: `https://cdn.syndication.twimg.com/timeline/profile?screen_name=${NEWS_SOURCE.handle}&limit=20`,
+    },
+  ]
+  for (const ep of urls) {
+    try {
+      const ctrl = new AbortController()
+      const timer = window.setTimeout(() => ctrl.abort(), 8000)
+      const res = await fetch(ep.url, { signal: ctrl.signal })
+      window.clearTimeout(timer)
+      if (!res.ok) continue
+      const text = await res.text()
+      const posts = filterPostsLastDays(parseLooseTimeline(text))
+      if (posts.length) return { posts, source: ep.source }
+    } catch {
+      /* next */
+    }
+  }
+  return null
+}
 
+function parseLooseTimeline(raw: string): NewsPost[] {
+  const posts: NewsPost[] = []
   try {
-    const hit = await fetchDatedNewsPosts()
-    if (hit) {
-      const posts = filterPostsLastDays(hit.posts)
-      if (posts.length > 0) {
-        const payload: NewsCachePayload = {
-          version: 2,
-          fetchedAt,
-          windowDays: NEWS_WINDOW_DAYS,
-          status: 'posts',
-          source: hit.source,
-          posts,
-        }
-        writeCache(payload)
-        return {
-          status: 'posts',
-          posts,
-          source: hit.source,
-          fetchedAt,
-          fromCache: false,
-          cooldownUntil: new Date(now + NEWS_POSTS_CACHE_MS).toISOString(),
-        }
-      }
-      // Dated source worked but nothing in 30 days
-      const payload: NewsCachePayload = {
-        version: 2,
-        fetchedAt,
-        windowDays: NEWS_WINDOW_DAYS,
-        status: 'empty',
-        source: hit.source,
-        posts: [],
-      }
-      writeCache(payload)
-      return {
-        status: 'empty',
-        posts: [],
-        source: hit.source,
-        fetchedAt,
-        fromCache: false,
-        cooldownUntil: new Date(now + NEWS_EMPTY_COOLDOWN_MS).toISOString(),
-      }
+    const data = JSON.parse(raw) as { body?: string }
+    const html = typeof data.body === 'string' ? data.body : raw
+    const blocks = html.split(/data-tweet-id="/i).slice(1)
+    for (const block of blocks) {
+      const id = block.slice(0, block.indexOf('"'))
+      if (!/^\d+$/.test(id)) continue
+      const timeMatch = block.match(/datetime="([^"]+)"/i)
+      const textMatch = block.match(/tweet-text[^>]*>([\s\S]*?)<\/p>/i)
+      const publishedAt = timeMatch?.[1]
+        ? new Date(timeMatch[1]).toISOString()
+        : ''
+      const text = (textMatch?.[1] || '')
+        .replace(/<[^>]+>/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+      if (!publishedAt || !text) continue
+      posts.push({
+        id,
+        url: `https://x.com/${NEWS_SOURCE.handle}/status/${id}`,
+        publishedAt,
+        text,
+        authorHandle: NEWS_SOURCE.handle,
+        source: 'syndication',
+      })
     }
   } catch {
-    /* fall through */
+    /* ignore */
   }
-
-  // Free dated fetch impossible → unavailable (embed may be offered separately, once)
-  const payload: NewsCachePayload = {
-    version: 2,
-    fetchedAt,
-    windowDays: NEWS_WINDOW_DAYS,
-    status: 'unavailable',
-    source: 'none',
-    posts: [],
-  }
-  writeCache(payload)
-  return {
-    status: 'unavailable',
-    posts: [],
-    source: 'none',
-    fetchedAt,
-    fromCache: false,
-    cooldownUntil: new Date(now + NEWS_EMPTY_COOLDOWN_MS).toISOString(),
-  }
+  return posts
 }
 
-/** Whether we may load the X embed once as a secondary fallback. */
-export function canLoadEmbedFallback(force = false): boolean {
-  if (force) return true
-  const cache = readCache()
-  if (!cache) return true
-  // Empty 30d window: never auto-embed / re-search during cooldown
-  if (cache.status === 'empty' && cooldownRemaining(cache) > 0) return false
-  // Embed already attempted this cooldown window
-  if (cache.source === 'embed' && cooldownRemaining(cache) > 0) return false
-  // Dated fetch failed (source none) → allow a single embed attempt
-  if (cache.status === 'unavailable' && cache.source === 'none') return true
-  if (cache.status === 'unavailable' && cooldownRemaining(cache) > 0) return false
-  return true
-}
-
-export function markEmbedAttempt(_ok: boolean): void {
-  const fetchedAt = new Date().toISOString()
-  // Embed has no reliable dated filter — record as unavailable-with-embed
-  // so cooldown prevents repeated widget / network searches.
-  writeCache({
-    version: 2,
-    fetchedAt,
-    windowDays: NEWS_WINDOW_DAYS,
-    status: 'unavailable',
-    source: 'embed',
-    posts: [],
-  })
-}
