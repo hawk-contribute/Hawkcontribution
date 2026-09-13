@@ -33,6 +33,15 @@ npm run preview  # preview production build
 
 
 
+
+## Community feed & live activity
+
+- **Marquee** under the header thanks contributors in realtime (last 30 events).
+- **Counters** for contributions (by category), likes, comments, citations, members.
+- **Public feed** (browse/search without login); like / comment / cite require email session.
+- Storage keys: `hawk-contribute:contributions`, `hawk-contribute:social`, `hawk-contribute:session`.
+- Tab sync via `BroadcastChannel` (`hawk-contribute-sync`) + `storage` events.
+
 ## Auth & uploads (MVP)
 
 - **Email sign-in** (local session in `localStorage`: email, displayName, signedInAt). No server verification yet.

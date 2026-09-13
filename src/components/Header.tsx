@@ -1,10 +1,17 @@
-import { BookOpen, ExternalLink, LogOut, Upload, UserRound } from 'lucide-react'
+import {
+  BookOpen,
+  ExternalLink,
+  LogOut,
+  Newspaper,
+  Upload,
+  UserRound,
+} from 'lucide-react'
 import type { Session } from '../types'
 import { useI18n } from '../i18n'
 import { asset } from '../lib/asset'
 import { LanguageSwitcher } from './LanguageSwitcher'
 
-type Tab = 'browse' | 'ledger'
+type Tab = 'browse' | 'feed' | 'ledger'
 
 interface HeaderProps {
   tab: Tab
@@ -27,6 +34,26 @@ export function Header({
 }: HeaderProps) {
   const { t } = useI18n()
 
+  const tabBtn = (id: Tab, label: string, icon?: React.ReactNode) => (
+    <button
+      type="button"
+      onClick={() => onTabChange(id)}
+      className={`hawk-btn rounded-lg px-3 py-1.5 text-sm ${
+        tab === id
+          ? 'bg-hawk-blue/20 text-hawk-blue-bright'
+          : 'text-hawk-muted hover:text-hawk-cream'
+      }`}
+    >
+      {icon}
+      {label}
+      {id === 'ledger' && contributionCount > 0 && (
+        <span className="ml-0.5 rounded-full bg-hawk-gold px-1.5 text-[10px] font-bold text-hawk-black">
+          {contributionCount}
+        </span>
+      )}
+    </button>
+  )
+
   return (
     <header className="sticky top-0 z-40 border-b border-hawk-border/80 bg-hawk-black/85 backdrop-blur-xl">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
@@ -45,34 +72,13 @@ export function Header({
         </div>
 
         <nav className="flex items-center gap-1 rounded-xl border border-hawk-border bg-hawk-panel/80 p-1">
-          <button
-            type="button"
-            onClick={() => onTabChange('browse')}
-            className={`hawk-btn rounded-lg px-3 py-1.5 text-sm ${
-              tab === 'browse'
-                ? 'bg-hawk-blue/20 text-hawk-blue-bright'
-                : 'text-hawk-muted hover:text-hawk-cream'
-            }`}
-          >
-            {t('nav.opportunities')}
-          </button>
-          <button
-            type="button"
-            onClick={() => onTabChange('ledger')}
-            className={`hawk-btn rounded-lg px-3 py-1.5 text-sm ${
-              tab === 'ledger'
-                ? 'bg-hawk-blue/20 text-hawk-blue-bright'
-                : 'text-hawk-muted hover:text-hawk-cream'
-            }`}
-          >
-            <BookOpen className="h-3.5 w-3.5" />
-            {t('nav.ledger')}
-            {contributionCount > 0 && (
-              <span className="ml-0.5 rounded-full bg-hawk-gold px-1.5 text-[10px] font-bold text-hawk-black">
-                {contributionCount}
-              </span>
-            )}
-          </button>
+          {tabBtn('browse', t('nav.opportunities'))}
+          {tabBtn('feed', t('nav.feed'), <Newspaper className="h-3.5 w-3.5" />)}
+          {tabBtn(
+            'ledger',
+            t('nav.ledger'),
+            <BookOpen className="h-3.5 w-3.5" />,
+          )}
         </nav>
 
         <div className="flex flex-wrap items-center gap-2">

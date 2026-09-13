@@ -28,7 +28,6 @@ export interface UploadedFileMeta {
   name: string
   type: string
   size: number
-  /** data URL for demo persistence in localStorage */
   dataUrl: string
 }
 
@@ -44,6 +43,54 @@ export interface Contribution {
   createdAt: string
   participantName: string
   participantEmail: string
+  /** Seeded demo flag — optional */
+  seeded?: boolean
+}
+
+export type ActivityKind = 'contribute' | 'like' | 'comment' | 'quote'
+
+export interface ActivityEvent {
+  id: string
+  kind: ActivityKind
+  at: string
+  actorName: string
+  actorEmail: string
+  contributionId: string
+  contributionTitle: string
+}
+
+export interface Comment {
+  id: string
+  contributionId: string
+  body: string
+  authorName: string
+  authorEmail: string
+  createdAt: string
+}
+
+export interface Quote {
+  id: string
+  /** Contribution that contains / owns this quote note */
+  contributionId: string
+  /** Contribution being cited */
+  quotedContributionId: string
+  quotedTitle: string
+  remark: string
+  authorName: string
+  authorEmail: string
+  createdAt: string
+}
+
+/** Likes map: contributionId -> emails who liked */
+export type LikesMap = Record<string, string[]>
+
+export interface SocialState {
+  likes: LikesMap
+  comments: Comment[]
+  quotes: Quote[]
+  activities: ActivityEvent[]
+  /** Emails that have signed in on this browser (demo counter) */
+  memberEmails: string[]
 }
 
 /**
@@ -54,5 +101,5 @@ export type FutureRewardHook = {
   evaluate?: (contribution: Contribution, opportunity?: Opportunity) => number
 }
 
-/** Max total upload size for local demo storage */
 export const MAX_UPLOAD_BYTES = 2.5 * 1024 * 1024
+export const MAX_ACTIVITIES = 30

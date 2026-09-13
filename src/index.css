@@ -122,3 +122,17 @@
     color: #5a667a;
   }
 }
+
+@layer utilities {
+  .hawk-marquee {
+    animation: hawk-marquee 42s linear infinite;
+  }
+  .hawk-marquee:hover {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes hawk-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
