@@ -46,7 +46,8 @@ function mapAuthError(msg: string, t: (k: string) => string): string {
     (m.includes('weak') ||
       m.includes('least') ||
       m.includes('short') ||
-      m.includes('6'))
+      m.includes('6') ||
+      m.includes('10'))
   ) {
     return t('auth.weakPassword')
   }
@@ -179,7 +180,7 @@ export function AuthModal({
       }
 
       if (mode === 'recovery' || mode === 'change') {
-        if (passwordTrim.length < 6) {
+        if (passwordTrim.length < 10) {
           setError(t('auth.weakPassword'))
           return
         }
@@ -196,7 +197,7 @@ export function AuthModal({
         setError(t('auth.emailRequired'))
         return
       }
-      if (passwordTrim.length < 6) {
+      if (passwordTrim.length < 10) {
         setError(t('auth.weakPassword'))
         return
       }
@@ -320,7 +321,7 @@ export function AuthModal({
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={t('auth.passwordPlaceholder')}
                 disabled={busy}
-                minLength={6}
+                minLength={10}
               />
             </label>
           )}
@@ -372,7 +373,7 @@ export function AuthModal({
                   placeholder={t('auth.passwordPlaceholder')}
                   autoFocus
                   disabled={busy}
-                  minLength={6}
+                  minLength={10}
                 />
               </label>
               <label className="block">
@@ -387,7 +388,7 @@ export function AuthModal({
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder={t('auth.confirmPasswordPlaceholder')}
                   disabled={busy}
-                  minLength={6}
+                  minLength={10}
                 />
               </label>
             </>

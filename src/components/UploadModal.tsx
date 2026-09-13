@@ -7,6 +7,7 @@ import type {
   UploadedFileMeta,
 } from '../types'
 import { MAX_UPLOAD_BYTES } from '../types'
+import { safeHttpUrl } from '../lib/safeUrl'
 import { useI18n } from '../i18n'
 import { readFileAsDataUrl } from '../lib/storage'
 
@@ -114,13 +115,22 @@ export function UploadModal({
       return
     }
     const opp = opportunities.find((o) => o.id === opportunityId)
+    const rawProof = proofUrl.trim()
+    let safeProof: string | undefined
+    if (rawProof) {
+      safeProof = safeHttpUrl(rawProof)
+      if (!safeProof) {
+        setError(t('upload.invalidProofUrl'))
+        return
+      }
+    }
     onSubmit({
       category,
       opportunityId: opp?.id,
       opportunityTitle: opp ? lx(opp.title) : t('upload.free'),
       title: title.trim(),
       description: description.trim(),
-      proofUrl: proofUrl.trim() || undefined,
+      proofUrl: safeProof,
       files,
     })
   }

@@ -26,3 +26,9 @@ dist-ssr
 # local env overrides
 .env.local
 .env.*.local
+
+# Env with live keys — keep local only (use .env.example as template)
+.env
+.env.production
+.env.development
+# Never commit service_role or other secrets

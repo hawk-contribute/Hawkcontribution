@@ -12,6 +12,7 @@ import type {
 } from '../types'
 import { MAX_ACTIVITIES } from '../types'
 import { supabase } from './supabase'
+import { safeHttpUrl } from './safeUrl'
 
 type ContribRow = {
   id: string
@@ -276,7 +277,7 @@ export async function createContributionCloud(input: {
       category: input.category,
       title: input.title.trim(),
       description: input.description.trim(),
-      proof_url: input.proofUrl?.trim() || null,
+      proof_url: safeHttpUrl(input.proofUrl) ?? null,
       participant_name: input.session.displayName,
       participant_email: input.session.email,
       attachment_names: attachmentNames,

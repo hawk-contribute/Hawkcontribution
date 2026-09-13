@@ -16,6 +16,7 @@ import type {
 } from '../types'
 import { useI18n } from '../i18n'
 import { isSiteAdmin } from '../lib/admins'
+import { displayEmail } from '../lib/maskEmail'
 
 type Filter = 'all' | ContributionCategory
 
@@ -286,7 +287,12 @@ export function FeedView({
                               key={email}
                               className="flex items-center justify-between gap-2 text-xs text-hawk-cream/90"
                             >
-                              <span className="truncate">{email}</span>
+                              <span className="truncate">
+                                {displayEmail(email, {
+                                  viewerEmail: session?.email,
+                                  isAdmin: admin,
+                                })}
+                              </span>
                               {onAdminDeleteLike && (
                                 <button
                                   type="button"

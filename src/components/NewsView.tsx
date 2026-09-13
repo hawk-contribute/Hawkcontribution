@@ -3,6 +3,7 @@ import { ExternalLink, Megaphone, RefreshCw, Trash2, Upload } from 'lucide-react
 import type { Session } from '../types'
 import { useI18n } from '../i18n'
 import { isSiteAdmin } from '../lib/admins'
+import { safeHttpUrl } from '../lib/safeUrl'
 import {
   NEWS_SOURCE,
   NEWS_WINDOW_DAYS,
@@ -73,9 +74,14 @@ export function NewsView({ session }: NewsViewProps) {
     setBusy(true)
     try {
       const local = formAt.includes('T') ? new Date(formAt) : new Date(formAt)
+      const urlRaw = formUrl.trim()
+      if (urlRaw && !safeHttpUrl(urlRaw)) {
+        flash(t('news.adminInvalidUrl'))
+        return
+      }
       await upsertNewsPost({
         id: formId.trim(),
-        url: formUrl.trim(),
+        url: urlRaw,
         body: formBody,
         publishedAt: Number.isNaN(local.getTime())
           ? new Date().toISOString()
@@ -322,7 +328,7 @@ export function NewsView({ session }: NewsViewProps) {
                 </div>
                 <div className="flex items-center gap-2">
                   <a
-                    href={p.url}
+                    href={safeHttpUrl(p.url) || NEWS_SOURCE.profileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="hawk-btn hawk-btn-ghost px-2.5 py-1 text-xs"

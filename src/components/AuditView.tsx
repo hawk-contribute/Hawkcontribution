@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { ShieldCheck } from 'lucide-react'
+import { ShieldCheck, ExternalLink } from 'lucide-react'
 import { useI18n } from '../i18n'
 import {
   SECURITY_AUDIT_FINDINGS,
@@ -9,6 +9,7 @@ import {
   SECURITY_AUDIT_OK_EN,
   SECURITY_AUDIT_OK_ZH,
   type AuditSeverity,
+  type AuditStatus,
 } from '../data/securityAudit'
 
 const SEVERITY_ORDER: AuditSeverity[] = [
@@ -31,6 +32,18 @@ function severityClass(s: AuditSeverity): string {
       return 'border-sky-400/40 bg-sky-500/15 text-sky-100'
     default:
       return 'border-hawk-border bg-hawk-panel/80 text-hawk-muted'
+  }
+}
+
+function statusClass(s: AuditStatus): string {
+  switch (s) {
+    case 'remediated':
+      return 'border-emerald-400/50 bg-emerald-500/20 text-emerald-100'
+    case 'partial':
+    case 'dashboard':
+      return 'border-violet-400/50 bg-violet-500/20 text-violet-100'
+    default:
+      return 'border-hawk-border bg-hawk-panel/60 text-hawk-muted'
   }
 }
 
@@ -74,6 +87,9 @@ export function AuditView() {
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-hawk-muted sm:text-base">
           {t('audit.subtitle')}
+        </p>
+        <p className="mt-2 max-w-2xl text-xs text-emerald-200/90 sm:text-sm">
+          {t('audit.remediationNote')}
         </p>
       </div>
 
@@ -128,6 +144,11 @@ export function AuditView() {
               >
                 {t(`audit.sev.${f.severity}`)}
               </span>
+              <span
+                className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${statusClass(f.status)}`}
+              >
+                {t(`audit.status.${f.status === 'dashboard' ? 'dashboard' : f.status}`)}
+              </span>
               <span className="text-xs text-hawk-muted">
                 {zh ? f.areaZh : f.areaEn}
               </span>
@@ -144,6 +165,19 @@ export function AuditView() {
             <p className="mt-2 text-sm leading-relaxed text-hawk-muted">
               {zh ? f.detailZh : f.detailEn}
             </p>
+            {f.actionUrl && (
+              <a
+                href={f.actionUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-hawk-gold hover:underline"
+              >
+                {zh
+                  ? f.actionLabelZh || f.actionLabelEn
+                  : f.actionLabelEn || f.actionLabelZh}
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            )}
             <p className="mt-2 font-mono text-[11px] text-hawk-muted/90">
               {f.paths.join(' · ')}
             </p>

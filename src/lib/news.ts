@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { safeHttpUrl } from './safeUrl'
 export { NEWS_SOURCE, NEWS_WINDOW_DAYS, NEWS_EMPTY_COOLDOWN_MS } from './newsSource'
 import {
   NEWS_SOURCE,
@@ -182,9 +183,9 @@ export async function upsertNewsPost(input: NewsUpsertInput): Promise<void> {
   if (!id) throw new Error('MISSING_ID')
   const body = input.body.trim()
   if (!body) throw new Error('EMPTY_BODY')
-  const url =
-    input.url.trim() ||
-    `https://x.com/${NEWS_SOURCE.handle}/status/${id}`
+  const fallback = `https://x.com/${NEWS_SOURCE.handle}/status/${id}`
+  const url = safeHttpUrl(input.url.trim() || fallback) ?? safeHttpUrl(fallback)
+  if (!url) throw new Error('INVALID_URL')
   const publishedAt =
     coerceIsoDate(input.publishedAt) || new Date().toISOString()
   const { error } = await supabase.from('news_posts').upsert(

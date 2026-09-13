@@ -2,6 +2,8 @@ import { ExternalLink, FileText, Trash2 } from 'lucide-react'
 import type { Contribution } from '../types'
 import { useI18n } from '../i18n'
 import { isSiteAdmin } from '../lib/admins'
+import { displayEmail } from '../lib/maskEmail'
+import { safeHttpUrl } from '../lib/safeUrl'
 import { asset } from '../lib/asset'
 
 interface LedgerViewProps {
@@ -122,7 +124,7 @@ export function LedgerView({
               </p>
               <p className="mt-1 text-xs text-hawk-muted">
                 {t('ledger.participant')}：{c.participantName}
-                {c.participantEmail ? ` · ${c.participantEmail}` : ''}
+                {c.participantEmail ? ` · ${displayEmail(c.participantEmail, { viewerEmail: sessionEmail, isAdmin: admin })}` : ''}
               </p>
               {c.files?.length > 0 && (
                 <div className="mt-3">
@@ -152,9 +154,9 @@ export function LedgerView({
                   </ul>
                 </div>
               )}
-              {c.proofUrl && (
+              {safeHttpUrl(c.proofUrl) && (
                 <a
-                  href={c.proofUrl}
+                  href={safeHttpUrl(c.proofUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-hawk-blue-bright hover:underline"

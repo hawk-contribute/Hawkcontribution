@@ -140,7 +140,7 @@ export function useSession() {
       const email = input.email.trim()
       const password = input.password.trim()
       if (!isValidEmail(email)) throw new Error('INVALID_EMAIL')
-      if (password.length < 6) throw new Error('WEAK_PASSWORD')
+      if (password.length < 10) throw new Error('WEAK_PASSWORD')
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -176,7 +176,7 @@ export function useSession() {
       const email = input.email.trim()
       const password = input.password.trim()
       if (!isValidEmail(email)) throw new Error('INVALID_EMAIL')
-      if (password.length < 6) throw new Error('WEAK_PASSWORD')
+      if (password.length < 10) throw new Error('WEAK_PASSWORD')
       const displayName = input.displayName?.trim()
       if (displayName) savePendingDisplayName(displayName)
 
@@ -222,7 +222,7 @@ export function useSession() {
 
   const updatePassword = useCallback(async (passwordRaw: string) => {
     const password = passwordRaw.trim()
-    if (password.length < 6) throw new Error('WEAK_PASSWORD')
+    if (password.length < 10) throw new Error('WEAK_PASSWORD')
     const { data, error } = await supabase.auth.updateUser({ password })
     if (error) {
       console.error('[auth] updateUser password failed', error)
