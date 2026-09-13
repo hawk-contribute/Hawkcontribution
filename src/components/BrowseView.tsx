@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { Opportunity, OpportunityType } from '../types'
 import { useI18n } from '../i18n'
+import { asset } from '../lib/asset'
 import { OpportunityCard } from './OpportunityCard'
 
 type Filter = 'all' | OpportunityType
@@ -44,7 +45,7 @@ export function BrowseView({ opportunities, onJoin }: BrowseViewProps) {
             </p>
           </div>
           <img
-            src="/brand/hawk-token.png"
+            src={asset("brand/hawk-token.png")}
             alt="Hawk Token"
             className="mx-auto h-28 w-28 shrink-0 drop-shadow-[0_8px_28px_rgba(0,113,188,0.45)] sm:mx-0 sm:h-36 sm:w-36"
           />

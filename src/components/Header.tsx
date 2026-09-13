@@ -1,6 +1,7 @@
 import { BookOpen, UserRound } from 'lucide-react'
 import type { Identity } from '../types'
 import { useI18n } from '../i18n'
+import { asset } from '../lib/asset'
 import { LanguageSwitcher } from './LanguageSwitcher'
 
 type Tab = 'browse' | 'ledger'
@@ -27,7 +28,7 @@ export function Header({
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
           <img
-            src="/brand/hawk-mark.png"
+            src={asset("brand/hawk-mark.png")}
             alt="Hawk"
             className="h-11 w-11 shrink-0 rounded-full object-contain shadow-md shadow-hawk-blue/30 ring-2 ring-hawk-blue/40"
           />

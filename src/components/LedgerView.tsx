@@ -1,6 +1,7 @@
 import { ExternalLink } from 'lucide-react'
 import type { Contribution } from '../types'
 import { useI18n } from '../i18n'
+import { asset } from '../lib/asset'
 
 interface LedgerViewProps {
   contributions: Contribution[]
@@ -38,7 +39,7 @@ export function LedgerView({ contributions, onBrowse }: LedgerViewProps) {
         </div>
         {contributions.length > 0 && (
           <div className="flex items-center gap-2 rounded-xl border border-hawk-gold/25 bg-hawk-gold/10 px-3 py-2">
-            <img src="/brand/hawk-token.png" alt="" className="h-8 w-8" aria-hidden />
+            <img src={asset("brand/hawk-token.png")} alt="" className="h-8 w-8" aria-hidden />
             <span className="text-sm font-semibold text-hawk-gold">
               {t('ledger.count', { n: contributions.length })}
             </span>
@@ -49,7 +50,7 @@ export function LedgerView({ contributions, onBrowse }: LedgerViewProps) {
       {contributions.length === 0 ? (
         <div className="hawk-card flex flex-col items-center px-6 py-14 text-center">
           <img
-            src="/brand/hawk-token.png"
+            src={asset("brand/hawk-token.png")}
             alt="Hawk Token"
             className="mb-4 h-24 w-24 opacity-90 drop-shadow-[0_6px_20px_rgba(254,186,69,0.25)]"
           />

@@ -1,11 +1,12 @@
 import type { Opportunity } from '../types'
+import { asset } from '../lib/asset'
 
 /** Seeded Hawk sample opportunities — first open feels alive */
 export const SEEDED_OPPORTUNITIES: Opportunity[] = [
   {
     id: 'opp-event-hawk-night',
     type: 'event',
-    image: '/photos/event-meetup.jpg',
+    image: asset("photos/event-meetup.jpg"),
     title: {
       en: 'Hawk Night Taipei · Community Meetup',
       'zh-CN': 'Hawk Night 台北场・社群见面会',
@@ -37,7 +38,7 @@ export const SEEDED_OPPORTUNITIES: Opportunity[] = [
   {
     id: 'opp-event-workshop',
     type: 'event',
-    image: '/photos/event-workshop.jpg',
+    image: asset("photos/event-workshop.jpg"),
     title: {
       en: 'Brand storytelling workshop: Speak like Hawk',
       'zh-CN': '品牌叙事工作坊：把故事讲得像 Hawk',
@@ -69,7 +70,7 @@ export const SEEDED_OPPORTUNITIES: Opportunity[] = [
   {
     id: 'opp-collab-merch',
     type: 'collab',
-    image: '/photos/collab-design.jpg',
+    image: asset("photos/collab-design.jpg"),
     title: {
       en: 'Co-branded merch design call',
       'zh-CN': '联名周边设计征集',
@@ -101,7 +102,7 @@ export const SEEDED_OPPORTUNITIES: Opportunity[] = [
   {
     id: 'opp-collab-podcast',
     type: 'collab',
-    image: '/photos/collab-podcast.jpg',
+    image: asset("photos/collab-podcast.jpg"),
     title: {
       en: 'Hawk Talk guest / co-producer',
       'zh-CN': 'Hawk Talk 嘉宾／共同制作',
@@ -133,7 +134,7 @@ export const SEEDED_OPPORTUNITIES: Opportunity[] = [
   {
     id: 'opp-content-ugc',
     type: 'content',
-    image: '/photos/content-ugc.jpg',
+    image: asset("photos/content-ugc.jpg"),
     title: {
       en: 'UGC short video: #HawkDaily challenge',
       'zh-CN': 'UGC 短视频：#HawkDaily 挑战',
@@ -165,7 +166,7 @@ export const SEEDED_OPPORTUNITIES: Opportunity[] = [
   {
     id: 'opp-content-article',
     type: 'content',
-    image: '/photos/content-article.jpg',
+    image: asset("photos/content-article.jpg"),
     title: {
       en: 'Long-form: Hawk ecosystem notes',
       'zh-CN': '深度文稿：Hawk 生态观察笔记',
