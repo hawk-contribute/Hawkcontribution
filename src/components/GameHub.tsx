@@ -105,9 +105,9 @@ export function GameHub({
           onClick={() => setGame('whack')}
           className="hawk-card group flex flex-col overflow-hidden p-0 text-left transition hover:border-hawk-gold/50"
         >
-          <div className="relative h-36 overflow-hidden bg-black/30">
+          <div className="relative h-40 overflow-hidden bg-hawk-navy/80 sm:h-44">
             <img
-              src={asset('game/eagle-mascot.jpg')}
+              src={asset('game/covers/cover-whack.png')}
               alt=""
               className="h-full w-full object-cover opacity-90 transition group-hover:scale-105"
             />
@@ -127,9 +127,9 @@ export function GameHub({
           onClick={() => setGame('fruit')}
           className="hawk-card group flex flex-col overflow-hidden p-0 text-left transition hover:border-hawk-gold/50"
         >
-          <div className="relative h-36 overflow-hidden bg-black/30">
+          <div className="relative h-40 overflow-hidden bg-hawk-navy/80 sm:h-44">
             <img
-              src={asset('game/hawk-dance.gif')}
+              src={asset('game/covers/cover-fruit.png')}
               alt=""
               className="h-full w-full object-cover opacity-90 transition group-hover:scale-105"
             />
@@ -149,9 +149,9 @@ export function GameHub({
           onClick={() => setGame('catch')}
           className="hawk-card group flex flex-col overflow-hidden p-0 text-left transition hover:border-hawk-gold/50 sm:col-span-2 lg:col-span-1"
         >
-          <div className="relative h-36 overflow-hidden bg-black/30">
+          <div className="relative h-40 overflow-hidden bg-hawk-navy/80 sm:h-44">
             <img
-              src={asset('game/hawk-fly.jpg')}
+              src={asset('game/covers/cover-catch.png')}
               alt=""
               className="h-full w-full object-cover opacity-90 transition group-hover:scale-105"
             />
