@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   Contribution,
   ContributionCategory,
@@ -7,33 +7,81 @@ import type {
   UploadedFileMeta,
 } from '../types'
 import {
-  createId,
-  loadContributions,
-  loadSocial,
-  pushActivity,
-  saveContributions,
-  saveSocial,
-} from '../lib/storage'
-import { subscribeStoreUpdates } from '../lib/sync'
+  addCommentCloud,
+  addQuoteCloud,
+  createContributionCloud,
+  fetchCommunitySnapshot,
+  subscribeCommunityRealtime,
+  toggleLikeCloud,
+  type CommunitySnapshot,
+} from '../lib/communityCloud'
 
-function reload() {
-  return {
-    contributions: loadContributions(),
-    social: loadSocial(),
-  }
+const emptySocial: SocialState = {
+  likes: {},
+  comments: [],
+  quotes: [],
+  activities: [],
+  memberEmails: [],
 }
 
-export function useCommunity() {
-  const [{ contributions, social }, setState] = useState(reload)
+const emptySnap: CommunitySnapshot = {
+  contributions: [],
+  social: emptySocial,
+}
 
-  useEffect(() => {
-    return subscribeStoreUpdates(() => setState(reload()))
+const POLL_MS = 25_000
+
+export function useCommunity(options?: { live?: boolean }) {
+  const live = options?.live ?? true
+  const [{ contributions, social }, setState] = useState<CommunitySnapshot>(emptySnap)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const fetchingRef = useRef(false)
+
+  const refresh = useCallback(async () => {
+    if (fetchingRef.current) return
+    fetchingRef.current = true
+    try {
+      const snap = await fetchCommunitySnapshot()
+      setState(snap)
+      setError(null)
+    } catch (e) {
+      console.warn('[useCommunity] refresh failed', e)
+      setError(e instanceof Error ? e.message : 'refresh failed')
+    } finally {
+      fetchingRef.current = false
+      setLoading(false)
+    }
   }, [])
 
-  const refresh = useCallback(() => setState(reload()), [])
+  useEffect(() => {
+    void refresh()
+  }, [refresh])
+
+  // Poll while live (Feed / shared views)
+  useEffect(() => {
+    if (!live) return
+    const id = window.setInterval(() => void refresh(), POLL_MS)
+    const onFocus = () => void refresh()
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') void refresh()
+    })
+    return () => {
+      window.clearInterval(id)
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [live, refresh])
+
+  // Realtime (best-effort; poll is the fallback)
+  useEffect(() => {
+    return subscribeCommunityRealtime(() => {
+      void refresh()
+    })
+  }, [refresh])
 
   const addContribution = useCallback(
-    (input: {
+    async (input: {
       category: ContributionCategory
       opportunityId?: string
       opportunityTitle: string
@@ -43,126 +91,50 @@ export function useCommunity() {
       files: UploadedFileMeta[]
       participantName: string
       participantEmail: string
+      session: Session
     }) => {
-      const entry: Contribution = {
-        id: createId('contrib'),
+      const entry = await createContributionCloud({
+        session: input.session,
+        category: input.category,
         opportunityId: input.opportunityId,
         opportunityTitle: input.opportunityTitle,
-        category: input.category,
-        title: input.title.trim(),
-        description: input.description.trim(),
-        proofUrl: input.proofUrl?.trim() || undefined,
+        title: input.title,
+        description: input.description,
+        proofUrl: input.proofUrl,
         files: input.files,
-        createdAt: new Date().toISOString(),
-        participantName: input.participantName,
-        participantEmail: input.participantEmail,
-      }
-
-      // FUTURE REWARDS HOOK
-
-      const nextContribs = [entry, ...loadContributions()]
-      saveContributions(nextContribs)
-
-      let nextSocial = loadSocial()
-      nextSocial = pushActivity(nextSocial, {
-        kind: 'contribute',
-        at: entry.createdAt,
-        actorName: entry.participantName,
-        actorEmail: entry.participantEmail,
-        contributionId: entry.id,
-        contributionTitle: entry.title,
       })
-      saveSocial(nextSocial)
-      setState(reload())
+      await refresh()
       return entry
     },
-    [],
+    [refresh],
   )
 
-  const toggleLike = useCallback((contribution: Contribution, session: Session) => {
-    const social = loadSocial()
-    const list = social.likes[contribution.id] ?? []
-    const liked = list.includes(session.email)
-    const nextList = liked
-      ? list.filter((e) => e !== session.email)
-      : [...list, session.email]
-    let next: SocialState = {
-      ...social,
-      likes: { ...social.likes, [contribution.id]: nextList },
-    }
-    if (!liked) {
-      next = pushActivity(next, {
-        kind: 'like',
-        at: new Date().toISOString(),
-        actorName: session.displayName,
-        actorEmail: session.email,
-        contributionId: contribution.id,
-        contributionTitle: contribution.title,
-      })
-    }
-    saveSocial(next)
-    setState(reload())
-  }, [])
+  const toggleLike = useCallback(
+    async (contribution: Contribution, session: Session) => {
+      const list = social.likes[contribution.id] ?? []
+      const liked = list.includes(session.email)
+      await toggleLikeCloud(contribution, session, liked)
+      await refresh()
+    },
+    [social.likes, refresh],
+  )
 
   const addComment = useCallback(
-    (contribution: Contribution, session: Session, body: string) => {
-      const text = body.trim()
-      if (!text) return
-      let social = loadSocial()
-      const comment = {
-        id: createId('comment'),
-        contributionId: contribution.id,
-        body: text,
-        authorName: session.displayName,
-        authorEmail: session.email,
-        createdAt: new Date().toISOString(),
-      }
-      social = {
-        ...social,
-        comments: [comment, ...social.comments],
-      }
-      social = pushActivity(social, {
-        kind: 'comment',
-        at: comment.createdAt,
-        actorName: session.displayName,
-        actorEmail: session.email,
-        contributionId: contribution.id,
-        contributionTitle: contribution.title,
-      })
-      saveSocial(social)
-      setState(reload())
+    async (contribution: Contribution, session: Session, body: string) => {
+      const comment = await addCommentCloud(contribution, session, body)
+      await refresh()
       return comment
     },
-    [],
+    [refresh],
   )
 
   const addQuote = useCallback(
-    (quoted: Contribution, session: Session, remark: string) => {
-      let social = loadSocial()
-      const quote = {
-        id: createId('quote'),
-        contributionId: quoted.id,
-        quotedContributionId: quoted.id,
-        quotedTitle: quoted.title,
-        remark: remark.trim(),
-        authorName: session.displayName,
-        authorEmail: session.email,
-        createdAt: new Date().toISOString(),
-      }
-      social = { ...social, quotes: [quote, ...social.quotes] }
-      social = pushActivity(social, {
-        kind: 'quote',
-        at: quote.createdAt,
-        actorName: session.displayName,
-        actorEmail: session.email,
-        contributionId: quoted.id,
-        contributionTitle: quoted.title,
-      })
-      saveSocial(social)
-      setState(reload())
+    async (quoted: Contribution, session: Session, remark: string) => {
+      const quote = await addQuoteCloud(quoted, session, remark)
+      await refresh()
       return quote
     },
-    [],
+    [refresh],
   )
 
   const stats = useMemo(() => {
@@ -170,7 +142,10 @@ export function useCommunity() {
     for (const c of contributions) {
       byCategory[c.category] = (byCategory[c.category] ?? 0) + 1
     }
-    const likeCount = Object.values(social.likes).reduce((n, arr) => n + arr.length, 0)
+    const likeCount = Object.values(social.likes).reduce(
+      (n, arr) => n + arr.length,
+      0,
+    )
     return {
       total: contributions.length,
       byCategory,
@@ -185,6 +160,8 @@ export function useCommunity() {
     contributions,
     social,
     stats,
+    loading,
+    error,
     refresh,
     addContribution,
     toggleLike,

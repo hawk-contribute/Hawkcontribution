@@ -10,6 +10,10 @@ import type {
 } from '../types'
 import { MAX_ACTIVITIES } from '../types'
 import { broadcastStoreUpdate } from './sync'
+import {
+  recordGameActivityCloud,
+  recordNftActivityCloud,
+} from './communityCloud'
 
 const SESSION_KEY = 'hawk-contribute:session'
 const CONTRIBUTIONS_KEY = 'hawk-contribute:contributions'
@@ -242,36 +246,18 @@ export function pushActivity(
 
 export type { LikesMap, Comment, Quote }
 
-export function recordGameActivity(input: {
+export async function recordGameActivity(input: {
   actorName: string
   actorEmail: string
   score: number
-}): void {
-  let social = loadSocial()
-  social = pushActivity(social, {
-    kind: 'game',
-    at: new Date().toISOString(),
-    actorName: input.actorName,
-    actorEmail: input.actorEmail,
-    contributionId: 'game-eagle',
-    contributionTitle: String(input.score),
-  })
-  saveSocial(social)
+}): Promise<void> {
+  await recordGameActivityCloud(input)
 }
 
-export function recordNftActivity(input: {
+export async function recordNftActivity(input: {
   actorName: string
   actorEmail: string
   nftTitle: string
-}): void {
-  let social = loadSocial()
-  social = pushActivity(social, {
-    kind: 'nft',
-    at: new Date().toISOString(),
-    actorName: input.actorName,
-    actorEmail: input.actorEmail,
-    contributionId: 'nft-reward',
-    contributionTitle: input.nftTitle,
-  })
-  saveSocial(social)
+}): Promise<void> {
+  await recordNftActivityCloud(input)
 }

@@ -52,7 +52,7 @@ export default function App() {
     addComment,
     addQuote,
     refresh,
-  } = useCommunity()
+  } = useCommunity({ live: tab === 'feed' || tab === 'browse' || tab === 'ledger' })
   const { account, communityPoints, recordRound } = usePoints(
     session?.email,
     session?.userId,
@@ -146,7 +146,7 @@ export default function App() {
   }, [signOut, t])
 
   const handleUploadSubmit = useCallback(
-    (data: {
+    async (data: {
       category: import('./types').ContributionCategory
       opportunityId?: string
       opportunityTitle: string
@@ -155,44 +155,68 @@ export default function App() {
       proofUrl?: string
       files: import('./types').UploadedFileMeta[]
     }) => {
-      if (!session) return
-      addContribution({
-        ...data,
-        participantName: session.displayName,
-        participantEmail: session.email,
-      })
-      setUploadOpen(false)
-      setPresetOpp(null)
-      setToast(t('toast.uploaded'))
-      setTab('feed')
+      if (!session?.userId) {
+        setToast(t('toast.needAuth'))
+        return
+      }
+      try {
+        await addContribution({
+          ...data,
+          participantName: session.displayName,
+          participantEmail: session.email,
+          session,
+        })
+        setUploadOpen(false)
+        setPresetOpp(null)
+        setToast(t('toast.uploaded'))
+        setTab('feed')
+      } catch (e) {
+        console.warn(e)
+        setToast(t('toast.cloudWriteFailed'))
+      }
     },
     [session, addContribution, t],
   )
 
   const handleToggleLike = useCallback(
-    (c: Contribution) => {
-      if (!session) return requireAuth()
+    async (c: Contribution) => {
+      if (!session?.userId) return requireAuth()
       const wasLiked = (social.likes[c.id] ?? []).includes(session.email)
-      toggleLike(c, session)
-      setToast(wasLiked ? t('toast.unliked') : t('toast.liked'))
+      try {
+        await toggleLike(c, session)
+        setToast(wasLiked ? t('toast.unliked') : t('toast.liked'))
+      } catch (e) {
+        console.warn(e)
+        setToast(t('toast.cloudWriteFailed'))
+      }
     },
     [session, social.likes, toggleLike, requireAuth, t],
   )
 
   const handleAddComment = useCallback(
-    (c: Contribution, body: string) => {
-      if (!session) return requireAuth()
-      addComment(c, session, body)
-      setToast(t('toast.commented'))
+    async (c: Contribution, body: string) => {
+      if (!session?.userId) return requireAuth()
+      try {
+        await addComment(c, session, body)
+        setToast(t('toast.commented'))
+      } catch (e) {
+        console.warn(e)
+        setToast(t('toast.cloudWriteFailed'))
+      }
     },
     [session, addComment, requireAuth, t],
   )
 
   const handleAddQuote = useCallback(
-    (quoted: Contribution, remark: string) => {
-      if (!session) return requireAuth()
-      addQuote(quoted, session, remark)
-      setToast(t('toast.quoted'))
+    async (quoted: Contribution, remark: string) => {
+      if (!session?.userId) return requireAuth()
+      try {
+        await addQuote(quoted, session, remark)
+        setToast(t('toast.quoted'))
+      } catch (e) {
+        console.warn(e)
+        setToast(t('toast.cloudWriteFailed'))
+      }
     },
     [session, addQuote, requireAuth, t],
   )
@@ -201,12 +225,11 @@ export default function App() {
     (score: number, hits: number) => {
       if (!session || score <= 0) return
       recordRound(score, hits)
-      recordGameActivity({
+      void recordGameActivity({
         actorName: session.displayName,
         actorEmail: session.email,
         score,
-      })
-      refresh()
+      }).then(() => refresh())
       setToast(t('toast.gamePoints', { n: score }))
     },
     [session, recordRound, refresh, t],
@@ -221,12 +244,12 @@ export default function App() {
       }
       const entry = await claim(nftId)
       if (!entry) return
-      recordNftActivity({
+      await recordNftActivity({
         actorName: session.displayName,
         actorEmail: session.email,
         nftTitle: title,
       })
-      refresh()
+      await refresh()
       setToast(t('toast.nftClaimed', { title }))
     },
     [session, account.total, claim, requireAuth, refresh, t],

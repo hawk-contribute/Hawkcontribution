@@ -110,14 +110,21 @@ export function LedgerView({
                   <ul className="space-y-1">
                     {c.files.map((f, i) => (
                       <li key={`${c.id}-f-${i}`}>
-                        <a
-                          href={f.dataUrl}
-                          download={f.name}
-                          className="inline-flex items-center gap-1.5 text-sm font-medium text-hawk-gold hover:underline"
-                        >
-                          <FileText className="h-3.5 w-3.5" />
-                          {f.name}
-                        </a>
+                        {f.dataUrl ? (
+                          <a
+                            href={f.dataUrl}
+                            download={f.name}
+                            className="inline-flex items-center gap-1.5 text-sm font-medium text-hawk-gold hover:underline"
+                          >
+                            <FileText className="h-3.5 w-3.5" />
+                            {f.name}
+                          </a>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 text-sm text-hawk-muted">
+                            <FileText className="h-3.5 w-3.5" />
+                            {f.name}
+                          </span>
+                        )}
                       </li>
                     ))}
                   </ul>

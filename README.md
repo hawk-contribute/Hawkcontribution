@@ -134,6 +134,16 @@ public/
 
 Private demo / internal MVP for Hawk.
 
+## Shared community feed (Supabase)
+
+Guests can **read** contributions, likes, comments, quotes, and the activity marquee from Supabase.
+Signed-in users can **write** (RLS: public SELECT; authenticated INSERT of own rows).
+
+Tables: `contributions`, `contribution_likes`, `contribution_comments`, `contribution_quotes`, `activities`.
+Attachment **names** only are stored (no base64 blobs). Proof URL optional.
+
+Realtime + 25s poll while browsing keep the feed in sync across browsers.
+
 ## Auth (Supabase magic link)
 
 Sign-in flow: enter email → receive magic link → **open the link in the same browser** → signed in.

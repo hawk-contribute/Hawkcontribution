@@ -22,9 +22,9 @@ interface FeedViewProps {
   social: SocialState
   session: Session | null
   onRequireAuth: () => void
-  onToggleLike: (c: Contribution) => void
-  onAddComment: (c: Contribution, body: string) => void
-  onAddQuote: (quoted: Contribution, remark: string) => void
+  onToggleLike: (c: Contribution) => void | Promise<void>
+  onAddComment: (c: Contribution, body: string) => void | Promise<void>
+  onAddQuote: (quoted: Contribution, remark: string) => void | Promise<void>
   onFocusContribution?: (id: string) => void
 }
 
