@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Gamepad2, Lock, Play, RotateCcw, Volume2, VolumeX } from 'lucide-react'
+import { ArrowLeft, Gamepad2, Lock, Play, RotateCcw, Volume2, VolumeX } from 'lucide-react'
 import type { PointsAccount, Session } from '../types'
 import { useI18n } from '../i18n'
 import { asset } from '../lib/asset'
@@ -91,6 +91,7 @@ interface GameViewProps {
   account: PointsAccount
   onRequireAuth: () => void
   onRoundComplete: (score: number, hits: number) => void
+  onBack?: () => void
 }
 
 export function GameView({
@@ -98,6 +99,7 @@ export function GameView({
   account,
   onRequireAuth,
   onRoundComplete,
+  onBack,
 }: GameViewProps) {
   const { t } = useI18n()
   const [phase, setPhase] = useState<Phase>('idle')
@@ -295,6 +297,16 @@ export function GameView({
 
   return (
     <section className="relative">
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          className="mb-4 inline-flex items-center gap-1.5 text-sm text-hawk-muted hover:text-hawk-cream"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {t('gameHub.back')}
+        </button>
+      )}
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="mb-1 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-hawk-gold">

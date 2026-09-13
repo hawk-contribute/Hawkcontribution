@@ -12,7 +12,7 @@ import { ActivityMarquee } from './components/ActivityMarquee'
 import { AuthModal } from './components/AuthModal'
 import { BrowseView } from './components/BrowseView'
 import { FeedView } from './components/FeedView'
-import { GameView } from './components/GameView'
+import { GameHub } from './components/GameHub'
 import { Header } from './components/Header'
 import { LedgerView } from './components/LedgerView'
 import { RewardsView } from './components/RewardsView'
@@ -312,7 +312,7 @@ export default function App() {
 
       <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
         {tab === 'game' && (
-          <GameView
+          <GameHub
             session={session}
             account={account}
             onRequireAuth={() => requireAuth('game')}

@@ -216,6 +216,21 @@ export const gameAudio = {
     tone(50, 0.45, 'sine', 0.15, 0.5)
   },
 
+  playSlice(points = 10): void {
+    const boost = Math.min(1.5, 0.7 + points / 40)
+    noiseBurst(0.05, 0.12 * boost)
+    tone(920, 0.06, 'square', 0, boost)
+    tone(1240, 0.08, 'sine', 0.03, boost)
+    tone(1560, 0.1, 'triangle', 0.06, boost * 0.7)
+  },
+
+  playBomb(): void {
+    noiseBurst(0.28, 0.35)
+    tone(110, 0.3, 'sawtooth', 0, 1)
+    tone(70, 0.35, 'triangle', 0.05, 0.85)
+    tone(40, 0.4, 'sine', 0.12, 0.6)
+  },
+
   playEnd(keepTrying: boolean): void {
     if (keepTrying) {
       tone(330, 0.15, 'triangle', 0, 0.6)
