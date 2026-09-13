@@ -246,3 +246,20 @@ export function recordGameActivity(input: {
   })
   saveSocial(social)
 }
+
+export function recordNftActivity(input: {
+  actorName: string
+  actorEmail: string
+  nftTitle: string
+}): void {
+  let social = loadSocial()
+  social = pushActivity(social, {
+    kind: 'nft',
+    at: new Date().toISOString(),
+    actorName: input.actorName,
+    actorEmail: input.actorEmail,
+    contributionId: 'nft-reward',
+    contributionTitle: input.nftTitle,
+  })
+  saveSocial(social)
+}

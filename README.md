@@ -35,6 +35,15 @@ npm run preview  # preview production build
 
 
 
+
+## NFT rewards
+
+- Nav: **獎勵 / Rewards** — gallery of 6 collectible NFTs.
+- Redeem at **10,000+** mini-game points (`hawk-contribute:points`).
+- Claims: `hawk-contribute:nft-claims` → `{ [email]: { [nftId]: { claimedAt } } }`.
+- Owned NFTs can be **downloaded** locally. App collectibles (not on-chain).
+- Game tab is the **leftmost** nav item.
+
 ## Mini-game (Bald Eagle Whack)
 
 - Nav: **小遊戲 / Game** — login required.

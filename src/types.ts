@@ -47,7 +47,7 @@ export interface Contribution {
   seeded?: boolean
 }
 
-export type ActivityKind = 'contribute' | 'like' | 'comment' | 'quote' | 'game'
+export type ActivityKind = 'contribute' | 'like' | 'comment' | 'quote' | 'game' | 'nft'
 
 export interface ActivityEvent {
   id: string
@@ -118,3 +118,19 @@ export interface PointsAccount {
 
 /** email -> points account */
 export type PointsMap = Record<string, PointsAccount>
+
+export const NFT_REDEEM_POINTS = 10_000
+
+export interface NftDefinition {
+  id: string
+  image: string
+  rarityKey: string // i18n key suffix e.g. legendary
+  titleKey: string
+  blurbKey: string
+  requiredPoints: number
+}
+
+export type NftClaimsMap = Record<
+  string,
+  Record<string, { claimedAt: string }>
+>

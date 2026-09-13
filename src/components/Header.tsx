@@ -2,6 +2,7 @@ import {
   BookOpen,
   ExternalLink,
   Gamepad2,
+  Gift,
   LogOut,
   Newspaper,
   Upload,
@@ -12,7 +13,7 @@ import { useI18n } from '../i18n'
 import { asset } from '../lib/asset'
 import { LanguageSwitcher } from './LanguageSwitcher'
 
-type Tab = 'browse' | 'feed' | 'ledger' | 'game'
+type Tab = 'game' | 'browse' | 'feed' | 'ledger' | 'rewards'
 
 interface HeaderProps {
   tab: Tab
@@ -72,15 +73,12 @@ export function Header({
           </div>
         </div>
 
-        <nav className="flex items-center gap-1 rounded-xl border border-hawk-border bg-hawk-panel/80 p-1">
+        <nav className="flex flex-wrap items-center gap-1 rounded-xl border border-hawk-border bg-hawk-panel/80 p-1">
+          {tabBtn('game', t('nav.game'), <Gamepad2 className="h-3.5 w-3.5" />)}
           {tabBtn('browse', t('nav.opportunities'))}
           {tabBtn('feed', t('nav.feed'), <Newspaper className="h-3.5 w-3.5" />)}
-          {tabBtn('game', t('nav.game'), <Gamepad2 className="h-3.5 w-3.5" />)}
-          {tabBtn(
-            'ledger',
-            t('nav.ledger'),
-            <BookOpen className="h-3.5 w-3.5" />,
-          )}
+          {tabBtn('ledger', t('nav.ledger'), <BookOpen className="h-3.5 w-3.5" />)}
+          {tabBtn('rewards', t('nav.rewards'), <Gift className="h-3.5 w-3.5" />)}
         </nav>
 
         <div className="flex flex-wrap items-center gap-2">

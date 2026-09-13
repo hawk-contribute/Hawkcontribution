@@ -1,10 +1,12 @@
 import { useCallback, useMemo, useState } from 'react'
 import { SEEDED_OPPORTUNITIES } from './data/opportunities'
 import { useCommunity } from './hooks/useCommunity'
+import { useNftClaims } from './hooks/useNftClaims'
 import { usePoints } from './hooks/usePoints'
 import { useSession } from './hooks/useSession'
 import { useI18n } from './i18n'
-import { recordGameActivity } from './lib/storage'
+import { recordGameActivity, recordNftActivity } from './lib/storage'
+import { NFT_REDEEM_POINTS } from './types'
 import type { Contribution, Opportunity } from './types'
 import { ActivityMarquee } from './components/ActivityMarquee'
 import { AuthModal } from './components/AuthModal'
@@ -13,11 +15,12 @@ import { FeedView } from './components/FeedView'
 import { GameView } from './components/GameView'
 import { Header } from './components/Header'
 import { LedgerView } from './components/LedgerView'
+import { RewardsView } from './components/RewardsView'
 import { StatsBar } from './components/StatsBar'
 import { Toast } from './components/Toast'
 import { UploadModal } from './components/UploadModal'
 
-type Tab = 'browse' | 'feed' | 'ledger' | 'game'
+type Tab = 'game' | 'browse' | 'feed' | 'ledger' | 'rewards'
 
 export default function App() {
   const { t } = useI18n()
@@ -26,9 +29,9 @@ export default function App() {
   const [uploadOpen, setUploadOpen] = useState(false)
   const [presetOpp, setPresetOpp] = useState<Opportunity | null>(null)
   const [toast, setToast] = useState<string | null>(null)
-  const [pendingAction, setPendingAction] = useState<'upload' | 'join' | 'game' | null>(
-    null,
-  )
+  const [pendingAction, setPendingAction] = useState<
+    'upload' | 'join' | 'game' | 'rewards' | null
+  >(null)
   const [pendingOpp, setPendingOpp] = useState<Opportunity | null>(null)
 
   const { session, signIn, signOut } = useSession()
@@ -43,6 +46,7 @@ export default function App() {
     refresh,
   } = useCommunity()
   const { account, communityPoints, recordRound } = usePoints(session?.email)
+  const { claims, claim } = useNftClaims(session?.email)
 
   const statsWithPoints = useMemo(
     () => ({ ...stats, points: communityPoints }),
@@ -65,7 +69,7 @@ export default function App() {
   )
 
   const requireAuth = useCallback(
-    (intent: 'upload' | 'join' | 'game' | null = null) => {
+    (intent: 'upload' | 'join' | 'game' | 'rewards' | null = null) => {
       if (intent) setPendingAction(intent)
       setAuthOpen(true)
       setToast(t('toast.needAuth'))
@@ -91,9 +95,8 @@ export default function App() {
         setPresetOpp(opp)
         setUploadOpen(true)
       }
-      if (action === 'game') {
-        setTab('game')
-      }
+      if (action === 'game') setTab('game')
+      if (action === 'rewards') setTab('rewards')
     },
     [signIn, t, pendingAction, pendingOpp],
   )
@@ -170,6 +173,26 @@ export default function App() {
     [session, recordRound, refresh, t],
   )
 
+  const handleClaimNft = useCallback(
+    (nftId: string, title: string) => {
+      if (!session) return requireAuth('rewards')
+      if (account.total < NFT_REDEEM_POINTS) {
+        setToast(t('toast.nftNeedPoints'))
+        return
+      }
+      const entry = claim(nftId)
+      if (!entry) return
+      recordNftActivity({
+        actorName: session.displayName,
+        actorEmail: session.email,
+        nftTitle: title,
+      })
+      refresh()
+      setToast(t('toast.nftClaimed', { title }))
+    },
+    [session, account.total, claim, requireAuth, refresh, t],
+  )
+
   const myContributions = session
     ? contributions.filter(
         (c) =>
@@ -196,6 +219,14 @@ export default function App() {
       <StatsBar stats={statsWithPoints} />
 
       <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
+        {tab === 'game' && (
+          <GameView
+            session={session}
+            account={account}
+            onRequireAuth={() => requireAuth('game')}
+            onRoundComplete={handleRoundComplete}
+          />
+        )}
         {tab === 'browse' && (
           <BrowseView
             opportunities={SEEDED_OPPORTUNITIES}
@@ -222,12 +253,14 @@ export default function App() {
             signedIn={!!session}
           />
         )}
-        {tab === 'game' && (
-          <GameView
+        {tab === 'rewards' && (
+          <RewardsView
             session={session}
             account={account}
-            onRequireAuth={() => requireAuth('game')}
-            onRoundComplete={handleRoundComplete}
+            claims={claims}
+            onRequireAuth={() => requireAuth('rewards')}
+            onClaim={handleClaimNft}
+            onPlayGame={() => setTab('game')}
           />
         )}
       </main>
