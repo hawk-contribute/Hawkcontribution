@@ -1,6 +1,6 @@
 # Hawk Contribute（Hawk 貢獻）
 
-**Live:** https://jeffyu-jpg.github.io/hawkcontribute/
+**Live:** https://jeffyu-jpg.github.io/Hawkcontribution/
 
 
 Local MVP web app for Hawk's brand / community ecosystem. Participants browse opportunities (活動 / 合作 / 內容貢獻), set a simple local identity, join, and **record** contributions. Points and redemption are **not** implemented in this MVP.
@@ -136,9 +136,9 @@ Private demo / internal MVP for Hawk.
 
 ## Deploy (GitHub Pages)
 
-**Live:** https://jeffyu-jpg.github.io/hawkcontribute/
+**Live:** https://jeffyu-jpg.github.io/Hawkcontribution/
 
-Vite `base` is `/hawkcontribute/`. Asset paths go through `src/lib/asset.ts`.
+Vite `base` is `/Hawkcontribution/`. Asset paths go through `src/lib/asset.ts`.
 
 Current publish source: **`gh-pages` branch** (built `dist`).  
 Actions workflow is prepared at `.github/workflows/deploy-pages.yml` — pushing it requires a token with the `workflow` scope (`gh auth refresh -h github.com -s workflow`), then switch Pages to **GitHub Actions**.
