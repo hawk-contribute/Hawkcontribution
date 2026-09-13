@@ -3,6 +3,7 @@ import {
   ExternalLink,
   Gamepad2,
   Gift,
+  KeyRound,
   LogOut,
   Newspaper,
   Upload,
@@ -21,6 +22,7 @@ interface HeaderProps {
   session: Session | null
   onSignIn: () => void
   onSignOut: () => void
+  onChangePassword?: () => void
   onProvide: () => void
   contributionCount: number
 }
@@ -31,6 +33,7 @@ export function Header({
   session,
   onSignIn,
   onSignOut,
+  onChangePassword,
   onProvide,
   contributionCount,
 }: HeaderProps) {
@@ -108,6 +111,17 @@ export function Header({
                   {session.displayName}
                 </span>
               </div>
+              {onChangePassword && (
+                <button
+                  type="button"
+                  onClick={onChangePassword}
+                  className="hawk-btn hawk-btn-ghost px-3 py-2 text-sm"
+                  title={t('auth.changePassword')}
+                >
+                  <KeyRound className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">{t('auth.changePassword')}</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={onSignOut}

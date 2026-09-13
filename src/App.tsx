@@ -26,6 +26,7 @@ export default function App() {
   const { t } = useI18n()
   const [tab, setTab] = useState<Tab>('browse')
   const [authOpen, setAuthOpen] = useState(false)
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false)
   const [uploadOpen, setUploadOpen] = useState(false)
   const [presetOpp, setPresetOpp] = useState<Opportunity | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -301,8 +302,15 @@ export default function App() {
         tab={tab}
         onTabChange={setTab}
         session={session}
-        onSignIn={() => setAuthOpen(true)}
+        onSignIn={() => {
+          setChangePasswordOpen(false)
+          setAuthOpen(true)
+        }}
         onSignOut={() => void handleSignOut()}
+        onChangePassword={() => {
+          setChangePasswordOpen(true)
+          setAuthOpen(true)
+        }}
         onProvide={handleProvide}
         contributionCount={myContributions.length}
       />
@@ -365,7 +373,11 @@ export default function App() {
       <AuthModal
         open={authOpen}
         passwordRecovery={passwordRecovery}
-        onClose={() => setAuthOpen(false)}
+        changePassword={changePasswordOpen && !passwordRecovery}
+        onClose={() => {
+          setAuthOpen(false)
+          setChangePasswordOpen(false)
+        }}
         onSignIn={handlePasswordSignIn}
         onSignUp={handlePasswordSignUp}
         onRequestReset={handleRequestReset}

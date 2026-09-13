@@ -3,13 +3,15 @@ import { X } from 'lucide-react'
 import { useI18n } from '../i18n'
 import { isValidEmail } from '../lib/storage'
 
-type AuthMode = 'signin' | 'signup' | 'forgot' | 'recovery'
+type AuthMode = 'signin' | 'signup' | 'forgot' | 'recovery' | 'change'
 
 interface AuthModalProps {
   open: boolean
   onClose: () => void
   /** When true, force the set-new-password UI (recovery link landed). */
   passwordRecovery?: boolean
+  /** Open directly in change-password mode (must already be signed in). */
+  changePassword?: boolean
   onSignIn: (input: {
     email: string
     password: string
@@ -25,7 +27,11 @@ interface AuthModalProps {
 
 function mapAuthError(msg: string, t: (k: string) => string): string {
   const m = msg.toLowerCase()
-  if (m.includes('invalid login') || m.includes('invalid_credentials')) {
+  if (
+    m.includes('invalid login') ||
+    m.includes('invalid_credentials') ||
+    m.includes('invalid email or password')
+  ) {
     return t('auth.wrongPassword')
   }
   if (
@@ -50,17 +56,36 @@ function mapAuthError(msg: string, t: (k: string) => string): string {
   if (m.includes('email') && m.includes('invalid')) {
     return t('auth.emailRequired')
   }
-  if (m === 'WEAK_PASSWORD' || m === 'INVALID_EMAIL') {
-    return m === 'WEAK_PASSWORD' ? t('auth.weakPassword') : t('auth.emailRequired')
+  if (m === 'weak_password' || m === 'invalid_email') {
+    return m === 'weak_password' ? t('auth.weakPassword') : t('auth.emailRequired')
   }
-  if (m === 'PASSWORD_MISMATCH') return t('auth.passwordMismatch')
+  if (m === 'password_mismatch') return t('auth.passwordMismatch')
+  if (m === 'no_session') return t('auth.noSession')
   return t('auth.authFailed')
+}
+
+function formatError(msg: string, t: (k: string) => string): string {
+  const mapped = mapAuthError(msg, t)
+  const raw = msg.trim()
+  if (
+    !raw ||
+    raw === 'INVALID_EMAIL' ||
+    raw === 'WEAK_PASSWORD' ||
+    raw === 'PASSWORD_MISMATCH' ||
+    raw === 'NO_SESSION'
+  ) {
+    return mapped
+  }
+  // Avoid duplicating the same text
+  if (mapped.toLowerCase() === raw.toLowerCase()) return mapped
+  return `${mapped} — ${raw}`
 }
 
 export function AuthModal({
   open,
   onClose,
   passwordRecovery = false,
+  changePassword = false,
   onSignIn,
   onSignUp,
   onRequestReset,
@@ -87,6 +112,15 @@ export function AuthModal({
       setBusy(false)
       return
     }
+    if (changePassword) {
+      setMode('change')
+      setPassword('')
+      setConfirmPassword('')
+      setError('')
+      setInfo('')
+      setBusy(false)
+      return
+    }
     setMode('signin')
     setEmail('')
     setPassword('')
@@ -95,11 +129,13 @@ export function AuthModal({
     setError('')
     setInfo('')
     setBusy(false)
-  }, [open, passwordRecovery])
+  }, [open, passwordRecovery, changePassword])
 
   useEffect(() => {
-    if (passwordRecovery && open) setMode('recovery')
-  }, [passwordRecovery, open])
+    if (!open) return
+    if (passwordRecovery) setMode('recovery')
+    else if (changePassword) setMode('change')
+  }, [passwordRecovery, changePassword, open])
 
   if (!open) return null
 
@@ -108,8 +144,10 @@ export function AuthModal({
       ? t('auth.titleSignUp')
       : mode === 'forgot'
         ? t('auth.titleForgot')
-        : mode === 'recovery'
-          ? t('auth.titleRecovery')
+        : mode === 'recovery' || mode === 'change'
+          ? mode === 'change'
+            ? t('auth.titleChangePassword')
+            : t('auth.titleRecovery')
           : t('auth.titleSignIn')
 
   const hint =
@@ -117,54 +155,59 @@ export function AuthModal({
       ? t('auth.forgotHint')
       : mode === 'recovery'
         ? t('auth.recoveryHint')
-        : t('auth.hint')
+        : mode === 'change'
+          ? t('auth.changeHint')
+          : t('auth.hint')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setInfo('')
     setBusy(true)
+    const emailTrim = email.trim()
+    const passwordTrim = password.trim()
+    const confirmTrim = confirmPassword.trim()
     try {
       if (mode === 'forgot') {
-        if (!isValidEmail(email)) {
+        if (!isValidEmail(emailTrim)) {
           setError(t('auth.emailRequired'))
           return
         }
-        await onRequestReset(email.trim())
-        setInfo(t('auth.resetEmailSent', { email: email.trim() }))
+        await onRequestReset(emailTrim)
+        setInfo(t('auth.resetEmailSent', { email: emailTrim }))
         return
       }
 
-      if (mode === 'recovery') {
-        if (password.length < 6) {
+      if (mode === 'recovery' || mode === 'change') {
+        if (passwordTrim.length < 6) {
           setError(t('auth.weakPassword'))
           return
         }
-        if (password !== confirmPassword) {
+        if (passwordTrim !== confirmTrim) {
           setError(t('auth.passwordMismatch'))
           return
         }
-        await onUpdatePassword(password)
+        await onUpdatePassword(passwordTrim)
         onClose()
         return
       }
 
-      if (!isValidEmail(email)) {
+      if (!isValidEmail(emailTrim)) {
         setError(t('auth.emailRequired'))
         return
       }
-      if (password.length < 6) {
+      if (passwordTrim.length < 6) {
         setError(t('auth.weakPassword'))
         return
       }
 
       if (mode === 'signin') {
-        await onSignIn({ email: email.trim(), password })
+        await onSignIn({ email: emailTrim, password: passwordTrim })
         onClose()
       } else {
         const result = await onSignUp({
-          email: email.trim(),
-          password,
+          email: emailTrim,
+          password: passwordTrim,
           displayName: displayName.trim() || undefined,
         })
         if (result === 'confirm_email') {
@@ -177,11 +220,14 @@ export function AuthModal({
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      setError(mapAuthError(msg, t))
+      console.error('[auth] AuthModal submit error', err)
+      setError(formatError(msg, t))
     } finally {
       setBusy(false)
     }
   }
+
+  const showTabs = mode === 'signin' || mode === 'signup'
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center">
@@ -207,7 +253,7 @@ export function AuthModal({
           </button>
         </div>
 
-        {mode !== 'forgot' && mode !== 'recovery' && (
+        {showTabs && (
           <div className="mb-4 grid grid-cols-2 gap-1 rounded-xl border border-hawk-border/70 bg-black/20 p-1">
             <button
               type="button"
@@ -242,8 +288,8 @@ export function AuthModal({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {mode !== 'recovery' && (
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete="on">
+          {(mode === 'signin' || mode === 'signup' || mode === 'forgot') && (
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium text-hawk-cream">
                 {t('auth.email')} <span className="text-hawk-gold">*</span>
@@ -311,7 +357,7 @@ export function AuthModal({
             </label>
           )}
 
-          {mode === 'recovery' && (
+          {(mode === 'recovery' || mode === 'change') && (
             <>
               <label className="block">
                 <span className="mb-1.5 block text-sm font-medium text-hawk-cream">
@@ -347,14 +393,16 @@ export function AuthModal({
             </>
           )}
 
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && (
+            <p className="whitespace-pre-wrap break-words text-sm text-red-400">{error}</p>
+          )}
           {info && (
             <p className="rounded-xl border border-hawk-gold/30 bg-hawk-gold/10 px-3 py-2 text-sm text-hawk-cream">
               {info}
             </p>
           )}
 
-          {mode !== 'forgot' && mode !== 'recovery' && (
+          {(mode === 'signin' || mode === 'signup') && (
             <p className="text-xs text-hawk-muted">{t('auth.supabaseNote')}</p>
           )}
           {mode === 'forgot' && (
@@ -374,10 +422,12 @@ export function AuthModal({
                   ? t('auth.submitSignUp')
                   : mode === 'forgot'
                     ? t('auth.submitForgot')
-                    : t('auth.submitRecovery')}
+                    : mode === 'change'
+                      ? t('auth.submitChangePassword')
+                      : t('auth.submitRecovery')}
           </button>
 
-          {(mode === 'forgot' || mode === 'recovery') && !passwordRecovery && (
+          {(mode === 'forgot' || (mode === 'recovery' && !passwordRecovery)) && (
             <button
               type="button"
               className="w-full text-center text-xs text-hawk-muted underline-offset-2 hover:text-hawk-cream hover:underline"

@@ -53,6 +53,22 @@ async function afterSignedIn(user: User, appSession: Session): Promise<void> {
   await syncNftClaimsFromCloud(user.id, appSession.email)
 }
 
+function applySessionNow(
+  user: User,
+  setSessionState: (s: Session | null) => void,
+  syncedUserRef: { current: string | null },
+  shouldSync: boolean,
+): Session {
+  const next = sessionFromUser(user)
+  setSessionState(next)
+  if (shouldSync || syncedUserRef.current !== user.id) {
+    const first = syncedUserRef.current !== user.id
+    syncedUserRef.current = user.id
+    if (shouldSync || first) void afterSignedIn(user, next)
+  }
+  return next
+}
+
 export function useSession() {
   const [session, setSessionState] = useState<Session | null>(null)
   const [authReady, setAuthReady] = useState(false)
@@ -69,11 +85,8 @@ export function useSession() {
         if (!cancelled) setSessionState(null)
         return
       }
-      const next = sessionFromUser(user)
-      if (!cancelled) setSessionState(next)
-      if (shouldSync && syncedUserRef.current !== user.id) {
-        syncedUserRef.current = user.id
-        void afterSignedIn(user, next)
+      if (!cancelled) {
+        applySessionNow(user, setSessionState, syncedUserRef, shouldSync)
       }
     }
 
@@ -125,15 +138,30 @@ export function useSession() {
   const signInWithPassword = useCallback(
     async (input: { email: string; password: string }) => {
       const email = input.email.trim()
+      const password = input.password.trim()
       if (!isValidEmail(email)) throw new Error('INVALID_EMAIL')
-      if (input.password.length < 6) throw new Error('WEAK_PASSWORD')
+      if (password.length < 6) throw new Error('WEAK_PASSWORD')
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password: input.password,
+        password,
       })
-      if (error) throw error
-      if (!data.session) throw new Error('NO_SESSION')
+      if (error) {
+        console.error('[auth] signInWithPassword failed', {
+          message: error.message,
+          status: (error as { status?: number }).status,
+          name: error.name,
+          email,
+        })
+        throw error
+      }
+      if (!data.session?.user) {
+        console.error('[auth] signInWithPassword: no session/user in response', data)
+        throw new Error('NO_SESSION')
+      }
+      // Explicitly apply session — do not wait only on onAuthStateChange
+      applySessionNow(data.session.user, setSessionState, syncedUserRef, true)
       setPasswordRecovery(false)
+      setAuthError(null)
       return data.session
     },
     [],
@@ -146,22 +174,33 @@ export function useSession() {
       displayName?: string
     }): Promise<'signed_in' | 'confirm_email'> => {
       const email = input.email.trim()
+      const password = input.password.trim()
       if (!isValidEmail(email)) throw new Error('INVALID_EMAIL')
-      if (input.password.length < 6) throw new Error('WEAK_PASSWORD')
+      if (password.length < 6) throw new Error('WEAK_PASSWORD')
       const displayName = input.displayName?.trim()
       if (displayName) savePendingDisplayName(displayName)
 
       const { data, error } = await supabase.auth.signUp({
         email,
-        password: input.password,
+        password,
         options: {
           emailRedirectTo: authRedirectTo(),
           data: displayName ? { display_name: displayName } : undefined,
         },
       })
-      if (error) throw error
-      if (data.session) {
+      if (error) {
+        console.error('[auth] signUpWithPassword failed', {
+          message: error.message,
+          status: (error as { status?: number }).status,
+          name: error.name,
+          email,
+        })
+        throw error
+      }
+      if (data.session?.user) {
+        applySessionNow(data.session.user, setSessionState, syncedUserRef, true)
         setPasswordRecovery(false)
+        setAuthError(null)
         return 'signed_in'
       }
       return 'confirm_email'
@@ -175,13 +214,20 @@ export function useSession() {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: authRedirectTo(),
     })
-    if (error) throw error
+    if (error) {
+      console.error('[auth] resetPasswordForEmail failed', error)
+      throw error
+    }
   }, [])
 
-  const updatePassword = useCallback(async (password: string) => {
+  const updatePassword = useCallback(async (passwordRaw: string) => {
+    const password = passwordRaw.trim()
     if (password.length < 6) throw new Error('WEAK_PASSWORD')
     const { data, error } = await supabase.auth.updateUser({ password })
-    if (error) throw error
+    if (error) {
+      console.error('[auth] updateUser password failed', error)
+      throw error
+    }
     setPasswordRecovery(false)
     return data.user
   }, [])
@@ -208,6 +254,6 @@ export function useSession() {
     requestPasswordReset,
     updatePassword,
     signOut,
-    isSignedIn: !!session,
+    isSignedIn: !!session?.userId,
   }
 }
