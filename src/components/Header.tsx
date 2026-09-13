@@ -8,6 +8,7 @@ import {
   LogOut,
   Newspaper,
   Megaphone,
+  ShieldCheck,
   Upload,
   UserRound,
 } from 'lucide-react'
@@ -17,7 +18,7 @@ import { asset } from '../lib/asset'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { HawkPricePill } from './HawkPricePill'
 
-type Tab = 'game' | 'browse' | 'feed' | 'ledger' | 'rewards' | 'stats' | 'news'
+type Tab = 'game' | 'browse' | 'feed' | 'ledger' | 'rewards' | 'stats' | 'news' | 'audit'
 
 interface HeaderProps {
   tab: Tab
@@ -87,6 +88,7 @@ export function Header({
           {tabBtn('rewards', t('nav.rewards'), <Gift className="h-3.5 w-3.5" />)}
           {tabBtn('stats', t('nav.stats'), <BarChart3 className="h-3.5 w-3.5" />)}
           {tabBtn('news', t('nav.news'), <Megaphone className="h-3.5 w-3.5" />)}
+          {tabBtn('audit', t('nav.audit'), <ShieldCheck className="h-3.5 w-3.5" />)}
         </nav>
 
         <div className="flex flex-wrap items-center gap-2">

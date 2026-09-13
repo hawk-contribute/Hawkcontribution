@@ -21,11 +21,12 @@ import { RewardsView } from './components/RewardsView'
 import { StatsBar } from './components/StatsBar'
 import { StatsView } from './components/StatsView'
 import { NewsView } from './components/NewsView'
+import { AuditView } from './components/AuditView'
 import { Toast } from './components/Toast'
 import { DonationCard } from './components/DonationCard'
 import { UploadModal } from './components/UploadModal'
 
-type Tab = 'game' | 'browse' | 'feed' | 'ledger' | 'rewards' | 'stats' | 'news'
+type Tab = 'game' | 'browse' | 'feed' | 'ledger' | 'rewards' | 'stats' | 'news' | 'audit'
 
 export default function App() {
   const { t } = useI18n()
@@ -450,6 +451,7 @@ export default function App() {
           />
         )}
         {tab === 'news' && <NewsView session={session} />}
+        {tab === 'audit' && <AuditView />}
       </main>
 
       <footer className="border-t border-hawk-border/60 py-6 text-center text-xs text-hawk-muted">
