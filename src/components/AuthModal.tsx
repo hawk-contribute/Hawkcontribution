@@ -6,33 +6,56 @@ import { isValidEmail } from '../lib/storage'
 interface AuthModalProps {
   open: boolean
   onClose: () => void
-  onSignIn: (input: { email: string; displayName?: string }) => void
+  onRequestLink: (input: {
+    email: string
+    displayName?: string
+  }) => Promise<void>
 }
 
-export function AuthModal({ open, onClose, onSignIn }: AuthModalProps) {
+export function AuthModal({ open, onClose, onRequestLink }: AuthModalProps) {
   const { t } = useI18n()
   const [email, setEmail] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sentTo, setSentTo] = useState<string | null>(null)
 
   useEffect(() => {
     if (open) {
       setEmail('')
       setDisplayName('')
       setError('')
+      setSending(false)
+      setSentTo(null)
     }
   }, [open])
 
   if (!open) return null
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!isValidEmail(email)) {
       setError(t('auth.emailRequired'))
       return
     }
-    onSignIn({ email: email.trim(), displayName: displayName.trim() || undefined })
-    onClose()
+    setError('')
+    setSending(true)
+    try {
+      await onRequestLink({
+        email: email.trim(),
+        displayName: displayName.trim() || undefined,
+      })
+      setSentTo(email.trim())
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      if (msg.includes('rate') || msg.includes('Rate') || msg.includes('security')) {
+        setError(t('auth.rateLimited'))
+      } else {
+        setError(t('auth.sendFailed'))
+      }
+    } finally {
+      setSending(false)
+    }
   }
 
   return (
@@ -59,37 +82,56 @@ export function AuthModal({ open, onClose, onSignIn }: AuthModalProps) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-hawk-cream">
-              {t('auth.email')} <span className="text-hawk-gold">*</span>
-            </span>
-            <input
-              className="hawk-input"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={t('auth.emailPlaceholder')}
-              autoFocus
-            />
-          </label>
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-hawk-cream">
-              {t('auth.name')}
-            </span>
-            <input
-              className="hawk-input"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder={t('auth.namePlaceholder')}
-            />
-          </label>
-          {error && <p className="text-sm text-red-400">{error}</p>}
-          <button type="submit" className="hawk-btn hawk-btn-primary w-full px-4 py-2.5">
-            {t('auth.submit')}
-          </button>
-        </form>
+        {sentTo ? (
+          <div className="space-y-4">
+            <p className="rounded-xl border border-hawk-gold/30 bg-hawk-gold/10 px-4 py-3 text-sm text-hawk-cream">
+              {t('auth.checkInbox', { email: sentTo })}
+            </p>
+            <p className="text-xs text-hawk-muted">{t('auth.rateNote')}</p>
+            <button type="button" className="hawk-btn hawk-btn-primary w-full px-4 py-2.5" onClick={onClose}>
+              {t('auth.close')}
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-hawk-cream">
+                {t('auth.email')} <span className="text-hawk-gold">*</span>
+              </span>
+              <input
+                className="hawk-input"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={t('auth.emailPlaceholder')}
+                autoFocus
+                disabled={sending}
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-hawk-cream">
+                {t('auth.name')}
+              </span>
+              <input
+                className="hawk-input"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder={t('auth.namePlaceholder')}
+                disabled={sending}
+              />
+            </label>
+            {error && <p className="text-sm text-red-400">{error}</p>}
+            <p className="text-xs text-hawk-muted">{t('auth.rateNote')}</p>
+            <button
+              type="submit"
+              className="hawk-btn hawk-btn-primary w-full px-4 py-2.5"
+              disabled={sending}
+            >
+              {sending ? t('auth.sending') : t('auth.submit')}
+            </button>
+          </form>
+        )}
       </div>
     </div>
   )

@@ -3,12 +3,12 @@
 **Live:** https://hawk-contribute.github.io/Hawkcontribution/
 
 
-Local MVP web app for Hawk's brand / community ecosystem. Participants browse opportunities (活動 / 合作 / 內容貢獻), set a simple local identity, join, and **record** contributions. Points and redemption are **not** implemented in this MVP.
+Web app for Hawk's brand / community ecosystem. Participants browse opportunities (活動 / 合作 / 內容貢獻), sign in with **email magic link** (Supabase), join, and **record** contributions. Mini-game points and NFT claims sync to Supabase when online.
 
 ## What it does
 
 - Browse seeded opportunities in three types: **活動** / **合作** / **內容貢獻**
-- Local identity via `localStorage` (display name + optional email) — no OAuth
+- **Supabase Auth** email magic-link sign-in (session persisted; guests can still browse)
 - Join an opportunity and submit a contribution (title, description, optional proof URL)
 - Personal contribution ledger (history) persisted in the browser
 - zh-TW UI copy; English in code and comments
@@ -133,6 +133,25 @@ public/
 ## License
 
 Private demo / internal MVP for Hawk.
+
+## Auth (Supabase magic link)
+
+Sign-in flow: enter email → receive magic link → return to the site signed in.
+
+**Env (Vite):** `.env.production` / `.env.development` set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (anon key is public). See `.env.example`.
+
+**Tables used (RLS):** `profiles`, `game_points`, `nft_claims`.
+
+### Required Dashboard URL config
+
+Supabase Dashboard → **Authentication → URL Configuration**:
+
+- **Site URL:** `https://hawk-contribute.github.io/Hawkcontribution/`
+- **Redirect URLs** (allow list):
+  - `https://hawk-contribute.github.io/Hawkcontribution/`
+  - `http://localhost:5173/` (local `npm run dev`)
+
+Without these, magic-link redirects will fail after email click.
 
 ## Deploy (GitHub Pages)
 

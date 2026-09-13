@@ -17,11 +17,13 @@ export interface Opportunity {
   image: string
 }
 
-/** Local email session (MVP — no server verification) */
+/** Signed-in app session (Supabase Auth magic link) */
 export interface Session {
   email: string
   displayName: string
   signedInAt: string // ISO
+  /** Supabase auth user id when available */
+  userId?: string
 }
 
 export interface UploadedFileMeta {

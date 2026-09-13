@@ -61,6 +61,18 @@ export function clearSession(): void {
   broadcastStoreUpdate()
 }
 
+/** Track member email for local community stats (no auth side effects). */
+export function registerMemberEmail(email: string): void {
+  const trimmed = email.trim()
+  if (!trimmed) return
+  const social = loadSocial()
+  if (!social.memberEmails.includes(trimmed)) {
+    social.memberEmails = [...social.memberEmails, trimmed]
+    saveSocial(social)
+  }
+}
+
+
 function normalizeContribution(c: Contribution): Contribution {
   return {
     ...c,

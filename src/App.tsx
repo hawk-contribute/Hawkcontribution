@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SEEDED_OPPORTUNITIES } from './data/opportunities'
 import { useCommunity } from './hooks/useCommunity'
 import { useNftClaims } from './hooks/useNftClaims'
@@ -33,8 +33,9 @@ export default function App() {
     'upload' | 'join' | 'game' | 'rewards' | null
   >(null)
   const [pendingOpp, setPendingOpp] = useState<Opportunity | null>(null)
+  const welcomedRef = useRef<string | null>(null)
 
-  const { session, signIn, signOut } = useSession()
+  const { session, requestMagicLink, signOut } = useSession()
   const {
     contributions,
     social,
@@ -45,8 +46,11 @@ export default function App() {
     addQuote,
     refresh,
   } = useCommunity()
-  const { account, communityPoints, recordRound } = usePoints(session?.email)
-  const { claims, claim } = useNftClaims(session?.email)
+  const { account, communityPoints, recordRound } = usePoints(
+    session?.email,
+    session?.userId,
+  )
+  const { claims, claim } = useNftClaims(session?.email, session?.userId)
 
   const statsWithPoints = useMemo(
     () => ({ ...stats, points: communityPoints }),
@@ -83,26 +87,38 @@ export default function App() {
   )
   const handleProvide = useCallback(() => openUpload(null), [openUpload])
 
-  const handleSignedIn = useCallback(
-    (input: { email: string; displayName?: string }) => {
-      signIn(input)
-      setToast(t('toast.signedIn'))
-      const action = pendingAction
-      const opp = pendingOpp
-      setPendingAction(null)
-      setPendingOpp(null)
-      if (action === 'join' || action === 'upload') {
-        setPresetOpp(opp)
-        setUploadOpen(true)
-      }
-      if (action === 'game') setTab('game')
-      if (action === 'rewards') setTab('rewards')
+  // After magic-link redirect establishes a session, resume pending intent once.
+  useEffect(() => {
+    if (!session) {
+      welcomedRef.current = null
+      return
+    }
+    if (welcomedRef.current === session.email) return
+    welcomedRef.current = session.email
+    setAuthOpen(false)
+    setToast(t('toast.signedIn'))
+    const action = pendingAction
+    const opp = pendingOpp
+    setPendingAction(null)
+    setPendingOpp(null)
+    if (action === 'join' || action === 'upload') {
+      setPresetOpp(opp)
+      setUploadOpen(true)
+    }
+    if (action === 'game') setTab('game')
+    if (action === 'rewards') setTab('rewards')
+  }, [session, t, pendingAction, pendingOpp])
+
+  const handleRequestLink = useCallback(
+    async (input: { email: string; displayName?: string }) => {
+      await requestMagicLink(input)
+      setToast(t('toast.linkSent'))
     },
-    [signIn, t, pendingAction, pendingOpp],
+    [requestMagicLink, t],
   )
 
-  const handleSignOut = useCallback(() => {
-    signOut()
+  const handleSignOut = useCallback(async () => {
+    await signOut()
     setToast(t('toast.signedOut'))
   }, [signOut, t])
 
@@ -174,13 +190,13 @@ export default function App() {
   )
 
   const handleClaimNft = useCallback(
-    (nftId: string, title: string) => {
+    async (nftId: string, title: string) => {
       if (!session) return requireAuth('rewards')
       if (account.total < NFT_REDEEM_POINTS) {
         setToast(t('toast.nftNeedPoints'))
         return
       }
-      const entry = claim(nftId)
+      const entry = await claim(nftId)
       if (!entry) return
       recordNftActivity({
         actorName: session.displayName,
@@ -210,7 +226,7 @@ export default function App() {
         onTabChange={setTab}
         session={session}
         onSignIn={() => setAuthOpen(true)}
-        onSignOut={handleSignOut}
+        onSignOut={() => void handleSignOut()}
         onProvide={handleProvide}
         contributionCount={myContributions.length}
       />
@@ -259,7 +275,7 @@ export default function App() {
             account={account}
             claims={claims}
             onRequireAuth={() => requireAuth('rewards')}
-            onClaim={handleClaimNft}
+            onClaim={(id, title) => void handleClaimNft(id, title)}
             onPlayGame={() => setTab('game')}
           />
         )}
@@ -273,7 +289,7 @@ export default function App() {
       <AuthModal
         open={authOpen}
         onClose={() => setAuthOpen(false)}
-        onSignIn={handleSignedIn}
+        onRequestLink={handleRequestLink}
       />
 
       {session && (

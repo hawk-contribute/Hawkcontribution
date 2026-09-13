@@ -5,9 +5,10 @@ import {
   getPointsAccount,
   getTotalPointsAll,
 } from '../lib/points'
+import { upsertGamePoints } from '../lib/cloudSync'
 import { subscribeStoreUpdates } from '../lib/sync'
 
-export function usePoints(email: string | undefined) {
+export function usePoints(email: string | undefined, userId?: string) {
   const [account, setAccount] = useState<PointsAccount>(() =>
     email ? getPointsAccount(email) : { total: 0, history: [] },
   )
@@ -32,9 +33,12 @@ export function usePoints(email: string | undefined) {
       const next = addRoundPoints(email, score, hits)
       setAccount(next)
       setCommunityPoints(getTotalPointsAll())
+      if (userId) {
+        void upsertGamePoints(userId, next.total)
+      }
       return next
     },
-    [email, refresh],
+    [email, userId, refresh],
   )
 
   return { account, communityPoints, recordRound, refresh }
