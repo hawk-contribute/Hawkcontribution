@@ -119,6 +119,9 @@ export function DonationCard({ variant = 'full', className = '' }: DonationCardP
         <p className="mt-2 rounded-lg border border-hawk-gold/30 bg-hawk-gold/10 px-3 py-2 text-sm text-hawk-cream">
           {t('donation.preferHawk')}
         </p>
+        <p className="mt-2 text-sm leading-relaxed text-hawk-muted">
+          {t('donation.charityNote')}
+        </p>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <span className="rounded-full border border-hawk-blue/40 bg-hawk-blue/15 px-2.5 py-1 text-xs font-bold tracking-wide text-hawk-blue-bright">

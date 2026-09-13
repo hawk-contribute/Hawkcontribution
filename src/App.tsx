@@ -20,11 +20,12 @@ import { LedgerView } from './components/LedgerView'
 import { RewardsView } from './components/RewardsView'
 import { StatsBar } from './components/StatsBar'
 import { StatsView } from './components/StatsView'
+import { NewsView } from './components/NewsView'
 import { Toast } from './components/Toast'
 import { DonationCard } from './components/DonationCard'
 import { UploadModal } from './components/UploadModal'
 
-type Tab = 'game' | 'browse' | 'feed' | 'ledger' | 'rewards' | 'stats'
+type Tab = 'game' | 'browse' | 'feed' | 'ledger' | 'rewards' | 'stats' | 'news'
 
 export default function App() {
   const { t } = useI18n()
@@ -391,6 +392,7 @@ export default function App() {
             onRefreshDonation={() => void donationFeed.refresh()}
           />
         )}
+        {tab === 'news' && <NewsView />}
       </main>
 
       <footer className="border-t border-hawk-border/60 py-6 text-center text-xs text-hawk-muted">

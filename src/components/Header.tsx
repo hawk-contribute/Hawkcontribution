@@ -7,6 +7,7 @@ import {
   KeyRound,
   LogOut,
   Newspaper,
+  Megaphone,
   Upload,
   UserRound,
 } from 'lucide-react'
@@ -15,7 +16,7 @@ import { useI18n } from '../i18n'
 import { asset } from '../lib/asset'
 import { LanguageSwitcher } from './LanguageSwitcher'
 
-type Tab = 'game' | 'browse' | 'feed' | 'ledger' | 'rewards' | 'stats'
+type Tab = 'game' | 'browse' | 'feed' | 'ledger' | 'rewards' | 'stats' | 'news'
 
 interface HeaderProps {
   tab: Tab
@@ -84,6 +85,7 @@ export function Header({
           {tabBtn('ledger', t('nav.ledger'), <BookOpen className="h-3.5 w-3.5" />)}
           {tabBtn('rewards', t('nav.rewards'), <Gift className="h-3.5 w-3.5" />)}
           {tabBtn('stats', t('nav.stats'), <BarChart3 className="h-3.5 w-3.5" />)}
+          {tabBtn('news', t('nav.news'), <Megaphone className="h-3.5 w-3.5" />)}
         </nav>
 
         <div className="flex flex-wrap items-center gap-2">
