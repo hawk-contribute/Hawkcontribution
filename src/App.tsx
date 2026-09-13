@@ -1,56 +1,96 @@
 import { useCallback, useState } from 'react'
 import { SEEDED_OPPORTUNITIES } from './data/opportunities'
 import { useContributions } from './hooks/useContributions'
-import { useIdentity } from './hooks/useIdentity'
+import { useSession } from './hooks/useSession'
 import { useI18n } from './i18n'
 import type { Opportunity } from './types'
+import { AuthModal } from './components/AuthModal'
 import { BrowseView } from './components/BrowseView'
-import { ContributeModal } from './components/ContributeModal'
 import { Header } from './components/Header'
-import { IdentityModal } from './components/IdentityModal'
 import { LedgerView } from './components/LedgerView'
 import { Toast } from './components/Toast'
+import { UploadModal } from './components/UploadModal'
 
 type Tab = 'browse' | 'ledger'
 
 export default function App() {
-  const { t, lx } = useI18n()
+  const { t } = useI18n()
   const [tab, setTab] = useState<Tab>('browse')
-  const [identityOpen, setIdentityOpen] = useState(false)
-  const [activeOpp, setActiveOpp] = useState<Opportunity | null>(null)
+  const [authOpen, setAuthOpen] = useState(false)
+  const [uploadOpen, setUploadOpen] = useState(false)
+  const [presetOpp, setPresetOpp] = useState<Opportunity | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [pendingAction, setPendingAction] = useState<'upload' | 'join' | null>(null)
+  const [pendingOpp, setPendingOpp] = useState<Opportunity | null>(null)
 
-  const { identity, setIdentity, clearIdentity } = useIdentity()
+  const { session, signIn, signOut } = useSession()
   const { contributions, addContribution } = useContributions()
 
-  const handleJoin = useCallback(
-    (opportunity: Opportunity) => {
-      if (!identity) {
-        setIdentityOpen(true)
-        setToast(t('toast.needIdentity'))
+  const openUpload = useCallback(
+    (opp?: Opportunity | null) => {
+      if (!session) {
+        setPendingAction(opp ? 'join' : 'upload')
+        setPendingOpp(opp ?? null)
+        setAuthOpen(true)
+        setToast(t('toast.needAuth'))
         return
       }
-      setActiveOpp(opportunity)
+      setPresetOpp(opp ?? null)
+      setUploadOpen(true)
     },
-    [identity, t],
+    [session, t],
   )
 
-  const handleSubmitContribution = useCallback(
-    (data: { title: string; description: string; proofUrl?: string }) => {
-      if (!identity || !activeOpp) return
+  const handleJoin = useCallback(
+    (opportunity: Opportunity) => openUpload(opportunity),
+    [openUpload],
+  )
+
+  const handleProvide = useCallback(() => openUpload(null), [openUpload])
+
+  const handleSignedIn = useCallback(
+    (input: { email: string; displayName?: string }) => {
+      signIn(input)
+      setToast(t('toast.signedIn'))
+      const action = pendingAction
+      const opp = pendingOpp
+      setPendingAction(null)
+      setPendingOpp(null)
+      if (action === 'join' || action === 'upload') {
+        setPresetOpp(opp)
+        setUploadOpen(true)
+      }
+    },
+    [signIn, t, pendingAction, pendingOpp],
+  )
+
+  const handleSignOut = useCallback(() => {
+    signOut()
+    setToast(t('toast.signedOut'))
+  }, [signOut, t])
+
+  const handleUploadSubmit = useCallback(
+    (data: {
+      category: import('./types').ContributionCategory
+      opportunityId?: string
+      opportunityTitle: string
+      title: string
+      description: string
+      proofUrl?: string
+      files: import('./types').UploadedFileMeta[]
+    }) => {
+      if (!session) return
       addContribution({
-        opportunity: activeOpp,
-        title: data.title,
-        description: data.description,
-        proofUrl: data.proofUrl,
-        participantName: identity.displayName,
-        opportunityTitleSnapshot: lx(activeOpp.title),
+        ...data,
+        participantName: session.displayName,
+        participantEmail: session.email,
       })
-      setActiveOpp(null)
-      setToast(t('toast.saved'))
+      setUploadOpen(false)
+      setPresetOpp(null)
+      setToast(t('toast.uploaded'))
       setTab('ledger')
     },
-    [identity, activeOpp, addContribution, t, lx],
+    [session, addContribution, t],
   )
 
   const clearToast = useCallback(() => setToast(null), [])
@@ -60,16 +100,27 @@ export default function App() {
       <Header
         tab={tab}
         onTabChange={setTab}
-        identity={identity}
-        onOpenIdentity={() => setIdentityOpen(true)}
+        session={session}
+        onSignIn={() => setAuthOpen(true)}
+        onSignOut={handleSignOut}
+        onProvide={handleProvide}
         contributionCount={contributions.length}
       />
 
       <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
         {tab === 'browse' ? (
-          <BrowseView opportunities={SEEDED_OPPORTUNITIES} onJoin={handleJoin} />
+          <BrowseView
+            opportunities={SEEDED_OPPORTUNITIES}
+            onJoin={handleJoin}
+            onProvide={handleProvide}
+          />
         ) : (
-          <LedgerView contributions={contributions} onBrowse={() => setTab('browse')} />
+          <LedgerView
+            contributions={contributions}
+            onBrowse={() => setTab('browse')}
+            onProvide={handleProvide}
+            signedIn={!!session}
+          />
         )}
       </main>
 
@@ -83,20 +134,25 @@ export default function App() {
         </p>
       </footer>
 
-      <IdentityModal
-        open={identityOpen}
-        initial={identity}
-        onClose={() => setIdentityOpen(false)}
-        onSave={setIdentity}
-        onClear={clearIdentity}
+      <AuthModal
+        open={authOpen}
+        onClose={() => setAuthOpen(false)}
+        onSignIn={handleSignedIn}
       />
 
-      <ContributeModal
-        opportunity={activeOpp}
-        participantName={identity?.displayName ?? ''}
-        onClose={() => setActiveOpp(null)}
-        onSubmit={handleSubmitContribution}
-      />
+      {session && (
+        <UploadModal
+          open={uploadOpen}
+          session={session}
+          opportunities={SEEDED_OPPORTUNITIES}
+          presetOpportunity={presetOpp}
+          onClose={() => {
+            setUploadOpen(false)
+            setPresetOpp(null)
+          }}
+          onSubmit={handleUploadSubmit}
+        />
+      )}
 
       <Toast message={toast} onDone={clearToast} />
     </div>

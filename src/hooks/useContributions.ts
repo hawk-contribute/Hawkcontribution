@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import type { Contribution, Opportunity } from '../types'
+import type { Contribution, ContributionCategory, UploadedFileMeta } from '../types'
 import { createId, loadContributions, saveContributions } from '../lib/storage'
 
 export function useContributions() {
@@ -9,29 +9,31 @@ export function useContributions() {
 
   const addContribution = useCallback(
     (input: {
-      opportunity: Opportunity
+      category: ContributionCategory
+      opportunityId?: string
+      opportunityTitle: string
       title: string
       description: string
       proofUrl?: string
+      files: UploadedFileMeta[]
       participantName: string
-      /** Localized title snapshot for ledger display */
-      opportunityTitleSnapshot: string
+      participantEmail: string
     }) => {
       const entry: Contribution = {
         id: createId('contrib'),
-        opportunityId: input.opportunity.id,
-        opportunityTitle: input.opportunityTitleSnapshot,
-        opportunityType: input.opportunity.type,
+        opportunityId: input.opportunityId,
+        opportunityTitle: input.opportunityTitle,
+        category: input.category,
         title: input.title.trim(),
         description: input.description.trim(),
         proofUrl: input.proofUrl?.trim() || undefined,
+        files: input.files,
         createdAt: new Date().toISOString(),
         participantName: input.participantName,
+        participantEmail: input.participantEmail,
       }
 
-      // FUTURE REWARDS HOOK: after persisting a contribution, call
-      // evaluateReward(entry, input.opportunity) and store / display points.
-      // See types.ts FutureRewardHook — MVP records contributions only.
+      // FUTURE REWARDS HOOK: evaluateReward(entry) after persist.
 
       setContributions((prev) => {
         const next = [entry, ...prev]

@@ -10,9 +10,10 @@ type Filter = 'all' | OpportunityType
 interface BrowseViewProps {
   opportunities: Opportunity[]
   onJoin: (opportunity: Opportunity) => void
+  onProvide: () => void
 }
 
-export function BrowseView({ opportunities, onJoin }: BrowseViewProps) {
+export function BrowseView({ opportunities, onJoin, onProvide }: BrowseViewProps) {
   const { t } = useI18n()
   const [filter, setFilter] = useState<Filter>('all')
 
@@ -47,15 +48,24 @@ export function BrowseView({ opportunities, onJoin }: BrowseViewProps) {
             <p className="mt-2 text-sm leading-relaxed text-hawk-muted sm:text-base">
               {t('hero.body')}
             </p>
-            <a
-              href="https://hawk.city"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hawk-btn hawk-btn-primary mt-5 px-4 py-2.5 text-sm"
-            >
-              <ExternalLink className="h-4 w-4" />
-              {t('brand.officialSite')}
-            </a>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <a
+                href="https://hawk.city"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hawk-btn hawk-btn-ghost px-4 py-2.5 text-sm"
+              >
+                <ExternalLink className="h-4 w-4 text-hawk-gold" />
+                {t('brand.officialSite')}
+              </a>
+              <button
+                type="button"
+                onClick={onProvide}
+                className="hawk-btn hawk-btn-primary px-4 py-2.5 text-sm"
+              >
+                {t('nav.provide')}
+              </button>
+            </div>
           </div>
           <img
             src={asset('brand/hawk-token.png')}

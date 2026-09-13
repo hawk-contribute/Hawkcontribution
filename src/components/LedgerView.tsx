@@ -1,4 +1,4 @@
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink, FileText } from 'lucide-react'
 import type { Contribution } from '../types'
 import { useI18n } from '../i18n'
 import { asset } from '../lib/asset'
@@ -6,6 +6,8 @@ import { asset } from '../lib/asset'
 interface LedgerViewProps {
   contributions: Contribution[]
   onBrowse: () => void
+  onProvide: () => void
+  signedIn: boolean
 }
 
 function formatDate(iso: string, locale: string): string {
@@ -23,7 +25,12 @@ function formatDate(iso: string, locale: string): string {
   }
 }
 
-export function LedgerView({ contributions, onBrowse }: LedgerViewProps) {
+export function LedgerView({
+  contributions,
+  onBrowse,
+  onProvide,
+  signedIn,
+}: LedgerViewProps) {
   const { t, locale } = useI18n()
 
   return (
@@ -39,7 +46,7 @@ export function LedgerView({ contributions, onBrowse }: LedgerViewProps) {
         </div>
         {contributions.length > 0 && (
           <div className="flex items-center gap-2 rounded-xl border border-hawk-gold/25 bg-hawk-gold/10 px-3 py-2">
-            <img src={asset("brand/hawk-token.png")} alt="" className="h-8 w-8" aria-hidden />
+            <img src={asset('brand/hawk-token.png')} alt="" className="h-8 w-8" aria-hidden />
             <span className="text-sm font-semibold text-hawk-gold">
               {t('ledger.count', { n: contributions.length })}
             </span>
@@ -50,19 +57,28 @@ export function LedgerView({ contributions, onBrowse }: LedgerViewProps) {
       {contributions.length === 0 ? (
         <div className="hawk-card flex flex-col items-center px-6 py-14 text-center">
           <img
-            src={asset("brand/hawk-token.png")}
+            src={asset('brand/hawk-token.png')}
             alt="Hawk Token"
             className="mb-4 h-24 w-24 opacity-90 drop-shadow-[0_6px_20px_rgba(254,186,69,0.25)]"
           />
           <p className="font-medium text-hawk-cream">{t('ledger.emptyTitle')}</p>
           <p className="mt-1 max-w-sm text-sm text-hawk-muted">{t('ledger.emptyBody')}</p>
-          <button
-            type="button"
-            onClick={onBrowse}
-            className="hawk-btn hawk-btn-primary mt-5 px-5 py-2.5 text-sm"
-          >
-            {t('ledger.browse')}
-          </button>
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
+            <button
+              type="button"
+              onClick={onBrowse}
+              className="hawk-btn hawk-btn-ghost px-5 py-2.5 text-sm"
+            >
+              {t('ledger.browse')}
+            </button>
+            <button
+              type="button"
+              onClick={onProvide}
+              className="hawk-btn hawk-btn-primary px-5 py-2.5 text-sm"
+            >
+              {signedIn ? t('nav.provide') : t('auth.signIn')}
+            </button>
+          </div>
         </div>
       ) : (
         <ul className="space-y-3">
@@ -70,7 +86,7 @@ export function LedgerView({ contributions, onBrowse }: LedgerViewProps) {
             <li key={c.id} className="hawk-card p-5 text-left">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-full bg-hawk-blue/15 px-2.5 py-0.5 text-xs font-semibold text-hawk-blue-bright">
-                  {t(`type.${c.opportunityType}`)}
+                  {t(`type.${c.category}`)}
                 </span>
                 <span className="text-xs text-hawk-muted">
                   {formatDate(c.createdAt, locale)}
@@ -84,7 +100,29 @@ export function LedgerView({ contributions, onBrowse }: LedgerViewProps) {
               </p>
               <p className="mt-1 text-xs text-hawk-muted">
                 {t('ledger.participant')}：{c.participantName}
+                {c.participantEmail ? ` · ${c.participantEmail}` : ''}
               </p>
+              {c.files?.length > 0 && (
+                <div className="mt-3">
+                  <p className="mb-1.5 text-xs font-medium text-hawk-muted">
+                    {t('ledger.files')}
+                  </p>
+                  <ul className="space-y-1">
+                    {c.files.map((f, i) => (
+                      <li key={`${c.id}-f-${i}`}>
+                        <a
+                          href={f.dataUrl}
+                          download={f.name}
+                          className="inline-flex items-center gap-1.5 text-sm font-medium text-hawk-gold hover:underline"
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                          {f.name}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               {c.proofUrl && (
                 <a
                   href={c.proofUrl}

@@ -32,6 +32,13 @@ npm run preview  # preview production build
 ```
 
 
+
+## Auth & uploads (MVP)
+
+- **Email sign-in** (local session in `localStorage`: email, displayName, signedInAt). No server verification yet.
+- Browse is open; **contribute / upload requires sign-in**.
+- Categorized upload: 活動 / 合作 / 內容貢獻 — optional linked opportunity or open submission; title, description, proof URL, file attachments (demo: base64 in localStorage, ~2.5MB cap).
+
 ## Languages (i18n)
 
 UI supports **English / 简体中文 / 繁體中文**.

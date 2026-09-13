@@ -1,7 +1,8 @@
 import type { LocalizedString, LocalizedStringList } from './i18n'
 
-/** Opportunity types shown in UI */
+/** Opportunity / contribution categories */
 export type OpportunityType = 'event' | 'collab' | 'content'
+export type ContributionCategory = OpportunityType
 
 export interface Opportunity {
   id: string
@@ -10,39 +11,48 @@ export interface Opportunity {
   summary: LocalizedString
   host: LocalizedString
   location: LocalizedString
-  deadline: string // ISO date display (shared)
+  deadline: string
   tags: LocalizedStringList
   status: 'open' | 'closing-soon' | 'ongoing'
-  /** Local cover photo under /public/photos */
   image: string
 }
 
-export interface Identity {
+/** Local email session (MVP — no server verification) */
+export interface Session {
+  email: string
   displayName: string
-  email?: string
+  signedInAt: string // ISO
+}
+
+export interface UploadedFileMeta {
+  name: string
+  type: string
+  size: number
+  /** data URL for demo persistence in localStorage */
+  dataUrl: string
 }
 
 export interface Contribution {
   id: string
-  opportunityId: string
-  /** Snapshot of title in the locale used at submit time */
+  opportunityId?: string
   opportunityTitle: string
-  opportunityType: OpportunityType
+  category: ContributionCategory
   title: string
   description: string
   proofUrl?: string
-  createdAt: string // ISO
+  files: UploadedFileMeta[]
+  createdAt: string
   participantName: string
+  participantEmail: string
 }
 
 /**
  * FUTURE REWARDS HOOK
- * --------------------
- * When reward / points / redemption ships, map Contribution + Opportunity
- * through a rule engine here (e.g. evaluateReward(contribution, opportunity)).
- * Do not store points on Contribution until that layer exists.
+ * When reward / points / redemption ships, evaluate Contribution + Opportunity here.
  */
 export type FutureRewardHook = {
-  /** Placeholder for future points calculation */
-  evaluate?: (contribution: Contribution, opportunity: Opportunity) => number
+  evaluate?: (contribution: Contribution, opportunity?: Opportunity) => number
 }
+
+/** Max total upload size for local demo storage */
+export const MAX_UPLOAD_BYTES = 2.5 * 1024 * 1024
