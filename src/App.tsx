@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SEEDED_OPPORTUNITIES } from './data/opportunities'
 import { useCommunity } from './hooks/useCommunity'
+import { useDonationFeed } from './hooks/useDonationFeed'
+import { useLiveStats } from './hooks/useLiveStats'
 import { useNftClaims } from './hooks/useNftClaims'
 import { usePoints } from './hooks/usePoints'
 import { useSession } from './hooks/useSession'
@@ -17,11 +19,12 @@ import { Header } from './components/Header'
 import { LedgerView } from './components/LedgerView'
 import { RewardsView } from './components/RewardsView'
 import { StatsBar } from './components/StatsBar'
+import { StatsView } from './components/StatsView'
 import { Toast } from './components/Toast'
 import { DonationCard } from './components/DonationCard'
 import { UploadModal } from './components/UploadModal'
 
-type Tab = 'game' | 'browse' | 'feed' | 'ledger' | 'rewards'
+type Tab = 'game' | 'browse' | 'feed' | 'ledger' | 'rewards' | 'stats'
 
 export default function App() {
   const { t } = useI18n()
@@ -57,12 +60,22 @@ export default function App() {
     addComment,
     addQuote,
     refresh,
-  } = useCommunity({ live: tab === 'feed' || tab === 'browse' || tab === 'ledger' })
+  } = useCommunity({ live: tab === 'feed' || tab === 'browse' || tab === 'ledger' || tab === 'stats' })
   const { account, communityPoints, recordRound } = usePoints(
     session?.email,
     session?.userId,
   )
   const { claims, claim } = useNftClaims(session?.email, session?.userId)
+  const donationFeed = useDonationFeed({ live: true })
+  const liveStats = useLiveStats({ live: tab === 'stats' })
+
+  const marqueeActivities = useMemo(() => {
+    const merged = [...donationFeed.activities, ...social.activities]
+    return merged
+      .slice()
+      .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+      .slice(0, 40)
+  }, [donationFeed.activities, social.activities])
 
   const statsWithPoints = useMemo(
     () => ({ ...stats, points: communityPoints }),
@@ -316,7 +329,7 @@ export default function App() {
         contributionCount={myContributions.length}
       />
 
-      <ActivityMarquee activities={social.activities} />
+      <ActivityMarquee activities={marqueeActivities} />
       <StatsBar stats={statsWithPoints} />
 
       <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
@@ -362,6 +375,18 @@ export default function App() {
             onRequireAuth={() => requireAuth('rewards')}
             onClaim={(id, title) => void handleClaimNft(id, title)}
             onPlayGame={() => setTab('game')}
+          />
+        )}
+        {tab === 'stats' && (
+          <StatsView
+            community={liveStats.result}
+            communityLoading={liveStats.loading}
+            onRefreshCommunity={() => void liveStats.refresh()}
+            balance={donationFeed.balance}
+            donations={donationFeed.donations}
+            donationLoading={donationFeed.loading}
+            donationError={donationFeed.error}
+            onRefreshDonation={() => void donationFeed.refresh()}
           />
         )}
       </main>

@@ -3,6 +3,7 @@ import {
   ExternalLink,
   Gamepad2,
   Gift,
+  BarChart3,
   KeyRound,
   LogOut,
   Newspaper,
@@ -14,7 +15,7 @@ import { useI18n } from '../i18n'
 import { asset } from '../lib/asset'
 import { LanguageSwitcher } from './LanguageSwitcher'
 
-type Tab = 'game' | 'browse' | 'feed' | 'ledger' | 'rewards'
+type Tab = 'game' | 'browse' | 'feed' | 'ledger' | 'rewards' | 'stats'
 
 interface HeaderProps {
   tab: Tab
@@ -82,6 +83,7 @@ export function Header({
           {tabBtn('feed', t('nav.feed'), <Newspaper className="h-3.5 w-3.5" />)}
           {tabBtn('ledger', t('nav.ledger'), <BookOpen className="h-3.5 w-3.5" />)}
           {tabBtn('rewards', t('nav.rewards'), <Gift className="h-3.5 w-3.5" />)}
+          {tabBtn('stats', t('nav.stats'), <BarChart3 className="h-3.5 w-3.5" />)}
         </nav>
 
         <div className="flex flex-wrap items-center gap-2">

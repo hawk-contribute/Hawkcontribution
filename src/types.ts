@@ -49,7 +49,7 @@ export interface Contribution {
   seeded?: boolean
 }
 
-export type ActivityKind = 'contribute' | 'like' | 'comment' | 'quote' | 'game' | 'nft'
+export type ActivityKind = 'contribute' | 'like' | 'comment' | 'quote' | 'game' | 'nft' | 'donate'
 
 export interface ActivityEvent {
   id: string
