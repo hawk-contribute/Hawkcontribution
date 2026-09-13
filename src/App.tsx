@@ -35,7 +35,14 @@ export default function App() {
   const [pendingOpp, setPendingOpp] = useState<Opportunity | null>(null)
   const welcomedRef = useRef<string | null>(null)
 
-  const { session, requestMagicLink, signOut } = useSession()
+  const {
+    session,
+    authError,
+    clearAuthError,
+    requestMagicLink,
+    verifyEmailOtp,
+    signOut,
+  } = useSession()
   const {
     contributions,
     social,
@@ -109,12 +116,28 @@ export default function App() {
     if (action === 'rewards') setTab('rewards')
   }, [session, t, pendingAction, pendingOpp])
 
+  // Surface magic-link / PKCE exchange failures (do not fail silently)
+  useEffect(() => {
+    if (!authError) return
+    setToast(authError)
+    setAuthOpen(true)
+    clearAuthError()
+  }, [authError, clearAuthError])
+
   const handleRequestLink = useCallback(
     async (input: { email: string; displayName?: string }) => {
       await requestMagicLink(input)
       setToast(t('toast.linkSent'))
     },
     [requestMagicLink, t],
+  )
+
+  const handleVerifyOtp = useCallback(
+    async (input: { email: string; token: string }) => {
+      await verifyEmailOtp(input)
+      setToast(t('toast.signedIn'))
+    },
+    [verifyEmailOtp, t],
   )
 
   const handleSignOut = useCallback(async () => {
@@ -290,6 +313,7 @@ export default function App() {
         open={authOpen}
         onClose={() => setAuthOpen(false)}
         onRequestLink={handleRequestLink}
+        onVerifyOtp={handleVerifyOtp}
       />
 
       {session && (

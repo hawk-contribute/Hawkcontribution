@@ -136,7 +136,9 @@ Private demo / internal MVP for Hawk.
 
 ## Auth (Supabase magic link)
 
-Sign-in flow: enter email → receive magic link → return to the site signed in.
+Sign-in flow: enter email → receive magic link → **open the link in the same browser** → signed in.
+Fallback: enter the **6-digit code** from the email in the sign-in modal (works cross-device).
+The app explicitly exchanges PKCE `code` / verifies `token_hash` on return and toasts errors.
 
 **Env (Vite):** `.env.production` / `.env.development` set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (anon key is public). See `.env.example`.
 

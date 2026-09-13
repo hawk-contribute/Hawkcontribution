@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import type { Session } from '../types'
+import { consumeAuthCallback } from '../lib/authCallback'
 import { isValidEmail, registerMemberEmail } from '../lib/storage'
 import { authRedirectTo, supabase } from '../lib/supabase'
 import {
@@ -11,6 +12,16 @@ import {
   takePendingDisplayName,
   upsertProfile,
 } from '../lib/cloudSync'
+
+const PENDING_EMAIL_KEY = 'hawk-contribute:pending-auth-email'
+
+export function savePendingAuthEmail(email: string): void {
+  localStorage.setItem(PENDING_EMAIL_KEY, email.trim())
+}
+
+export function loadPendingAuthEmail(): string | null {
+  return localStorage.getItem(PENDING_EMAIL_KEY)
+}
 
 function sessionFromUser(user: User): Session {
   const email = (user.email ?? '').trim()
@@ -34,6 +45,7 @@ function sessionFromUser(user: User): Session {
 async function afterSignedIn(user: User, appSession: Session): Promise<void> {
   registerMemberEmail(appSession.email)
   takePendingDisplayName()
+  localStorage.removeItem(PENDING_EMAIL_KEY)
   await upsertProfile({
     userId: user.id,
     email: appSession.email,
@@ -55,6 +67,7 @@ async function afterSignedIn(user: User, appSession: Session): Promise<void> {
 export function useSession() {
   const [session, setSessionState] = useState<Session | null>(null)
   const [authReady, setAuthReady] = useState(false)
+  const [authError, setAuthError] = useState<string | null>(null)
   const syncedUserRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -74,11 +87,33 @@ export function useSession() {
       }
     }
 
-    supabase.auth.getSession().then(({ data }) => {
+    const boot = async () => {
+      // 1) Explicitly consume redirect params before treating getSession as source of truth
+      try {
+        const result = await consumeAuthCallback()
+        if (cancelled) return
+        if (result.status === 'error') {
+          setAuthError(result.message)
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setAuthError(
+            e instanceof Error ? e.message : 'Sign-in callback failed unexpectedly',
+          )
+        }
+      }
+
+      // 2) Read session (awaits SDK initialize / any remaining URL detection)
+      const { data, error } = await supabase.auth.getSession()
       if (cancelled) return
+      if (error) {
+        setAuthError((prev) => prev ?? error.message)
+      }
       applyUser(data.session?.user ?? null, true)
       setAuthReady(true)
-    })
+    }
+
+    void boot()
 
     const {
       data: { subscription },
@@ -88,6 +123,9 @@ export function useSession() {
         event === 'USER_UPDATED' ||
         event === 'INITIAL_SESSION'
       applyUser(sbSession?.user ?? null, sync)
+      if (event === 'SIGNED_IN' && !cancelled) {
+        setAuthError(null)
+      }
     })
 
     return () => {
@@ -104,17 +142,37 @@ export function useSession() {
       }
       const displayName = input.displayName?.trim()
       savePendingDisplayName(displayName)
+      savePendingAuthEmail(email)
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
           emailRedirectTo: authRedirectTo(),
           data: displayName ? { display_name: displayName } : undefined,
+          shouldCreateUser: true,
         },
       })
       if (error) throw error
     },
     [],
   )
+
+  const verifyEmailOtp = useCallback(async (input: { email: string; token: string }) => {
+    const email = input.email.trim()
+    const token = input.token.trim()
+    if (!isValidEmail(email)) throw new Error('INVALID_EMAIL')
+    if (!/^\d{6,8}$/.test(token)) throw new Error('INVALID_OTP')
+    const { data, error } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: 'email',
+    })
+    if (error) throw error
+    if (!data.session) throw new Error('NO_SESSION')
+    localStorage.removeItem(PENDING_EMAIL_KEY)
+    return data.session
+  }, [])
+
+  const clearAuthError = useCallback(() => setAuthError(null), [])
 
   const signOut = useCallback(async () => {
     syncedUserRef.current = null
@@ -125,7 +183,10 @@ export function useSession() {
   return {
     session,
     authReady,
+    authError,
+    clearAuthError,
     requestMagicLink,
+    verifyEmailOtp,
     signOut,
     isSignedIn: !!session,
   }
