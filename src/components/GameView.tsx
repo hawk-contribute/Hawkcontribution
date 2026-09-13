@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Gamepad2, Lock, Play, RotateCcw } from 'lucide-react'
+import { Gamepad2, Lock, Play, RotateCcw, Volume2, VolumeX } from 'lucide-react'
 import type { PointsAccount, Session } from '../types'
 import { useI18n } from '../i18n'
 import { asset } from '../lib/asset'
+import { gameAudio } from '../lib/gameAudio'
 
 const COLS = 3
 const CELLS = 9
@@ -106,6 +107,7 @@ export function GameView({
   const [combo, setCombo] = useState(0)
   const [endReason, setEndReason] = useState<EndReason>(null)
   const [showKeepTrying, setShowKeepTrying] = useState(false)
+  const [muted, setMuted] = useState(() => gameAudio.isMuted())
 
   const phaseRef = useRef<Phase>('idle')
   const scoreRef = useRef(0)
@@ -135,6 +137,8 @@ export function GameView({
       const keepTrying =
         reason === 'ghost' || (reason === 'time' && finalScore < GOOD_SCORE)
       setShowKeepTrying(keepTrying)
+      gameAudio.stopBgm()
+      gameAudio.playEnd(keepTrying)
       if (finalScore > 0) {
         onRoundComplete(finalScore, finalHits)
       }
@@ -201,6 +205,10 @@ export function GameView({
     phaseRef.current = 'playing'
     setPhase('playing')
     roundStart.current = Date.now()
+    void gameAudio.unlock().then(() => {
+      gameAudio.playStart()
+      gameAudio.startBgm()
+    })
     scheduleNext()
   }, [session, onRequireAuth, clearTimers, scheduleNext])
 
@@ -216,7 +224,10 @@ export function GameView({
     return () => window.clearInterval(id)
   }, [phase, stopRound])
 
-  useEffect(() => () => clearTimers(), [clearTimers])
+  useEffect(() => () => {
+    clearTimers()
+    gameAudio.stopBgm()
+  }, [clearTimers])
 
   const whack = (index: number) => {
     if (phaseRef.current !== 'playing') return
@@ -224,6 +235,7 @@ export function GameView({
       setMissFlash(index)
       comboRef.current = 0
       setCombo(0)
+      gameAudio.playMiss()
       window.setTimeout(() => setMissFlash((m) => (m === index ? null : m)), 180)
       return
     }
@@ -235,6 +247,7 @@ export function GameView({
     setActiveTarget(null)
 
     if (target.isGhost) {
+      gameAudio.playGhost()
       // Keep points earned so far; end immediately — no points for ghost tap
       stopRound(scoreRef.current, hitsRef.current, 'ghost')
       return
@@ -250,6 +263,7 @@ export function GameView({
     setHits(hitsRef.current)
     setHitPoints(gained)
     setHitFlash(index)
+    gameAudio.playHit(gained)
     window.setTimeout(() => setHitFlash((h) => (h === index ? null : h)), 220)
   }
 
@@ -317,6 +331,24 @@ export function GameView({
           </span>
           {t('game.ghostLabel')}
         </div>
+      </div>
+
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-hawk-muted">{t('game.audioHint')}</p>
+        <button
+          type="button"
+          className="hawk-btn hawk-btn-ghost px-3 py-1.5 text-sm"
+          onClick={() => {
+            const next = gameAudio.toggleMute()
+            setMuted(next)
+            if (!next && phaseRef.current === 'playing') gameAudio.startBgm()
+            if (next) gameAudio.stopBgm()
+          }}
+          aria-pressed={muted}
+        >
+          {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+          {muted ? t('game.unmute') : t('game.mute')}
+        </button>
       </div>
 
       <div className="mb-4 grid grid-cols-3 gap-2 sm:gap-3">

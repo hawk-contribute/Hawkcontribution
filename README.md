@@ -43,6 +43,7 @@ npm run preview  # preview production build
 - Claims: `hawk-contribute:nft-claims` → `{ [email]: { [nftId]: { claimedAt } } }`.
 - Owned NFTs can be **downloaded** locally. App collectibles (not on-chain).
 - Game tab is the **leftmost** nav item.
+- Game audio: procedural Web Audio SFX/BGM; mute pref in `hawk-contribute:game-mute`.
 
 ## Mini-game (Bald Eagle Whack)
 
