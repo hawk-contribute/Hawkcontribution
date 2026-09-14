@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Trash2 } from 'lucide-react'
 import type { ActivityEvent } from '../types'
 import { useI18n } from '../i18n'
@@ -10,6 +10,12 @@ interface ActivityMarqueeProps {
   sessionEmail?: string | null
   onAdminDeleteActivity?: (id: string) => void | Promise<void>
 }
+
+/** Constant scroll speed (px/s) — slightly slower / more readable than the old fixed-42s feel. */
+const MARQUEE_PX_PER_SEC = 38
+/** Extra time per message so each line finishes comfortably. */
+const EXTRA_SEC_PER_ITEM = 0.2
+const MIN_DURATION_SEC = 12
 
 function formatTime(iso: string, locale: string): string {
   const tag = locale === 'en' ? 'en-US' : locale === 'zh-CN' ? 'zh-CN' : 'zh-TW'
@@ -25,6 +31,13 @@ function formatTime(iso: string, locale: string): string {
   }
 }
 
+function durationForCycle(cycleWidthPx: number, itemCount: number): number {
+  if (cycleWidthPx <= 0) return MIN_DURATION_SEC
+  const base = cycleWidthPx / MARQUEE_PX_PER_SEC
+  const padded = base + itemCount * EXTRA_SEC_PER_ITEM
+  return Math.max(MIN_DURATION_SEC, padded)
+}
+
 export function ActivityMarquee({
   activities,
   sessionEmail,
@@ -32,6 +45,8 @@ export function ActivityMarquee({
 }: ActivityMarqueeProps) {
   const { t, locale } = useI18n()
   const admin = isSiteAdmin(sessionEmail)
+  const trackRef = useRef<HTMLDivElement>(null)
+  const [durationSec, setDurationSec] = useState(MIN_DURATION_SEC)
 
   // Community activities only (skip donate-*); already ≤24h from App, filter again for safety
   const community = useMemo(
@@ -57,6 +72,28 @@ export function ActivityMarquee({
     )
   }, [recent, t, locale])
 
+  // Measure one cycle (= half of duplicated track) and set duration from px/s.
+  useLayoutEffect(() => {
+    const el = trackRef.current
+    if (!el || items.length === 0) return
+
+    const measure = () => {
+      const total = el.scrollWidth
+      const cycle = total / 2
+      setDurationSec(durationForCycle(cycle, items.length))
+    }
+
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    // Fonts / layout may settle after first paint
+    const id = window.requestAnimationFrame(measure)
+    return () => {
+      ro.disconnect()
+      window.cancelAnimationFrame(id)
+    }
+  }, [items])
+
   if (!items.length && !(admin && community.length)) return null
 
   const loop = items.length ? [...items, ...items] : []
@@ -72,10 +109,21 @@ export function ActivityMarquee({
             {t('marquee.windowNote')}
           </span>
           <div className="relative min-w-0 flex-1 overflow-hidden">
-            <div className="hawk-marquee flex w-max gap-10 whitespace-nowrap text-sm text-hawk-cream/90">
+            <div
+              ref={trackRef}
+              className="hawk-marquee flex w-max gap-10 whitespace-nowrap text-sm text-hawk-cream/90"
+              style={
+                {
+                  '--hawk-marquee-duration': `${durationSec}s`,
+                } as CSSProperties
+              }
+            >
               {loop.map((text, i) => (
-                <span key={`${i}-${text.slice(0, 12)}`} className="inline-flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-hawk-blue-bright" />
+                <span
+                  key={`${i}-${text.slice(0, 24)}`}
+                  className="inline-flex shrink-0 items-center gap-2"
+                >
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-hawk-blue-bright" />
                   {text}
                 </span>
               ))}

@@ -125,7 +125,9 @@
 
 @layer utilities {
   .hawk-marquee {
-    animation: hawk-marquee 42s linear infinite;
+    /* Duration set via --hawk-marquee-duration from JS (px/s based). */
+    animation: hawk-marquee var(--hawk-marquee-duration, 60s) linear infinite;
+    will-change: transform;
   }
   .hawk-marquee:hover {
     animation-play-state: paused;
