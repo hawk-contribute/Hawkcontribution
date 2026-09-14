@@ -3,6 +3,7 @@ import { Trash2 } from 'lucide-react'
 import type { ActivityEvent } from '../types'
 import { useI18n } from '../i18n'
 import { isSiteAdmin } from '../lib/admins'
+import { isWithinActivityWindow } from '../lib/communityCloud'
 
 interface ActivityMarqueeProps {
   activities: ActivityEvent[]
@@ -32,22 +33,29 @@ export function ActivityMarquee({
   const { t, locale } = useI18n()
   const admin = isSiteAdmin(sessionEmail)
 
-  // Community activities only (skip client-side donate-* synthetic ids)
+  // Community activities only (skip donate-*); already ≤24h from App, filter again for safety
   const community = useMemo(
-    () => activities.filter((a) => !a.id.startsWith('donate-')),
+    () =>
+      activities.filter(
+        (a) => !a.id.startsWith('donate-') && isWithinActivityWindow(a.at),
+      ),
+    [activities],
+  )
+
+  const recent = useMemo(
+    () => activities.filter((a) => isWithinActivityWindow(a.at)),
     [activities],
   )
 
   const items = useMemo(() => {
-    const list = activities.length ? activities : []
-    return list.map((a) =>
+    return recent.map((a) =>
       t(`activity.${a.kind}`, {
         name: a.actorName,
         title: a.contributionTitle,
         time: formatTime(a.at, locale),
       }),
     )
-  }, [activities, t, locale])
+  }, [recent, t, locale])
 
   if (!items.length && !(admin && community.length)) return null
 
@@ -59,6 +67,9 @@ export function ActivityMarquee({
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2 sm:px-6">
           <span className="shrink-0 rounded-full bg-hawk-gold/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-hawk-gold">
             {t('marquee.label')}
+          </span>
+          <span className="hidden shrink-0 text-[10px] text-hawk-muted sm:inline">
+            {t('marquee.windowNote')}
           </span>
           <div className="relative min-w-0 flex-1 overflow-hidden">
             <div className="hawk-marquee flex w-max gap-10 whitespace-nowrap text-sm text-hawk-cream/90">

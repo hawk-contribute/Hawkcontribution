@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SEEDED_OPPORTUNITIES } from './data/opportunities'
 import { useCommunity } from './hooks/useCommunity'
+import { isWithinActivityWindow } from './lib/communityCloud'
 import { useDonationFeed } from './hooks/useDonationFeed'
 import { useLiveStats } from './hooks/useLiveStats'
 import { useNftClaims } from './hooks/useNftClaims'
@@ -77,7 +78,9 @@ export default function App() {
   const liveStats = useLiveStats({ live: tab === 'stats' })
 
   const marqueeActivities = useMemo(() => {
-    const merged = [...donationFeed.activities, ...social.activities]
+    const merged = [...donationFeed.activities, ...social.activities].filter(
+      (a) => isWithinActivityWindow(a.at),
+    )
     return merged
       .slice()
       .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())

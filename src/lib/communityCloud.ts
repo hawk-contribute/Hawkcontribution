@@ -14,6 +14,29 @@ import { MAX_ACTIVITIES } from '../types'
 import { supabase } from './supabase'
 import { safeHttpUrl } from './safeUrl'
 
+/** Activities older than this are purged (DB) and omitted from marquee/UI. */
+export const ACTIVITY_RETENTION_MS = 24 * 60 * 60 * 1000
+
+export function activityCutoffIso(now = Date.now()): string {
+  return new Date(now - ACTIVITY_RETENTION_MS).toISOString()
+}
+
+export function isWithinActivityWindow(iso: string, now = Date.now()): boolean {
+  const t = new Date(iso).getTime()
+  return Number.isFinite(t) && t >= now - ACTIVITY_RETENTION_MS
+}
+
+/** Best-effort DB cleanup; ignore failures (missing RPC, RLS, etc.). */
+export async function cleanupOldActivities(): Promise<void> {
+  try {
+    const { error } = await supabase.rpc('cleanup_old_activities')
+    if (error) console.warn('[communityCloud] cleanup_old_activities', error.message)
+  } catch (e) {
+    console.warn('[communityCloud] cleanup_old_activities', e)
+  }
+}
+
+
 type ContribRow = {
   id: string
   user_id: string | null
@@ -130,6 +153,9 @@ export type CommunitySnapshot = {
 }
 
 export async function fetchCommunitySnapshot(): Promise<CommunitySnapshot> {
+  await cleanupOldActivities()
+
+  const cutoff = activityCutoffIso()
   const [contribRes, likesRes, commentsRes, quotesRes, actsRes] =
     await Promise.all([
       supabase
@@ -160,6 +186,7 @@ export async function fetchCommunitySnapshot(): Promise<CommunitySnapshot> {
       supabase
         .from('activities')
         .select('id,kind,actor_name,actor_email,title,meta,created_at')
+        .gte('created_at', cutoff)
         .order('created_at', { ascending: false })
         .limit(MAX_ACTIVITIES),
     ])
