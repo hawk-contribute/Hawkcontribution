@@ -138,9 +138,9 @@ export interface NftDefinition {
   /** Display text from DB (or static fallback) */
   title?: string
   blurb?: string
-  /** Effective points needed (override ?? global) */
+  /** Points required to unlock / claim this NFT (per-item) */
   requiredPoints: number
-  /** Raw per-NFT override from DB; null/undefined → use global */
+  /** Stored per-NFT points from DB (same as requiredPoints when from cloud) */
   requiredPointsOverride?: number | null
   sortOrder?: number
 }

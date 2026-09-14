@@ -455,6 +455,7 @@ export default function App() {
             onPlayGame={() => setTab('game')}
             onSaveRedeemPoints={nftCatalog.saveRedeemPoints}
             onSaveNft={nftCatalog.saveNft}
+            onSaveNftPoints={nftCatalog.saveNftPoints}
             onDeleteNft={nftCatalog.removeNft}
           />
         )}

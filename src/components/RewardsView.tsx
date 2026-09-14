@@ -4,6 +4,7 @@ import {
   Gift,
   Lock,
   Plus,
+  Save,
   Sparkles,
   Trash2,
 } from 'lucide-react'
@@ -30,6 +31,7 @@ interface RewardsViewProps {
   onPlayGame: () => void
   onSaveRedeemPoints?: (points: number) => Promise<void>
   onSaveNft?: (input: NftUpsertInput) => Promise<void>
+  onSaveNftPoints?: (id: string, points: number) => Promise<void>
   onDeleteNft?: (id: string) => Promise<void>
 }
 
@@ -80,6 +82,7 @@ export function RewardsView({
   onPlayGame,
   onSaveRedeemPoints,
   onSaveNft,
+  onSaveNftPoints,
   onDeleteNft,
 }: RewardsViewProps) {
   const { t } = useI18n()
@@ -91,13 +94,38 @@ export function RewardsView({
   const [adminBusy, setAdminBusy] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [imageFile, setImageFile] = useState<File | null>(null)
+  /** Inline per-NFT points drafts keyed by nft id */
+  const [pointsDrafts, setPointsDrafts] = useState<Record<string, string>>({})
 
   // Keep draft in sync when cloud threshold loads/changes
   useEffect(() => {
     setThresholdDraft(String(redeemPoints))
   }, [redeemPoints])
 
-  const globalEligible = points >= redeemPoints
+  // Sync inline drafts when catalog refreshes
+  useEffect(() => {
+    const next: Record<string, string> = {}
+    for (const nft of catalog) {
+      next[nft.id] = String(nft.requiredPoints)
+    }
+    setPointsDrafts(next)
+  }, [catalog])
+
+  // Default add-form points to current global / default when empty
+  useEffect(() => {
+    setForm((prev) =>
+      prev.requiredPoints.trim() === ''
+        ? { ...prev, requiredPoints: String(redeemPoints) }
+        : prev,
+    )
+  }, [redeemPoints])
+
+  const minRequired =
+    catalog.length > 0
+      ? Math.min(...catalog.map((n) => n.requiredPoints))
+      : redeemPoints
+  const anyEligible = catalog.some((n) => points >= n.requiredPoints)
+  const progressTarget = minRequired
 
   return (
     <section>
@@ -112,17 +140,18 @@ export function RewardsView({
           {t('rewards.title')}
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-hawk-muted sm:text-base">
-          {t('rewards.subtitle', { n: redeemPoints })}
+          {t('rewards.subtitle')}
         </p>
         <p className="mt-2 text-xs text-hawk-muted">{t('rewards.offchainNote')}</p>
       </div>
 
-      {admin && onSaveRedeemPoints && onSaveNft && onDeleteNft && (
+      {admin && onSaveRedeemPoints && onSaveNft && onSaveNftPoints && onDeleteNft && (
         <div className="hawk-card mb-6 border border-hawk-gold/30 p-5">
           <h2 className="text-sm font-bold uppercase tracking-wide text-hawk-gold">
             {t('rewards.admin.title')}
           </h2>
           <p className="mt-1 text-xs text-hawk-muted">{t('rewards.admin.hint')}</p>
+          <p className="mt-1 text-xs text-hawk-muted">{t('rewards.admin.perNftHint')}</p>
 
           <div className="mt-4 flex flex-wrap items-end gap-3">
             <label className="block min-w-[10rem] flex-1 text-left text-xs text-hawk-muted">
@@ -236,8 +265,8 @@ export function RewardsView({
               <input
                 type="number"
                 min={1}
+                required
                 className="hawk-input mt-1 w-full"
-                placeholder={t('rewards.admin.useGlobal')}
                 value={form.requiredPoints}
                 onChange={(e) =>
                   setForm({ ...form, requiredPoints: e.target.value })
@@ -259,11 +288,8 @@ export function RewardsView({
             disabled={adminBusy}
             className="hawk-btn hawk-btn-primary mt-3 px-4 py-2 text-sm"
             onClick={() => {
-              const req =
-                form.requiredPoints.trim() === ''
-                  ? null
-                  : Number(form.requiredPoints)
-              if (req != null && (!Number.isFinite(req) || req < 1)) {
+              const req = Number(form.requiredPoints)
+              if (!Number.isFinite(req) || req < 1) {
                 setAdminMsg(t('rewards.admin.invalidPoints'))
                 return
               }
@@ -284,10 +310,10 @@ export function RewardsView({
                   blurb: form.blurb,
                   rarity: form.rarity,
                   imagePath,
-                  requiredPoints: req,
+                  requiredPoints: Math.floor(req),
                   sortOrder: Number(form.sortOrder) || 0,
                 })
-                setForm(emptyForm)
+                setForm({ ...emptyForm, requiredPoints: String(redeemPoints) })
                 setImageFile(null)
                 setAdminMsg(t('rewards.admin.saved'))
               })()
@@ -299,6 +325,8 @@ export function RewardsView({
                     setAdminMsg(t('rewards.admin.invalidImage'))
                   } else if (code === 'INVALID_TITLE') {
                     setAdminMsg(t('rewards.admin.invalidTitle'))
+                  } else if (code === 'INVALID_POINTS') {
+                    setAdminMsg(t('rewards.admin.invalidPoints'))
                   } else if (code === 'INVALID_FILE_TYPE') {
                     setAdminMsg(t('rewards.admin.invalidFileType'))
                   } else if (code === 'INVALID_FILE_SIZE') {
@@ -321,36 +349,82 @@ export function RewardsView({
           <h3 className="mt-6 text-xs font-bold uppercase tracking-wide text-hawk-cream">
             {t('rewards.admin.manageList')}
           </h3>
-          <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto text-xs">
-            {catalog.map((nft) => (
-              <li
-                key={nft.id}
-                className="flex items-center justify-between gap-2 rounded-md bg-hawk-panel/50 px-2 py-1.5"
-              >
-                <span className="min-w-0 truncate text-hawk-cream">
-                  <span className="font-mono text-hawk-muted">{nft.id}</span>
-                  {' · '}
-                  {resolveNftTitle(nft, t)}
-                  {' · '}
-                  {nft.requiredPoints.toLocaleString()}
-                </span>
-                <button
-                  type="button"
-                  className="shrink-0 text-red-300 hover:text-red-200"
-                  title={t('rewards.admin.delete')}
-                  onClick={() => {
-                    if (!window.confirm(t('rewards.admin.confirmDelete'))) return
-                    setAdminBusy(true)
-                    void onDeleteNft(nft.id)
-                      .then(() => setAdminMsg(t('rewards.admin.deleted')))
-                      .catch(() => setAdminMsg(t('rewards.admin.saveFailed')))
-                      .finally(() => setAdminBusy(false))
-                  }}
+          <p className="mt-1 text-[11px] text-hawk-muted">
+            {t('rewards.admin.editPointsHint')}
+          </p>
+          <ul className="mt-2 max-h-72 space-y-2 overflow-y-auto text-xs">
+            {catalog.map((nft) => {
+              const draft = pointsDrafts[nft.id] ?? String(nft.requiredPoints)
+              const dirty = Number(draft) !== nft.requiredPoints
+              return (
+                <li
+                  key={nft.id}
+                  className="flex flex-wrap items-center gap-2 rounded-md bg-hawk-panel/50 px-2 py-2"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </li>
-            ))}
+                  <span className="min-w-0 flex-1 truncate text-hawk-cream">
+                    <span className="font-mono text-hawk-muted">{nft.id}</span>
+                    {' · '}
+                    {resolveNftTitle(nft, t)}
+                  </span>
+                  <label className="flex items-center gap-1 text-hawk-muted">
+                    <span className="whitespace-nowrap">
+                      {t('rewards.admin.pointsLabel')}
+                    </span>
+                    <input
+                      type="number"
+                      min={1}
+                      className="hawk-input w-24 py-1 text-sm"
+                      value={draft}
+                      disabled={adminBusy}
+                      onChange={(e) =>
+                        setPointsDrafts((prev) => ({
+                          ...prev,
+                          [nft.id]: e.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    disabled={adminBusy || !dirty}
+                    className="hawk-btn hawk-btn-primary shrink-0 px-2 py-1 text-[11px] disabled:opacity-40"
+                    title={t('rewards.admin.savePoints')}
+                    onClick={() => {
+                      const n = Number(draft)
+                      if (!Number.isFinite(n) || n < 1) {
+                        setAdminMsg(t('rewards.admin.invalidPoints'))
+                        return
+                      }
+                      setAdminBusy(true)
+                      setAdminMsg(null)
+                      void onSaveNftPoints(nft.id, Math.floor(n))
+                        .then(() => setAdminMsg(t('rewards.admin.pointsSaved')))
+                        .catch(() => setAdminMsg(t('rewards.admin.saveFailed')))
+                        .finally(() => setAdminBusy(false))
+                    }}
+                  >
+                    <Save className="h-3 w-3" />
+                    {t('rewards.admin.savePoints')}
+                  </button>
+                  <button
+                    type="button"
+                    className="shrink-0 text-red-300 hover:text-red-200"
+                    title={t('rewards.admin.delete')}
+                    disabled={adminBusy}
+                    onClick={() => {
+                      if (!window.confirm(t('rewards.admin.confirmDelete'))) return
+                      setAdminBusy(true)
+                      void onDeleteNft(nft.id)
+                        .then(() => setAdminMsg(t('rewards.admin.deleted')))
+                        .catch(() => setAdminMsg(t('rewards.admin.saveFailed')))
+                        .finally(() => setAdminBusy(false))
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </li>
+              )
+            })}
           </ul>
         </div>
       )}
@@ -375,11 +449,13 @@ export function RewardsView({
               <p className="text-2xl font-bold text-hawk-gold">
                 {points.toLocaleString()}{' '}
                 <span className="text-sm font-medium text-hawk-muted">
-                  / {redeemPoints.toLocaleString()}
+                  {t('rewards.pointsToward', {
+                    n: progressTarget.toLocaleString(),
+                  })}
                 </span>
               </p>
             </div>
-            {!globalEligible && (
+            {!anyEligible && (
               <button
                 type="button"
                 onClick={onPlayGame}
@@ -388,7 +464,7 @@ export function RewardsView({
                 {t('rewards.earnMore')}
               </button>
             )}
-            {globalEligible && (
+            {anyEligible && (
               <span className="inline-flex items-center gap-1 rounded-full bg-hawk-gold/15 px-3 py-1 text-xs font-semibold text-hawk-gold">
                 <Sparkles className="h-3.5 w-3.5" />
                 {t('rewards.eligible')}
@@ -399,15 +475,15 @@ export function RewardsView({
             <div
               className="h-full rounded-full bg-gradient-to-r from-hawk-blue to-hawk-gold transition-all"
               style={{
-                width: `${Math.min(100, Math.round((points / Math.max(1, redeemPoints)) * 100))}%`,
+                width: `${Math.min(100, Math.round((points / Math.max(1, progressTarget)) * 100))}%`,
               }}
             />
           </div>
           <p className="mt-2 text-xs text-hawk-muted">
-            {globalEligible
+            {anyEligible
               ? t('rewards.ready')
               : t('rewards.needMore', {
-                  n: Math.max(0, redeemPoints - points).toLocaleString(),
+                  n: Math.max(0, progressTarget - points).toLocaleString(),
                 })}
           </p>
         </div>

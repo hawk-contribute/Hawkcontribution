@@ -44,10 +44,9 @@ function normalizeRarity(raw: string | null | undefined): string {
 
 function mapRow(row: CatalogRow, globalPoints: number): NftDefinition {
   const overlay = STATIC_I18N[row.id]
-  const override =
-    row.required_points == null || Number.isNaN(Number(row.required_points))
-      ? null
-      : Number(row.required_points)
+  const raw = Number(row.required_points)
+  const points =
+    Number.isFinite(raw) && raw >= 1 ? Math.floor(raw) : globalPoints
   const image =
     safeNftImagePath(row.image_path) ??
     row.image_path.replace(/^\//, '')
@@ -59,8 +58,8 @@ function mapRow(row: CatalogRow, globalPoints: number): NftDefinition {
     blurbKey: overlay?.blurbKey,
     title: row.title || row.id,
     blurb: row.blurb ?? '',
-    requiredPointsOverride: override,
-    requiredPoints: override ?? globalPoints,
+    requiredPointsOverride: points,
+    requiredPoints: points,
     sortOrder: row.sort_order ?? 0,
   }
 }
@@ -139,6 +138,24 @@ export async function updateRedeemPoints(points: number): Promise<void> {
 }
 
 
+export async function updateNftRequiredPoints(
+  id: string,
+  points: number,
+): Promise<void> {
+  const n = Math.max(1, Math.floor(points))
+  if (!Number.isFinite(n) || n < 1) throw new Error('INVALID_POINTS')
+  const { error } = await supabase
+    .from('nft_catalog')
+    .update({
+      required_points: n,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+
+
 const NFT_BUCKET = 'nft-rewards'
 const MAX_NFT_IMAGE_BYTES = 5 * 1024 * 1024
 const ALLOWED_NFT_MIME = new Set([
@@ -186,7 +203,7 @@ export type NftUpsertInput = {
   blurb: string
   rarity: string
   imagePath: string
-  requiredPoints: number | null
+  requiredPoints: number
   sortOrder: number
 }
 
@@ -202,6 +219,10 @@ export async function upsertNftCatalogItem(
   const rarity = normalizeRarity(input.rarity)
   const title = input.title.trim()
   if (!title) throw new Error('INVALID_TITLE')
+  const points = Math.floor(Number(input.requiredPoints))
+  if (!Number.isFinite(points) || points < 1) {
+    throw new Error('INVALID_POINTS')
+  }
 
   const { error } = await supabase.from('nft_catalog').upsert(
     {
@@ -210,9 +231,10 @@ export async function upsertNftCatalogItem(
       blurb: input.blurb.trim() || null,
       rarity,
       image_path: image,
-      required_points: input.requiredPoints,
+      required_points: points,
       sort_order: Math.floor(input.sortOrder) || 0,
       active: true,
+      updated_at: new Date().toISOString(),
     },
     { onConflict: 'id' },
   )

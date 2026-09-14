@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   deleteNftCatalogItem,
   fetchNftCatalog,
+  updateNftRequiredPoints,
   updateRedeemPoints,
   upsertNftCatalogItem,
   type NftCatalogSnapshot,
@@ -69,6 +70,14 @@ export function useNftCatalog(options?: { live?: boolean }) {
     [refresh],
   )
 
+  const saveNftPoints = useCallback(
+    async (id: string, points: number) => {
+      await updateNftRequiredPoints(id, points)
+      await refresh()
+    },
+    [refresh],
+  )
+
   return {
     redeemPoints: snap.settings.redeemPoints,
     catalog: snap.catalog,
@@ -78,6 +87,7 @@ export function useNftCatalog(options?: { live?: boolean }) {
     refresh,
     saveRedeemPoints,
     saveNft,
+    saveNftPoints,
     removeNft,
   }
 }
