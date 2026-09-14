@@ -1,9 +1,10 @@
 import { ShieldCheck } from 'lucide-react'
 import { useI18n } from '../i18n'
+import { AdminCapacityCard } from './AdminCapacityCard'
 
 const REVIEW_DATE = '2026-09-13'
 
-export function AuditView() {
+export function AuditView({ sessionEmail }: { sessionEmail?: string | null }) {
   const { t } = useI18n()
 
   return (
@@ -23,6 +24,8 @@ export function AuditView() {
           {t('audit.reviewedOn', { date: REVIEW_DATE })}
         </p>
       </div>
+
+      <AdminCapacityCard email={sessionEmail} />
     </section>
   )
 }

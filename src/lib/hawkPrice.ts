@@ -2,8 +2,8 @@ import { HAWK_TOKEN } from './donation'
 
 const DEX_URL = `https://api.dexscreener.com/latest/dex/tokens/${HAWK_TOKEN.address}`
 const CACHE_KEY = 'hawk-contribute:hawk-price-v1'
-const CACHE_MS = 90_000
-export const HAWK_PRICE_POLL_MS = 90_000
+const CACHE_MS = 120_000
+export const HAWK_PRICE_POLL_MS = 120_000
 
 export type HawkPriceQuote = {
   ok: true

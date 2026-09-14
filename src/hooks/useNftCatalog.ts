@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useVisibilityPoll } from './useVisibilityPoll'
 import {
   deleteNftCatalogItem,
   fetchNftCatalog,
@@ -40,11 +41,7 @@ export function useNftCatalog(options?: { live?: boolean }) {
     void refresh()
   }, [refresh])
 
-  useEffect(() => {
-    if (!live) return
-    const id = window.setInterval(() => void refresh(), 60_000)
-    return () => window.clearInterval(id)
-  }, [live, refresh])
+  useVisibilityPoll(() => void refresh(), 90_000, live)
 
   const saveRedeemPoints = useCallback(
     async (points: number) => {

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useVisibilityPoll } from './useVisibilityPoll'
 import type { ActivityEvent } from '../types'
 import { DONATION } from '../lib/donation'
 import {
@@ -14,7 +15,7 @@ import {
   type TokenBalanceResult,
 } from '../lib/bscDonation'
 
-const POLL_MS = 20_000
+const POLL_MS = 45_000
 
 function toActivity(d: IncomingDonation): ActivityEvent {
   return {
@@ -80,21 +81,7 @@ export function useDonationFeed(options?: { live?: boolean }) {
     void refresh()
   }, [refresh])
 
-  useEffect(() => {
-    if (!live) return
-    const id = window.setInterval(() => void refresh(), POLL_MS)
-    const onFocus = () => void refresh()
-    window.addEventListener('focus', onFocus)
-    const onVis = () => {
-      if (document.visibilityState === 'visible') void refresh()
-    }
-    document.addEventListener('visibilitychange', onVis)
-    return () => {
-      window.clearInterval(id)
-      window.removeEventListener('focus', onFocus)
-      document.removeEventListener('visibilitychange', onVis)
-    }
-  }, [live, refresh])
+  useVisibilityPoll(() => void refresh(), POLL_MS, live)
 
   const activities: ActivityEvent[] = donations.map(toActivity)
 

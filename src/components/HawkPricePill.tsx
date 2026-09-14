@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { useVisibilityPoll } from '../hooks/useVisibilityPoll'
 import { HAWK_TOKEN } from '../lib/donation'
 import {
   cachedHawkPrice,
@@ -14,19 +15,16 @@ export function HawkPricePill() {
     typeof window !== 'undefined' ? cachedHawkPrice() : null,
   )
 
-  useEffect(() => {
-    let cancelled = false
-    const load = async () => {
-      const next = await fetchHawkPrice()
-      if (!cancelled) setQuote(next)
-    }
-    void load()
-    const id = window.setInterval(() => void load(), HAWK_PRICE_POLL_MS)
-    return () => {
-      cancelled = true
-      window.clearInterval(id)
-    }
+  const load = useCallback(async () => {
+    const next = await fetchHawkPrice()
+    setQuote(next)
   }, [])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  useVisibilityPoll(() => void load(), HAWK_PRICE_POLL_MS, true)
 
   const href = quote?.ok
     ? quote.pairUrl

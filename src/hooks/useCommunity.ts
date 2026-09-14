@@ -20,6 +20,7 @@ import {
   toggleLikeCloud,
   type CommunitySnapshot,
 } from '../lib/communityCloud'
+import { useVisibilityPoll } from './useVisibilityPoll'
 
 const emptySocial: SocialState = {
   likes: {},
@@ -34,7 +35,8 @@ const emptySnap: CommunitySnapshot = {
   social: emptySocial,
 }
 
-const POLL_MS = 25_000
+/** Fallback poll when Realtime is unavailable; paused while tab hidden. */
+const POLL_MS = 40_000
 
 export function useCommunity(options?: { live?: boolean }) {
   const live = options?.live ?? true
@@ -63,20 +65,8 @@ export function useCommunity(options?: { live?: boolean }) {
     void refresh()
   }, [refresh])
 
-  // Poll while live (Feed / shared views)
-  useEffect(() => {
-    if (!live) return
-    const id = window.setInterval(() => void refresh(), POLL_MS)
-    const onFocus = () => void refresh()
-    window.addEventListener('focus', onFocus)
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') void refresh()
-    })
-    return () => {
-      window.clearInterval(id)
-      window.removeEventListener('focus', onFocus)
-    }
-  }, [live, refresh])
+  // Poll while live (Feed / shared views); pause when document.hidden
+  useVisibilityPoll(() => void refresh(), POLL_MS, live)
 
   // Realtime (best-effort; poll is the fallback)
   useEffect(() => {

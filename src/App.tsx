@@ -474,7 +474,7 @@ export default function App() {
           />
         )}
         {tab === 'news' && <NewsView session={session} />}
-        {tab === 'audit' && <AuditView />}
+        {tab === 'audit' && <AuditView sessionEmail={session?.email} />}
       </main>
 
       <footer className="border-t border-hawk-border/60 py-6 text-center text-xs text-hawk-muted">

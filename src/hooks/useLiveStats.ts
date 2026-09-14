@@ -3,8 +3,9 @@ import {
   fetchCommunityLiveCounts,
   type CountsResult,
 } from '../lib/communityCounts'
+import { useVisibilityPoll } from './useVisibilityPoll'
 
-const POLL_MS = 20_000
+const POLL_MS = 45_000
 
 export function useLiveStats(options?: { live?: boolean }) {
   const live = options?.live ?? true
@@ -28,21 +29,7 @@ export function useLiveStats(options?: { live?: boolean }) {
     void refresh()
   }, [refresh])
 
-  useEffect(() => {
-    if (!live) return
-    const id = window.setInterval(() => void refresh(), POLL_MS)
-    const onFocus = () => void refresh()
-    window.addEventListener('focus', onFocus)
-    const onVis = () => {
-      if (document.visibilityState === 'visible') void refresh()
-    }
-    document.addEventListener('visibilitychange', onVis)
-    return () => {
-      window.clearInterval(id)
-      window.removeEventListener('focus', onFocus)
-      document.removeEventListener('visibilitychange', onVis)
-    }
-  }, [live, refresh])
+  useVisibilityPoll(() => void refresh(), POLL_MS, live)
 
   return { result, loading, refresh }
 }
