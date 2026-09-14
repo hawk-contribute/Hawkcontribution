@@ -1,13 +1,14 @@
 import { useState } from 'react'
-import { Bird, Gamepad2, Lock, Swords, Target } from 'lucide-react'
+import { Bird, Gamepad2, Lock, Swords, Target, Wind } from 'lucide-react'
 import type { PointsAccount, Session } from '../types'
 import { useI18n } from '../i18n'
 import { asset } from '../lib/asset'
 import { GameView } from './GameView'
 import { FruitSliceView } from './FruitSliceView'
 import { EagleCatchView } from './EagleCatchView'
+import { FlappyEagleView } from './FlappyEagleView'
 
-type GameId = 'hub' | 'whack' | 'fruit' | 'catch'
+type GameId = 'hub' | 'whack' | 'fruit' | 'catch' | 'flappy'
 
 interface GameHubProps {
   session: Session | null
@@ -61,6 +62,18 @@ export function GameHub({
     )
   }
 
+  if (game === 'flappy') {
+    return (
+      <FlappyEagleView
+        session={session}
+        account={account}
+        onRequireAuth={onRequireAuth}
+        onRoundComplete={onRoundComplete}
+        onBack={() => setGame('hub')}
+      />
+    )
+  }
+
   if (!session) {
     return (
       <section className="hawk-card mx-auto max-w-lg px-6 py-14 text-center">
@@ -99,7 +112,7 @@ export function GameHub({
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
         <button
           type="button"
           onClick={() => setGame('whack')}
@@ -147,7 +160,7 @@ export function GameHub({
         <button
           type="button"
           onClick={() => setGame('catch')}
-          className="hawk-card group flex flex-col overflow-hidden p-0 text-left transition hover:border-hawk-gold/50 sm:col-span-2 lg:col-span-1"
+          className="hawk-card group flex flex-col overflow-hidden p-0 text-left transition hover:border-hawk-gold/50"
         >
           <div className="relative h-40 overflow-hidden bg-hawk-navy/80 sm:h-44">
             <img
@@ -163,6 +176,28 @@ export function GameHub({
           <div className="p-5">
             <h2 className="text-lg font-bold text-hawk-cream">{t('catch.title')}</h2>
             <p className="mt-1.5 text-sm text-hawk-muted">{t('gameHub.catchBlurb')}</p>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setGame('flappy')}
+          className="hawk-card group flex flex-col overflow-hidden p-0 text-left transition hover:border-hawk-gold/50"
+        >
+          <div className="relative h-40 overflow-hidden bg-hawk-navy/80 sm:h-44">
+            <img
+              src={asset('game/covers/cover-flappy.png')}
+              alt=""
+              className="h-full w-full object-cover opacity-90 transition group-hover:scale-105"
+            />
+            <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-xs font-medium text-hawk-gold">
+              <Wind className="h-3.5 w-3.5" />
+              {t('gameHub.flappyTag')}
+            </span>
+          </div>
+          <div className="p-5">
+            <h2 className="text-lg font-bold text-hawk-cream">{t('flappy.title')}</h2>
+            <p className="mt-1.5 text-sm text-hawk-muted">{t('gameHub.flappyBlurb')}</p>
           </div>
         </button>
       </div>
