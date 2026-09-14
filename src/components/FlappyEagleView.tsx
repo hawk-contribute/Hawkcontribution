@@ -8,13 +8,18 @@ import { gameAudio } from '../lib/gameAudio'
 /** Points awarded per pipe gap passed (same account total as other games). */
 const POINTS_PER_GAP = 15
 const GOOD_SCORE = 75
-const GRAVITY = 0.42
-const FLAP_VY = -7.6
+/** Floating / hover control — no gravity drop. */
+const THRUST = 0.62
+const MAX_VY = 6.8
+const DAMPING = 0.86
+const TAP_BOOST = -5.4
+const HOVER_AMP = 0.42
+const STEER_GAIN = 0.085
 const PIPE_W = 64
 const PIPE_GAP = 168
 const PIPE_SPEED = 2.6
 const PIPE_SPACING = 220
-const EAGLE_R = 18
+const EAGLE_R = 20
 
 type Phase = 'idle' | 'playing' | 'ended'
 
@@ -43,6 +48,148 @@ function randGapY(h: number) {
   return minY + Math.random() * Math.max(20, maxY - minY)
 }
 
+/** Cute cartoon little white-headed eagle (bald-eagle style), side view. */
+function drawCartoonEagle(
+  ctx: CanvasRenderingContext2D,
+  wingPhase: number,
+  tilting: number,
+) {
+  const wing = Math.sin(wingPhase) * 0.4
+  ctx.save()
+  ctx.rotate(tilting)
+
+  // far wing
+  ctx.fillStyle = '#6b3e1a'
+  ctx.beginPath()
+  ctx.ellipse(-4, -2, 20, 9, -0.75 + wing, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.strokeStyle = '#3f2310'
+  ctx.lineWidth = 1.2
+  ctx.stroke()
+
+  // body (brown)
+  const body = ctx.createLinearGradient(-10, -8, 14, 16)
+  body.addColorStop(0, '#a16207')
+  body.addColorStop(0.45, '#78350f')
+  body.addColorStop(1, '#451a03')
+  ctx.fillStyle = body
+  ctx.beginPath()
+  ctx.ellipse(0, 4, 15, 17, 0.12, 0, Math.PI * 2)
+  ctx.fill()
+
+  // belly patch
+  ctx.fillStyle = '#92400e'
+  ctx.beginPath()
+  ctx.ellipse(4, 8, 8, 10, 0.2, 0, Math.PI * 2)
+  ctx.fill()
+
+  // near wing
+  ctx.fillStyle = '#92400e'
+  ctx.beginPath()
+  ctx.ellipse(2, 2, 18, 8, 0.55 - wing, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.strokeStyle = '#451a03'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(-8, 0)
+  ctx.quadraticCurveTo(2, -6 - wing * 8, 16, 4)
+  ctx.stroke()
+
+  // tail
+  ctx.fillStyle = '#78350f'
+  ctx.beginPath()
+  ctx.moveTo(-12, 10)
+  ctx.lineTo(-22, 6)
+  ctx.lineTo(-20, 16)
+  ctx.lineTo(-10, 14)
+  ctx.closePath()
+  ctx.fill()
+
+  // white head (小白头)
+  ctx.fillStyle = '#f8fafc'
+  ctx.beginPath()
+  ctx.ellipse(8, -10, 12, 11, -0.15, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(15,23,42,0.12)'
+  ctx.lineWidth = 1
+  ctx.stroke()
+
+  // cheek blush
+  ctx.fillStyle = 'rgba(251,146,60,0.35)'
+  ctx.beginPath()
+  ctx.ellipse(12, -6, 3.5, 2.2, 0, 0, Math.PI * 2)
+  ctx.fill()
+
+  // eye
+  ctx.fillStyle = '#0f172a'
+  ctx.beginPath()
+  ctx.arc(12, -12, 3.2, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = '#38bdf8'
+  ctx.beginPath()
+  ctx.arc(12.2, -12.2, 1.6, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = '#fff'
+  ctx.beginPath()
+  ctx.arc(13.2, -13.2, 0.9, 0, Math.PI * 2)
+  ctx.fill()
+
+  // brow
+  ctx.strokeStyle = '#0f172a'
+  ctx.lineWidth = 1.6
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.moveTo(8, -15.5)
+  ctx.quadraticCurveTo(12, -17, 16, -15)
+  ctx.stroke()
+
+  // yellow beak
+  ctx.fillStyle = '#fbbf24'
+  ctx.beginPath()
+  ctx.moveTo(18, -10)
+  ctx.lineTo(30, -6)
+  ctx.lineTo(18, -3)
+  ctx.closePath()
+  ctx.fill()
+  ctx.fillStyle = '#f59e0b'
+  ctx.beginPath()
+  ctx.moveTo(18, -6.5)
+  ctx.lineTo(30, -6)
+  ctx.lineTo(18, -3)
+  ctx.closePath()
+  ctx.fill()
+
+  // feet (tiny)
+  ctx.strokeStyle = '#f59e0b'
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.moveTo(2, 18)
+  ctx.lineTo(0, 24)
+  ctx.moveTo(6, 18)
+  ctx.lineTo(8, 24)
+  ctx.stroke()
+
+  // sparkle when flapping hard
+  if (Math.abs(wing) > 0.28) {
+    ctx.fillStyle = 'rgba(253,224,71,0.85)'
+    for (const [sx, sy] of [
+      [-18, -14],
+      [22, -20],
+      [-10, 16],
+    ] as const) {
+      ctx.beginPath()
+      ctx.moveTo(sx, sy - 3)
+      ctx.lineTo(sx + 1.2, sy)
+      ctx.lineTo(sx, sy + 3)
+      ctx.lineTo(sx - 1.2, sy)
+      ctx.closePath()
+      ctx.fill()
+    }
+  }
+
+  ctx.restore()
+}
+
 export function FlappyEagleView({
   session,
   account,
@@ -68,14 +215,18 @@ export function FlappyEagleView({
   const reported = useRef(false)
   const rafRef = useRef(0)
   const sizeRef = useRef({ w: 360, h: 520 })
-  const eagleImg = useRef<HTMLImageElement | null>(null)
   const wingRef = useRef(0)
-
-  useEffect(() => {
-    const img = new Image()
-    img.src = asset('game/eagle-mascot.jpg')
-    eagleImg.current = img
-  }, [])
+  const hoverT = useRef(0)
+  const keysRef = useRef({ up: false, down: false })
+  const pointerRef = useRef<{
+    active: boolean
+    id: number
+    startX: number
+    startY: number
+    y: number
+    moved: boolean
+    at: number
+  } | null>(null)
 
   const clearRaf = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current)
@@ -126,6 +277,8 @@ export function FlappyEagleView({
       phaseRef.current = 'ended'
       setPhase('ended')
       clearRaf()
+      pointerRef.current = null
+      keysRef.current = { up: false, down: false }
       gameAudio.stopBgm()
       gameAudio.playMiss()
       const keepTrying = finalScore < GOOD_SCORE
@@ -227,53 +380,13 @@ export function FlappyEagleView({
       if (botH > 0) drawPillar(p.x, botY, botH, false)
     }
 
-    // eagle
+    // eagle — cartoon little white-headed eagle
     const e = eagleRef.current
-    const img = eagleImg.current
-    const tilt = clamp(e.vy * 0.04, -0.55, 0.7)
+    const tilt = clamp(e.vy * 0.045, -0.45, 0.55)
     ctx.save()
     ctx.translate(e.x, e.y)
-    ctx.rotate(tilt)
-    wingRef.current += 0.35
-    const wing = Math.sin(wingRef.current) * 0.35
-
-    // wing silhouette
-    ctx.fillStyle = '#78350f'
-    ctx.beginPath()
-    ctx.ellipse(-6, -2, 22, 10, -0.6 + wing, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.beginPath()
-    ctx.ellipse(8, 4, 18, 8, 0.5 - wing, 0, Math.PI * 2)
-    ctx.fill()
-
-    if (img && img.complete && img.naturalWidth > 0) {
-      ctx.beginPath()
-      ctx.arc(0, 0, EAGLE_R + 2, 0, Math.PI * 2)
-      ctx.closePath()
-      ctx.clip()
-      ctx.drawImage(img, -EAGLE_R - 2, -EAGLE_R - 2, (EAGLE_R + 2) * 2, (EAGLE_R + 2) * 2)
-    } else {
-      // fallback cartoon eagle
-      ctx.fillStyle = '#78350f'
-      ctx.beginPath()
-      ctx.ellipse(0, 4, 16, 18, 0, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.fillStyle = '#f8fafc'
-      ctx.beginPath()
-      ctx.arc(2, -10, 12, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.fillStyle = '#fbbf24'
-      ctx.beginPath()
-      ctx.moveTo(10, -10)
-      ctx.lineTo(24, -4)
-      ctx.lineTo(10, -2)
-      ctx.closePath()
-      ctx.fill()
-      ctx.fillStyle = '#0f172a'
-      ctx.beginPath()
-      ctx.arc(4, -12, 3, 0, Math.PI * 2)
-      ctx.fill()
-    }
+    wingRef.current += pointerRef.current?.active || keysRef.current.up || keysRef.current.down ? 0.45 : 0.18
+    drawCartoonEagle(ctx, wingRef.current, tilt)
     ctx.restore()
 
     // score chip on canvas while playing
@@ -294,7 +407,40 @@ export function FlappyEagleView({
     if (phaseRef.current !== 'playing') return
     const { h } = sizeRef.current
     const e = eagleRef.current
-    e.vy += GRAVITY
+    const keys = keysRef.current
+    const ptr = pointerRef.current
+    hoverT.current += 0.08
+
+    let thrusting = false
+    if (keys.up && !keys.down) {
+      e.vy -= THRUST
+      thrusting = true
+    } else if (keys.down && !keys.up) {
+      e.vy += THRUST
+      thrusting = true
+    }
+
+    if (ptr?.active) {
+      // Steer toward finger / pointer Y while held (float control)
+      const dy = ptr.y - e.y
+      if (Math.abs(dy) > 4 || ptr.moved) {
+        e.vy += clamp(dy * STEER_GAIN, -THRUST * 1.35, THRUST * 1.35)
+        thrusting = true
+      } else {
+        // Hold in place near bird → gentle rise for easy one-thumb play
+        e.vy -= THRUST * 0.55
+        thrusting = true
+      }
+    }
+
+    if (!thrusting) {
+      // Hover: damp velocity and add a gentle float bob — never plummet
+      e.vy *= DAMPING
+      if (Math.abs(e.vy) < 0.08) e.vy = 0
+      e.y += Math.sin(hoverT.current) * HOVER_AMP
+    }
+
+    e.vy = clamp(e.vy, -MAX_VY, MAX_VY)
     e.y += e.vy
 
     // ground / ceiling
@@ -344,20 +490,21 @@ export function FlappyEagleView({
     rafRef.current = requestAnimationFrame(tick)
   }, [draw, stopRound])
 
-  const flap = useCallback(() => {
-    if (phaseRef.current !== 'playing') return
-    eagleRef.current.vy = FLAP_VY
-    wingRef.current = 0
-    toneFlap()
-  }, [])
-
-  function toneFlap() {
+  function toneBoost() {
     try {
       gameAudio.playHit(6)
     } catch {
       /* ignore */
     }
   }
+
+  const applyTapBoost = useCallback(() => {
+    if (phaseRef.current !== 'playing') return
+    eagleRef.current.vy = Math.min(eagleRef.current.vy, 0) + TAP_BOOST
+    eagleRef.current.vy = clamp(eagleRef.current.vy, -MAX_VY, MAX_VY)
+    wingRef.current = 0
+    toneBoost()
+  }, [])
 
   const startRound = async () => {
     if (!session) {
@@ -372,6 +519,9 @@ export function FlappyEagleView({
     setScore(0)
     setGaps(0)
     setShowKeepTrying(false)
+    pointerRef.current = null
+    keysRef.current = { up: false, down: false }
+    hoverT.current = 0
     resize()
     const { w, h } = sizeRef.current
     eagleRef.current = { x: Math.min(96, w * 0.28), y: h * 0.45, vy: 0 }
@@ -384,15 +534,36 @@ export function FlappyEagleView({
   }
 
   useEffect(() => {
-    const onKey = (ev: KeyboardEvent) => {
-      if (ev.code === 'Space' || ev.key === ' ') {
+    const onKeyDown = (ev: KeyboardEvent) => {
+      if (phaseRef.current !== 'playing') return
+      if (ev.code === 'Space' || ev.key === ' ' || ev.key === 'ArrowUp' || ev.key === 'w' || ev.key === 'W') {
         ev.preventDefault()
-        if (phaseRef.current === 'playing') flap()
+        if (!keysRef.current.up) {
+          keysRef.current.up = true
+          // initial boost so a quick tap still rises
+          if (ev.code === 'Space' || ev.key === ' ') applyTapBoost()
+        }
+      }
+      if (ev.key === 'ArrowDown' || ev.key === 's' || ev.key === 'S') {
+        ev.preventDefault()
+        keysRef.current.down = true
       }
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [flap])
+    const onKeyUp = (ev: KeyboardEvent) => {
+      if (ev.code === 'Space' || ev.key === ' ' || ev.key === 'ArrowUp' || ev.key === 'w' || ev.key === 'W') {
+        keysRef.current.up = false
+      }
+      if (ev.key === 'ArrowDown' || ev.key === 's' || ev.key === 'S') {
+        keysRef.current.down = false
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+    }
+  }, [applyTapBoost])
 
   useEffect(() => () => {
     clearRaf()
@@ -403,16 +574,53 @@ export function FlappyEagleView({
     draw()
   }, [draw, phase])
 
+  const canvasLocalY = (e: React.PointerEvent) => {
+    const canvas = canvasRef.current
+    if (!canvas) return e.clientY
+    const rect = canvas.getBoundingClientRect()
+    const { h } = sizeRef.current
+    return ((e.clientY - rect.top) / Math.max(1, rect.height)) * h
+  }
+
   const onPointerDown = (e: React.PointerEvent) => {
     e.preventDefault()
-    if (phaseRef.current === 'playing') {
-      try {
-        ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
-      } catch {
-        /* ignore */
-      }
-      flap()
+    if (phaseRef.current !== 'playing') return
+    try {
+      ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
+    } catch {
+      /* ignore */
     }
+    const y = canvasLocalY(e)
+    pointerRef.current = {
+      active: true,
+      id: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      y,
+      moved: false,
+      at: performance.now(),
+    }
+    wingRef.current = 0
+    toneBoost()
+  }
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    const ptr = pointerRef.current
+    if (!ptr?.active || ptr.id !== e.pointerId) return
+    ptr.y = canvasLocalY(e)
+    const dist = Math.hypot(e.clientX - ptr.startX, e.clientY - ptr.startY)
+    if (dist > 10) ptr.moved = true
+  }
+
+  const onPointerUp = (e: React.PointerEvent) => {
+    const ptr = pointerRef.current
+    if (!ptr?.active || ptr.id !== e.pointerId) return
+    const held = performance.now() - ptr.at
+    // Short tap with little drag → upward boost (mobile-friendly rise)
+    if (!ptr.moved && held < 220) {
+      applyTapBoost()
+    }
+    pointerRef.current = null
   }
 
   if (!session) {
@@ -534,6 +742,9 @@ export function FlappyEagleView({
           ref={canvasRef}
           className="block w-full cursor-pointer"
           onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
         />
 
         {phase === 'idle' && (
