@@ -12,6 +12,11 @@ const HEN_PENALTY = 15
 const STUN_MS = 900
 const GOOD_SCORE = 120
 const CHICK_COUNT = 6
+/** Mother hen pace (~1.6× prior). Tune these to change how brisk she feels. */
+const HEN_SPAWN_SPEED = 2.1
+const HEN_WANDER_SPEED = 2.2
+const HEN_CHASE_ACCEL = 0.13
+const HEN_MAX_SPEED = 3.2
 
 type Phase = 'idle' | 'playing' | 'ended'
 
@@ -102,7 +107,7 @@ export function EagleCatchView({
         wobble: Math.random() * Math.PI * 2,
       })
     }
-    const hv = randVel(1.3)
+    const hv = randVel(HEN_SPAWN_SPEED)
     list.push({
       x: w * 0.5,
       y: h * 0.35,
@@ -279,7 +284,7 @@ export function EagleCatchView({
       // wander: occasional direction change
       if (Math.random() < 0.02) {
         const speed =
-          e.kind === 'hen' ? 1.4 : e.kind === 'gold' ? 2.6 : 1.8 + Math.random()
+          e.kind === 'hen' ? HEN_WANDER_SPEED : e.kind === 'gold' ? 2.6 : 1.8 + Math.random()
         const v = randVel(speed)
         e.vx = v.vx
         e.vy = v.vy
@@ -298,10 +303,10 @@ export function EagleCatchView({
         const dx = eg.x - e.x
         const dy = eg.y - e.y
         const d = Math.hypot(dx, dy) || 1
-        e.vx += (dx / d) * 0.08
-        e.vy += (dy / d) * 0.08
+        e.vx += (dx / d) * HEN_CHASE_ACCEL
+        e.vy += (dy / d) * HEN_CHASE_ACCEL
       }
-      const maxSp = e.kind === 'gold' ? 3.2 : e.kind === 'hen' ? 2.0 : 2.6
+      const maxSp = e.kind === 'gold' ? 3.2 : e.kind === 'hen' ? HEN_MAX_SPEED : 2.6
       const sp = Math.hypot(e.vx, e.vy) || 1
       if (sp > maxSp) {
         e.vx = (e.vx / sp) * maxSp
