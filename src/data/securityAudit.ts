@@ -21,7 +21,7 @@ export type AuditFinding = {
 
 export const SECURITY_AUDIT_META = {
   date: '2026-09-14',
-  commit: 'pro-adjust-2026-09-14',
+  commit: 'leaked-pw-on-2026-09-14',
   scopeEn:
     'Vite React + Supabase + GitHub Pages app at hawk-contribute (auth, RLS assumptions, XSS, secrets, third-party fetches). Remediation pass 2026-09-13.',
   scopeZh:
@@ -75,28 +75,24 @@ export const SECURITY_AUDIT_FINDINGS: AuditFinding[] = [
     titleEn: 'Minimum password length is only 6 characters',
     titleZh: '密碼最短僅 6 碼',
     detailZh:
-      '【已於 2026-09-13 Remediated】客戶端最短密碼改為 10（useSession／AuthModal／i18n）。組織已在 Pro；洩漏密碼防護可於 Auth 設定啟用（見下方 dashboard 項）。',
+      '【已於 2026-09-13 Remediated】客戶端最短密碼改為 10（useSession／AuthModal／i18n）。組織已在 Pro；洩漏密碼防護已於 Pro Auth 啟用（見下方）。',
     detailEn:
-      '[Remediated 2026-09-13] Client minimum password length raised to 10 (useSession / AuthModal / i18n). Org is on Pro; enable leaked-password protection in Auth settings (see dashboard item below).',
+      '[Remediated 2026-09-13] Client minimum password length raised to 10 (useSession / AuthModal / i18n). Org is on Pro; leaked-password protection enabled on Pro Auth (see below).',
     paths: ['src/hooks/useSession.ts', 'src/components/AuthModal.tsx'],
   },
   {
     id: 'leaked-pw-advisor',
     severity: 'medium',
-    status: 'dashboard',
+    status: 'remediated',
     areaEn: 'Supabase Auth advisor',
     areaZh: 'Supabase Auth 建議',
-    titleEn: 'Leaked password protection — enable on Pro',
-    titleZh: '已洩漏密碼防護 — 請於 Pro 啟用',
+    titleEn: 'Leaked password protection enabled on Pro Auth',
+    titleZh: '已洩漏密碼防護 — 已於 Pro Auth 啟用',
     detailZh:
-      '【Dashboard／Pro 已就緒】組織已確認為 Supabase Pro。請於 Dashboard → Authentication → Providers（Email）開啟「Prevent use of leaked passwords」（HaveIBeenPwned）。客戶端密碼最短 10 已落地。啟用後 advisors 的 auth_leaked_password_protection 應消失。',
+      '【已於 2026-09-14 Remediated】Pro Auth 已啟用「Prevent use of leaked passwords」（HaveIBeenPwned）。Supabase security advisors 已不再包含 auth_leaked_password_protection（已驗證）。客戶端密碼最短 10 仍生效。',
     detailEn:
-      '[Open dashboard — Pro ready] Org confirmed Supabase Pro. Enable “Prevent use of leaked passwords” (HaveIBeenPwned) in Dashboard → Authentication → Providers (Email). Client password min 10 is in place. After enabling, the auth_leaked_password_protection advisor should clear.',
+      '[Remediated 2026-09-14] Leaked password protection enabled on Pro Auth (HaveIBeenPwned). Supabase security advisors no longer include auth_leaked_password_protection (verified). Client password min 10 remains in place.',
     paths: ['Supabase Auth (Pro)', 'docs: password-security'],
-    actionUrl:
-      'https://supabase.com/dashboard/project/bqccemvnwmtcuzaoouwr/auth/providers?provider=Email',
-    actionLabelEn: 'Open Auth providers (enable leaked-pw)',
-    actionLabelZh: '開啟 Auth Providers（啟用洩漏密碼防護）',
   },
   {
     id: 'security-definer',
@@ -206,7 +202,7 @@ export const SECURITY_AUDIT_OK_ZH = [
   '留言／說明／消息正文以 React 文字節點渲染（無 dangerouslySetInnerHTML）。',
   '雲端投稿只存附件檔名，有大小上限。',
   'proof／news URL：safeHttpUrl + DB CHECK（http/https）。',
-  '公開 UI Email 已遮罩；密碼最短 10；env 檔已自追蹤移除。',
+  '公開 UI Email 已遮罩；密碼最短 10；洩漏密碼防護已於 Pro Auth 啟用；env 檔已自追蹤移除。',
   'npm audit（正式依賴）當次為 0 漏洞。',
 ]
 
@@ -218,18 +214,16 @@ export const SECURITY_AUDIT_OK_EN = [
   'User text rendered as React text (no dangerouslySetInnerHTML).',
   'Cloud uploads store attachment names only; size capped.',
   'proof/news URLs: safeHttpUrl + DB CHECK (http/https).',
-  'Public UI emails masked; password min 10; env files untracked.',
+  'Public UI emails masked; password min 10; leaked-pw protection enabled on Pro Auth; env files untracked.',
   'npm audit (prod) reported 0 vulnerabilities at review time.',
 ]
 
 export const SECURITY_AUDIT_NEXT_ZH = [
-  '洩漏密碼防護：組織已在 Pro — 於 Dashboard Auth Providers（Email）啟用「Prevent use of leaked passwords」。',
   '可選：進一步收窄公開 SELECT 欄位（不回傳 email）。',
   '可選：移除／隱藏 admins.ts 信箱白名單；auth console 勿記 email。',
 ]
 
 export const SECURITY_AUDIT_NEXT_EN = [
-  'Leaked password protection: org is on Pro — enable “Prevent use of leaked passwords” in Dashboard Auth Providers (Email).',
   'Optional: narrow public SELECT columns (omit emails).',
   'Optional: hide admins.ts email allowlist; stop logging email in auth console.',
 ]

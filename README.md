@@ -175,4 +175,4 @@ Actions workflow is prepared at `.github/workflows/deploy-pages.yml` — pushing
 
 - Use **anon** key only in `VITE_SUPABASE_ANON_KEY` (public by design for the SPA).
 - **Never** commit a Supabase `service_role` key or other secrets. `.env.production` / `.env.development` are gitignored — copy from `.env.example`.
-- Enable **Leaked password protection** in Supabase Dashboard → Authentication → Providers / Attack Protection.
+- **Leaked password protection** is enabled on Pro Auth (HaveIBeenPwned; verified 2026-09-14).
