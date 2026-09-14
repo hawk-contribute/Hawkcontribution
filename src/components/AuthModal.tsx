@@ -254,6 +254,9 @@ export function AuthModal({
           <div>
             <h2 className="text-lg font-bold text-hawk-cream">{title}</h2>
             <p className="mt-1 text-sm text-hawk-muted">{hint}</p>
+            <p className="mt-2 text-[11px] leading-snug text-hawk-gold/80">
+              {t('brand.disclaimer')}
+            </p>
           </div>
           <button
             type="button"

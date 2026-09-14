@@ -12,10 +12,10 @@ interface ActivityMarqueeProps {
 }
 
 /** Constant scroll speed (px/s) — measured-width duration; tuned for snappier but readable pace. */
-const MARQUEE_PX_PER_SEC = 72
+const MARQUEE_PX_PER_SEC = 92
 /** Small padding per message so short lists are not rushed. */
 const EXTRA_SEC_PER_ITEM = 0.05
-const MIN_DURATION_SEC = 6
+const MIN_DURATION_SEC = 5.5
 
 function formatTime(iso: string, locale: string): string {
   const tag = locale === 'en' ? 'en-US' : locale === 'zh-CN' ? 'zh-CN' : 'zh-TW'
@@ -48,7 +48,7 @@ export function ActivityMarquee({
   const trackRef = useRef<HTMLDivElement>(null)
   const [durationSec, setDurationSec] = useState(MIN_DURATION_SEC)
 
-  // Community activities only (skip donate-*); already ≤24h from App, filter again for safety
+  // Community activities only (skip donate-*); already ≤12h from App, filter again for safety
   const community = useMemo(
     () =>
       activities.filter(

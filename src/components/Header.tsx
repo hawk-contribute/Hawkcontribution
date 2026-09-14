@@ -152,6 +152,11 @@ export function Header({
           )}
         </div>
       </div>
+      <div className="border-t border-hawk-border/50 bg-hawk-ink/60">
+        <p className="mx-auto max-w-5xl px-4 py-1.5 text-center text-[11px] leading-snug text-hawk-muted sm:px-6 sm:text-xs">
+          {t('brand.disclaimer')}
+        </p>
+      </div>
     </header>
   )
 }

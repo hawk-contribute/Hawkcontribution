@@ -16,7 +16,7 @@ import { safeHttpUrl } from './safeUrl'
 import { clawbackContributePointsCloud } from './cloudSync'
 
 /** Activities older than this are purged (DB) and omitted from marquee/UI. */
-export const ACTIVITY_RETENTION_MS = 24 * 60 * 60 * 1000
+export const ACTIVITY_RETENTION_MS = 12 * 60 * 60 * 1000
 
 export function activityCutoffIso(now = Date.now()): string {
   return new Date(now - ACTIVITY_RETENTION_MS).toISOString()
