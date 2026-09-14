@@ -5,14 +5,14 @@ import { isSiteAdmin } from '../lib/admins'
 const TRIGGERS = [
   'capacity.trigger.egress',
   'capacity.trigger.db',
-  'capacity.trigger.pause',
-  'capacity.trigger.backups',
   'capacity.trigger.realtime',
   'capacity.trigger.storage',
+  'capacity.trigger.spend',
+  'capacity.trigger.backups',
 ] as const
 
 /**
- * Ops checklist for Free → Pro upgrade triggers.
+ * Ops checklist for Pro quotas (admin-only).
  * Visible only to site admins (client allowlist; same emails as is_site_admin).
  */
 export function AdminCapacityCard({ email }: { email?: string | null }) {
