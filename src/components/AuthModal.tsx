@@ -25,13 +25,18 @@ interface AuthModalProps {
   onUpdatePassword: (password: string) => Promise<void>
 }
 
-function mapAuthError(msg: string, t: (k: string) => string): string {
+function isInvalidLoginCredentials(msg: string): boolean {
   const m = msg.toLowerCase()
-  if (
+  return (
     m.includes('invalid login') ||
     m.includes('invalid_credentials') ||
     m.includes('invalid email or password')
-  ) {
+  )
+}
+
+function mapAuthError(msg: string, t: (k: string) => string): string {
+  const m = msg.toLowerCase()
+  if (isInvalidLoginCredentials(msg)) {
     return t('auth.wrongPassword')
   }
   if (
@@ -99,6 +104,7 @@ export function AuthModal({
   const [confirmPassword, setConfirmPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState('')
+  const [showSignupHint, setShowSignupHint] = useState(false)
   const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -109,6 +115,7 @@ export function AuthModal({
       setPassword('')
       setConfirmPassword('')
       setError('')
+      setShowSignupHint(false)
       setInfo('')
       setBusy(false)
       return
@@ -118,6 +125,7 @@ export function AuthModal({
       setPassword('')
       setConfirmPassword('')
       setError('')
+      setShowSignupHint(false)
       setInfo('')
       setBusy(false)
       return
@@ -128,6 +136,7 @@ export function AuthModal({
     setConfirmPassword('')
     setDisplayName('')
     setError('')
+    setShowSignupHint(false)
     setInfo('')
     setBusy(false)
   }, [open, passwordRecovery, changePassword])
@@ -163,6 +172,7 @@ export function AuthModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setShowSignupHint(false)
     setInfo('')
     setBusy(true)
     const emailTrim = email.trim()
@@ -222,6 +232,7 @@ export function AuthModal({
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       console.error('[auth] AuthModal submit error', err)
+      setShowSignupHint(mode === 'signin' && isInvalidLoginCredentials(msg))
       setError(formatError(msg, t))
     } finally {
       setBusy(false)
@@ -266,6 +277,7 @@ export function AuthModal({
               onClick={() => {
                 setMode('signin')
                 setError('')
+                setShowSignupHint(false)
                 setInfo('')
               }}
             >
@@ -281,6 +293,7 @@ export function AuthModal({
               onClick={() => {
                 setMode('signup')
                 setError('')
+                setShowSignupHint(false)
                 setInfo('')
               }}
             >
@@ -335,6 +348,7 @@ export function AuthModal({
                   setMode('forgot')
                   setPassword('')
                   setError('')
+                  setShowSignupHint(false)
                   setInfo('')
                 }}
               >
@@ -395,7 +409,16 @@ export function AuthModal({
           )}
 
           {error && (
-            <p className="whitespace-pre-wrap break-words text-sm text-red-400">{error}</p>
+            <div className="space-y-1">
+              <p className="whitespace-pre-wrap break-words text-sm text-red-400">
+                {error}
+              </p>
+              {mode === 'signin' && showSignupHint && (
+                <p className="text-sm text-hawk-muted">
+                  {t('auth.wrongPasswordHint')}
+                </p>
+              )}
+            </div>
           )}
           {info && (
             <p className="rounded-xl border border-hawk-gold/30 bg-hawk-gold/10 px-3 py-2 text-sm text-hawk-cream">
@@ -435,6 +458,7 @@ export function AuthModal({
               onClick={() => {
                 setMode('signin')
                 setError('')
+                setShowSignupHint(false)
                 setInfo('')
                 setPassword('')
                 setConfirmPassword('')
