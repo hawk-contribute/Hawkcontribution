@@ -6,6 +6,7 @@ import { useDonationFeed } from './hooks/useDonationFeed'
 import { useLiveStats } from './hooks/useLiveStats'
 import { useNftClaims } from './hooks/useNftClaims'
 import { useNftCatalog } from './hooks/useNftCatalog'
+import { CONTRIBUTE_REWARD_POINTS } from './types'
 import { usePoints } from './hooks/usePoints'
 import { useSession } from './hooks/useSession'
 import { useI18n } from './i18n'
@@ -69,7 +70,7 @@ export default function App() {
     deleteLike,
     deleteActivity,
   } = useCommunity({ live: tab === 'feed' || tab === 'browse' || tab === 'ledger' || tab === 'stats' })
-  const { account, communityPoints, recordRound } = usePoints(
+  const { account, communityPoints, recordRound, awardBonus, refresh: refreshPoints } = usePoints(
     session?.email,
     session?.userId,
   )
@@ -222,16 +223,20 @@ export default function App() {
           participantEmail: session.email,
           session,
         })
+        await awardBonus(CONTRIBUTE_REWARD_POINTS)
+        refreshPoints()
         setUploadOpen(false)
         setPresetOpp(null)
-        setToast(t('toast.uploaded'))
+        setToast(
+          t('toast.uploaded', { n: CONTRIBUTE_REWARD_POINTS }),
+        )
         setTab('feed')
       } catch (e) {
         console.warn(e)
         setToast(t('toast.cloudWriteFailed'))
       }
     },
-    [session, addContribution, t],
+    [session, addContribution, awardBonus, refreshPoints, t],
   )
 
   const handleToggleLike = useCallback(

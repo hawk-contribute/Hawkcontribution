@@ -54,3 +54,23 @@ export function addRoundPoints(
 export function loadPointsMap(): PointsMap {
   return loadMap()
 }
+
+/** Award non-game bonus points (e.g. content contribution). */
+export function addBonusPoints(email: string, points: number): PointsAccount {
+  const map = loadMap()
+  const current = map[email] ?? { total: 0, history: [] }
+  const score = Math.max(0, Math.floor(points))
+  if (score <= 0) return current
+  const round: PointsRound = {
+    at: new Date().toISOString(),
+    score,
+    hits: 0,
+  }
+  const next: PointsAccount = {
+    total: current.total + score,
+    history: [round, ...current.history].slice(0, 50),
+  }
+  map[email] = next
+  saveMap(map)
+  return next
+}

@@ -123,6 +123,9 @@ export type PointsMap = Record<string, PointsAccount>
 
 export const NFT_REDEEM_POINTS = 10_000
 
+/** Points awarded when a contribution is successfully uploaded. */
+export const CONTRIBUTE_REWARD_POINTS = 500
+
 export interface NftDefinition {
   id: string
   image: string

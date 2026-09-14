@@ -12,10 +12,10 @@ interface ActivityMarqueeProps {
 }
 
 /** Constant scroll speed (px/s) — measured-width duration; tuned for snappier but readable pace. */
-const MARQUEE_PX_PER_SEC = 55
+const MARQUEE_PX_PER_SEC = 72
 /** Small padding per message so short lists are not rushed. */
 const EXTRA_SEC_PER_ITEM = 0.05
-const MIN_DURATION_SEC = 8
+const MIN_DURATION_SEC = 6
 
 function formatTime(iso: string, locale: string): string {
   const tag = locale === 'en' ? 'en-US' : locale === 'zh-CN' ? 'zh-CN' : 'zh-TW'
