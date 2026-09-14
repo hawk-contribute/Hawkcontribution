@@ -14,6 +14,7 @@ import { isSiteAdmin } from '../lib/admins'
 import {
   resolveNftBlurb,
   resolveNftTitle,
+  uploadNftRewardImage,
   type NftUpsertInput,
 } from '../lib/nftCatalog'
 import { DonationCard } from './DonationCard'
@@ -89,6 +90,7 @@ export function RewardsView({
   const [adminMsg, setAdminMsg] = useState<string | null>(null)
   const [adminBusy, setAdminBusy] = useState(false)
   const [form, setForm] = useState(emptyForm)
+  const [imageFile, setImageFile] = useState<File | null>(null)
 
   // Keep draft in sync when cloud threshold loads/changes
   useEffect(() => {
@@ -198,7 +200,24 @@ export function RewardsView({
                 <option value="common">{t('rewards.rarity.common')}</option>
               </select>
             </label>
-            <label className="text-left text-xs text-hawk-muted">
+            <label className="text-left text-xs text-hawk-muted sm:col-span-2">
+              {t('rewards.admin.imageUpload')}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="hawk-input mt-1 w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-hawk-gold/20 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-hawk-gold"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] ?? null
+                  setImageFile(f)
+                }}
+              />
+              {imageFile && (
+                <span className="mt-1 block text-[11px] text-hawk-muted">
+                  {imageFile.name} ({Math.round(imageFile.size / 1024)} KB)
+                </span>
+              )}
+            </label>
+            <label className="text-left text-xs text-hawk-muted sm:col-span-2">
               {t('rewards.admin.imagePath')}
               <input
                 className="hawk-input mt-1 w-full font-mono text-sm"
@@ -208,6 +227,9 @@ export function RewardsView({
                   setForm({ ...form, imagePath: e.target.value })
                 }
               />
+              <span className="mt-1 block text-[11px] text-hawk-muted">
+                {t('rewards.admin.imagePathHint')}
+              </span>
             </label>
             <label className="text-left text-xs text-hawk-muted">
               {t('rewards.admin.perNftPoints')}
@@ -245,21 +267,30 @@ export function RewardsView({
                 setAdminMsg(t('rewards.admin.invalidPoints'))
                 return
               }
+              if (!imageFile && !form.imagePath.trim()) {
+                setAdminMsg(t('rewards.admin.needImage'))
+                return
+              }
               setAdminBusy(true)
               setAdminMsg(null)
-              void onSaveNft({
-                id: form.id,
-                title: form.title,
-                blurb: form.blurb,
-                rarity: form.rarity,
-                imagePath: form.imagePath,
-                requiredPoints: req,
-                sortOrder: Number(form.sortOrder) || 0,
-              })
-                .then(() => {
-                  setForm(emptyForm)
-                  setAdminMsg(t('rewards.admin.saved'))
+              void (async () => {
+                let imagePath = form.imagePath.trim()
+                if (imageFile) {
+                  imagePath = await uploadNftRewardImage(form.id, imageFile)
+                }
+                await onSaveNft({
+                  id: form.id,
+                  title: form.title,
+                  blurb: form.blurb,
+                  rarity: form.rarity,
+                  imagePath,
+                  requiredPoints: req,
+                  sortOrder: Number(form.sortOrder) || 0,
                 })
+                setForm(emptyForm)
+                setImageFile(null)
+                setAdminMsg(t('rewards.admin.saved'))
+              })()
                 .catch((e: unknown) => {
                   const code = e instanceof Error ? e.message : ''
                   if (code === 'INVALID_ID') {
@@ -268,6 +299,12 @@ export function RewardsView({
                     setAdminMsg(t('rewards.admin.invalidImage'))
                   } else if (code === 'INVALID_TITLE') {
                     setAdminMsg(t('rewards.admin.invalidTitle'))
+                  } else if (code === 'INVALID_FILE_TYPE') {
+                    setAdminMsg(t('rewards.admin.invalidFileType'))
+                  } else if (code === 'INVALID_FILE_SIZE') {
+                    setAdminMsg(t('rewards.admin.invalidFileSize'))
+                  } else if (code === 'UPLOAD_FAILED' || /storage|bucket|policy|row-level/i.test(code)) {
+                    setAdminMsg(t('rewards.admin.uploadFailed'))
                   } else {
                     setAdminMsg(t('rewards.admin.saveFailed'))
                   }

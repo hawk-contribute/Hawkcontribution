@@ -138,6 +138,48 @@ export async function updateRedeemPoints(points: number): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
+
+const NFT_BUCKET = 'nft-rewards'
+const MAX_NFT_IMAGE_BYTES = 5 * 1024 * 1024
+const ALLOWED_NFT_MIME = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+])
+
+function safeFileBase(name: string): string {
+  const base = name.split(/[/\\]/).pop() || 'image'
+  const cleaned = base.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/-+/g, '-')
+  return cleaned.slice(0, 80) || 'image'
+}
+
+/** Upload admin NFT image to public bucket; returns public https URL. */
+export async function uploadNftRewardImage(
+  nftId: string,
+  file: File,
+): Promise<string> {
+  const id = nftId.trim().toLowerCase()
+  if (!/^[a-z0-9][a-z0-9_-]{1,62}$/.test(id)) {
+    throw new Error('INVALID_ID')
+  }
+  if (!ALLOWED_NFT_MIME.has(file.type)) {
+    throw new Error('INVALID_FILE_TYPE')
+  }
+  if (file.size <= 0 || file.size > MAX_NFT_IMAGE_BYTES) {
+    throw new Error('INVALID_FILE_SIZE')
+  }
+  const path = `${id}/${Date.now()}-${safeFileBase(file.name)}`
+  const { error } = await supabase.storage
+    .from(NFT_BUCKET)
+    .upload(path, file, { upsert: true, contentType: file.type })
+  if (error) throw new Error(error.message || 'UPLOAD_FAILED')
+  const { data } = supabase.storage.from(NFT_BUCKET).getPublicUrl(path)
+  const url = safeNftImagePath(data.publicUrl)
+  if (!url) throw new Error('INVALID_IMAGE')
+  return url
+}
+
 export type NftUpsertInput = {
   id: string
   title: string
