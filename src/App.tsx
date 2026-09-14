@@ -70,7 +70,7 @@ export default function App() {
     deleteLike,
     deleteActivity,
   } = useCommunity({ live: tab === 'feed' || tab === 'browse' || tab === 'ledger' || tab === 'stats' })
-  const { account, communityPoints, recordRound, awardBonus, refresh: refreshPoints } = usePoints(
+  const { account, communityPoints, recordRound, awardBonus, applyClawback, refresh: refreshPoints } = usePoints(
     session?.email,
     session?.userId,
   )
@@ -282,6 +282,28 @@ export default function App() {
     [session, addQuote, requireAuth, t],
   )
 
+  const handleAdminDeleteContribution = useCallback(
+    async (id: string) => {
+      try {
+        const result = await deleteContribution(id)
+        const authorEmail = (result.authorEmail ?? '').trim().toLowerCase()
+        const sessionEmail = (session?.email ?? '').trim().toLowerCase()
+        if (result.clawedBack && sessionEmail && authorEmail === sessionEmail) {
+          applyClawback(result.newTotal, CONTRIBUTE_REWARD_POINTS)
+          refreshPoints()
+        }
+        setToast(
+          result.clawedBack
+            ? t('admin.deletedClawback', { n: CONTRIBUTE_REWARD_POINTS })
+            : t('admin.deleted'),
+        )
+      } catch {
+        setToast(t('admin.deleteFailed'))
+      }
+    },
+    [deleteContribution, session, applyClawback, refreshPoints, t],
+  )
+
   const handleRoundComplete = useCallback(
     (score: number, hits: number) => {
       if (!session || score <= 0) return
@@ -384,14 +406,7 @@ export default function App() {
             onToggleLike={handleToggleLike}
             onAddComment={handleAddComment}
             onAddQuote={handleAddQuote}
-            onAdminDeleteContribution={async (id) => {
-              try {
-                await deleteContribution(id)
-                setToast(t('admin.deleted'))
-              } catch {
-                setToast(t('admin.deleteFailed'))
-              }
-            }}
+            onAdminDeleteContribution={handleAdminDeleteContribution}
             onAdminDeleteComment={async (id) => {
               try {
                 await deleteComment(id)
@@ -425,14 +440,7 @@ export default function App() {
             onProvide={handleProvide}
             signedIn={!!session}
             sessionEmail={session?.email}
-            onAdminDeleteContribution={async (id) => {
-              try {
-                await deleteContribution(id)
-                setToast(t('admin.deleted'))
-              } catch {
-                setToast(t('admin.deleteFailed'))
-              }
-            }}
+            onAdminDeleteContribution={handleAdminDeleteContribution}
           />
         )}
         {tab === 'rewards' && (

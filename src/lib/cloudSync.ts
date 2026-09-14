@@ -4,7 +4,12 @@ import {
   claimNft as claimNftLocal,
   loadAllNftClaims,
 } from './nftClaims'
-import { getPointsAccount, loadPointsMap } from './points'
+import {
+  getPointsAccount,
+  loadPointsMap,
+  localPointsUpdatedAtMs,
+  setPointsTotal,
+} from './points'
 import { broadcastStoreUpdate } from './sync'
 
 const POINTS_KEY = 'hawk-contribute:points'
@@ -33,7 +38,12 @@ function writeLocalPointsTotal(email: string, total: number): void {
   try {
     const map = loadPointsMap()
     const current = map[email] ?? { total: 0, history: [] }
-    map[email] = { ...current, total: Math.max(current.total, total) }
+    const nextTotal = Math.max(current.total, total)
+    map[email] = {
+      ...current,
+      total: nextTotal,
+      updatedAt: new Date().toISOString(),
+    }
     localStorage.setItem(POINTS_KEY, JSON.stringify(map))
     broadcastStoreUpdate()
   } catch {
@@ -74,7 +84,7 @@ export async function upsertProfile(input: {
   }
 }
 
-/** Pull cloud points into local cache; prefer the higher total. */
+/** Pull cloud points into local cache; prefer the higher total unless cloud is newer and lower (admin clawback). */
 export async function syncPointsFromCloud(
   userId: string,
   email: string,
@@ -82,13 +92,24 @@ export async function syncPointsFromCloud(
   try {
     const { data, error } = await supabase
       .from('game_points')
-      .select('total')
+      .select('total, updated_at')
       .eq('user_id', userId)
       .maybeSingle()
     if (error) throw error
     const remote = typeof data?.total === 'number' ? data.total : null
     if (remote == null) return null
-    const local = getPointsAccount(email).total
+    const localAccount = getPointsAccount(email)
+    const local = localAccount.total
+    const remoteAt = data?.updated_at
+      ? new Date(String(data.updated_at)).getTime()
+      : 0
+    const localAt = localPointsUpdatedAtMs(localAccount)
+    const cloudIsNewerLower =
+      Number.isFinite(remoteAt) && remoteAt > localAt && remote < local
+    if (cloudIsNewerLower) {
+      setPointsTotal(email, remote)
+      return remote
+    }
     const merged = Math.max(local, remote)
     writeLocalPointsTotal(email, merged)
     if (merged > remote) {
@@ -97,6 +118,25 @@ export async function syncPointsFromCloud(
     return merged
   } catch (e) {
     console.warn('[hawk-contribute] points sync failed', e)
+    return null
+  }
+}
+
+/**
+ * Site-admin RPC: subtract 500 from the author's game_points (floor 0).
+ * Returns the new total, or null if no row / not admin / RPC failed.
+ */
+export async function clawbackContributePointsCloud(
+  userId: string,
+): Promise<number | null> {
+  try {
+    const { data, error } = await supabase.rpc('clawback_contribute_points', {
+      p_user_id: userId,
+    })
+    if (error) throw error
+    return typeof data === 'number' ? data : null
+  } catch (e) {
+    console.warn('[hawk-contribute] contribute clawback failed', e)
     return null
   }
 }

@@ -164,8 +164,9 @@ export function useCommunity(options?: { live?: boolean }) {
 
   const deleteContribution = useCallback(
     async (id: string) => {
-      await adminDeleteContribution(id)
+      const result = await adminDeleteContribution(id)
       await refresh()
+      return result
     },
     [refresh],
   )

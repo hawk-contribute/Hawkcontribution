@@ -13,6 +13,7 @@ import type {
 import { MAX_ACTIVITIES } from '../types'
 import { supabase } from './supabase'
 import { safeHttpUrl } from './safeUrl'
+import { clawbackContributePointsCloud } from './cloudSync'
 
 /** Activities older than this are purged (DB) and omitted from marquee/UI. */
 export const ACTIVITY_RETENTION_MS = 24 * 60 * 60 * 1000
@@ -506,9 +507,45 @@ export function subscribeCommunityRealtime(onChange: () => void): () => void {
 
 /** Admin moderation deletes — RLS enforces is_site_admin(). */
 
-export async function adminDeleteContribution(id: string): Promise<void> {
+export type ContributionDeleteResult = {
+  authorEmail: string | null
+  authorUserId: string | null
+  clawedBack: boolean
+  newTotal: number | null
+}
+
+export async function adminDeleteContribution(
+  id: string,
+): Promise<ContributionDeleteResult> {
+  const { data: row } = await supabase
+    .from('contributions')
+    .select('id,user_id,participant_email,seeded')
+    .eq('id', id)
+    .maybeSingle()
+
   const { error } = await supabase.from('contributions').delete().eq('id', id)
   if (error) throw error
+
+  const authorUserId =
+    typeof row?.user_id === 'string' && row.user_id ? row.user_id : null
+  const authorEmail =
+    typeof row?.participant_email === 'string' && row.participant_email
+      ? row.participant_email
+      : null
+  const seeded = !!row?.seeded
+
+  let newTotal: number | null = null
+  // Only claw back rewarded (non-seeded) contributions; skip if no game_points row.
+  if (authorUserId && !seeded) {
+    newTotal = await clawbackContributePointsCloud(authorUserId)
+  }
+
+  return {
+    authorEmail,
+    authorUserId,
+    clawedBack: newTotal != null,
+    newTotal,
+  }
 }
 
 export async function adminDeleteComment(id: string): Promise<void> {

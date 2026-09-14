@@ -5,6 +5,8 @@ import {
   addRoundPoints,
   getPointsAccount,
   getTotalPointsAll,
+  setPointsTotal,
+  subtractBonusPoints,
 } from '../lib/points'
 import { syncPointsFromCloud, upsertGamePoints } from '../lib/cloudSync'
 import { subscribeStoreUpdates } from '../lib/sync'
@@ -29,15 +31,20 @@ export function usePoints(email: string | undefined, userId?: string) {
     (score: number, hits: number) => {
       if (!email || score <= 0) {
         refresh()
-        return email ? getPointsAccount(email) : { total: 0, history: [] }
+        return
       }
-      const next = addRoundPoints(email, score, hits)
-      setAccount(next)
-      setCommunityPoints(getTotalPointsAll())
-      if (userId) {
-        void upsertGamePoints(userId, next.total)
-      }
-      return next
+      void (async () => {
+        // Reconcile first so a newer cloud clawback is not overwritten.
+        if (userId) {
+          await syncPointsFromCloud(userId, email)
+        }
+        const next = addRoundPoints(email, score, hits)
+        setAccount(next)
+        setCommunityPoints(getTotalPointsAll())
+        if (userId) {
+          await upsertGamePoints(userId, next.total)
+        }
+      })()
     },
     [email, userId, refresh],
   )
@@ -63,5 +70,30 @@ export function usePoints(email: string | undefined, userId?: string) {
     [email, userId, refresh],
   )
 
-  return { account, communityPoints, recordRound, awardBonus, refresh }
+  /** Apply a cloud clawback to the current session user's local cache / UI. */
+  const applyClawback = useCallback(
+    (cloudTotal: number | null, points: number) => {
+      if (!email) {
+        refresh()
+        return
+      }
+      const next =
+        typeof cloudTotal === 'number'
+          ? setPointsTotal(email, cloudTotal)
+          : subtractBonusPoints(email, points)
+      setAccount(next)
+      setCommunityPoints(getTotalPointsAll())
+      return next
+    },
+    [email, refresh],
+  )
+
+  return {
+    account,
+    communityPoints,
+    recordRound,
+    awardBonus,
+    applyClawback,
+    refresh,
+  }
 }

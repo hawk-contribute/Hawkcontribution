@@ -116,6 +116,8 @@ export interface PointsRound {
 export interface PointsAccount {
   total: number
   history: PointsRound[]
+  /** ISO time of last local write; used to accept newer cloud clawbacks. */
+  updatedAt?: string
 }
 
 /** email -> points account */
