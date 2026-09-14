@@ -11,11 +11,11 @@ interface ActivityMarqueeProps {
   onAdminDeleteActivity?: (id: string) => void | Promise<void>
 }
 
-/** Constant scroll speed (px/s) — slightly slower / more readable than the old fixed-42s feel. */
-const MARQUEE_PX_PER_SEC = 38
-/** Extra time per message so each line finishes comfortably. */
-const EXTRA_SEC_PER_ITEM = 0.2
-const MIN_DURATION_SEC = 12
+/** Constant scroll speed (px/s) — measured-width duration; tuned for snappier but readable pace. */
+const MARQUEE_PX_PER_SEC = 55
+/** Small padding per message so short lists are not rushed. */
+const EXTRA_SEC_PER_ITEM = 0.05
+const MIN_DURATION_SEC = 8
 
 function formatTime(iso: string, locale: string): string {
   const tag = locale === 'en' ? 'en-US' : locale === 'zh-CN' ? 'zh-CN' : 'zh-TW'
