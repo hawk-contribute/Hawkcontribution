@@ -1,4 +1,4 @@
-import { SEEDED_OPPORTUNITIES } from '../data/opportunities'
+import { resolveOpportunityTitle } from './opportunitiesCloud'
 import type {
   ActivityEvent,
   ActivityKind,
@@ -91,9 +91,7 @@ type ActivityRow = {
 }
 
 function oppTitle(opportunityId: string | null | undefined): string {
-  if (!opportunityId) return ''
-  const opp = SEEDED_OPPORTUNITIES.find((o) => o.id === opportunityId)
-  return opp?.title['zh-TW'] || opp?.title.en || opportunityId
+  return resolveOpportunityTitle(opportunityId, 'zh-TW')
 }
 
 function namesToFiles(names: string[] | null | undefined): UploadedFileMeta[] {

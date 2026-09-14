@@ -1,22 +1,42 @@
 import { useMemo, useState } from 'react'
-import { ExternalLink } from 'lucide-react'
-import type { Opportunity, OpportunityType } from '../types'
+import { ExternalLink, Plus } from 'lucide-react'
+import type { Opportunity, OpportunityType, Session } from '../types'
 import { useI18n } from '../i18n'
+import { isSiteAdmin } from '../lib/admins'
 import { asset } from '../lib/asset'
+import type { OpportunityUpsertInput } from '../lib/opportunitiesCloud'
 import { OpportunityCard } from './OpportunityCard'
+import { OpportunityEditModal } from './OpportunityEditModal'
 import { DonationCard } from './DonationCard'
 
 type Filter = 'all' | OpportunityType
 
 interface BrowseViewProps {
   opportunities: Opportunity[]
+  session: Session | null
+  fromCloud?: boolean
   onJoin: (opportunity: Opportunity) => void
   onProvide: () => void
+  onSaveOpportunity?: (input: OpportunityUpsertInput) => Promise<void>
+  onDeleteOpportunity?: (id: string) => Promise<void>
 }
 
-export function BrowseView({ opportunities, onJoin, onProvide }: BrowseViewProps) {
+export function BrowseView({
+  opportunities,
+  session,
+  fromCloud = false,
+  onJoin,
+  onProvide,
+  onSaveOpportunity,
+  onDeleteOpportunity,
+}: BrowseViewProps) {
   const { t } = useI18n()
   const [filter, setFilter] = useState<Filter>('all')
+  const admin = isSiteAdmin(session?.email)
+  const [editOpen, setEditOpen] = useState(false)
+  const [editMode, setEditMode] = useState<'edit' | 'create'>('edit')
+  const [editing, setEditing] = useState<Opportunity | null>(null)
+  const [busy, setBusy] = useState(false)
 
   const filters: { id: Filter; labelKey: string }[] = [
     { id: 'all', labelKey: 'filter.all' },
@@ -29,6 +49,38 @@ export function BrowseView({ opportunities, onJoin, onProvide }: BrowseViewProps
     if (filter === 'all') return opportunities
     return opportunities.filter((o) => o.type === filter)
   }, [opportunities, filter])
+
+  const openEdit = (opp: Opportunity) => {
+    setEditMode('edit')
+    setEditing(opp)
+    setEditOpen(true)
+  }
+
+  const openCreate = () => {
+    setEditMode('create')
+    setEditing(null)
+    setEditOpen(true)
+  }
+
+  const handleSave = async (input: OpportunityUpsertInput) => {
+    if (!onSaveOpportunity) throw new Error('NO_HANDLER')
+    setBusy(true)
+    try {
+      await onSaveOpportunity(input)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!onDeleteOpportunity) throw new Error('NO_HANDLER')
+    setBusy(true)
+    try {
+      await onDeleteOpportunity(id)
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <section>
@@ -78,7 +130,7 @@ export function BrowseView({ opportunities, onJoin, onProvide }: BrowseViewProps
 
       <DonationCard variant="compact" className="mb-6" />
 
-      <div className="mb-5 flex flex-wrap gap-2">
+      <div className="mb-5 flex flex-wrap items-center gap-2">
         {filters.map((f) => (
           <button
             key={f.id}
@@ -93,15 +145,50 @@ export function BrowseView({ opportunities, onJoin, onProvide }: BrowseViewProps
             {t(f.labelKey)}
           </button>
         ))}
+        {admin && onSaveOpportunity && (
+          <button
+            type="button"
+            onClick={openCreate}
+            className="hawk-btn hawk-btn-ghost ml-auto inline-flex items-center gap-1 rounded-full px-3.5 py-1.5 text-sm text-hawk-gold"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            {t('opp.admin.add')}
+          </button>
+        )}
       </div>
 
-      <p className="mb-4 text-xs text-hawk-muted">{t('browse.count', { n: filtered.length })}</p>
+      <p className="mb-4 text-xs text-hawk-muted">
+        {t('browse.count', { n: filtered.length })}
+        {admin && (
+          <span className="ml-2 opacity-70">
+            · {fromCloud ? t('opp.admin.sourceCloud') : t('opp.admin.sourceSeed')}
+          </span>
+        )}
+      </p>
 
       <div className="grid gap-4 sm:grid-cols-2">
         {filtered.map((opp) => (
-          <OpportunityCard key={opp.id} opportunity={opp} onJoin={onJoin} />
+          <OpportunityCard
+            key={opp.id}
+            opportunity={opp}
+            onJoin={onJoin}
+            admin={admin}
+            onAdminEdit={admin && onSaveOpportunity ? openEdit : undefined}
+          />
         ))}
       </div>
+
+      {admin && onSaveOpportunity && (
+        <OpportunityEditModal
+          open={editOpen}
+          mode={editMode}
+          opportunity={editing}
+          busy={busy}
+          onClose={() => setEditOpen(false)}
+          onSave={handleSave}
+          onDelete={onDeleteOpportunity ? handleDelete : undefined}
+        />
+      )}
     </section>
   )
 }

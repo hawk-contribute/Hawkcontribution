@@ -1,13 +1,20 @@
-import { Calendar, MapPin, Sparkles } from 'lucide-react'
+import { Calendar, MapPin, Pencil, Sparkles } from 'lucide-react'
 import type { Opportunity } from '../types'
 import { useI18n } from '../i18n'
 
 interface OpportunityCardProps {
   opportunity: Opportunity
   onJoin: (opportunity: Opportunity) => void
+  admin?: boolean
+  onAdminEdit?: (opportunity: Opportunity) => void
 }
 
-export function OpportunityCard({ opportunity, onJoin }: OpportunityCardProps) {
+export function OpportunityCard({
+  opportunity,
+  onJoin,
+  admin = false,
+  onAdminEdit,
+}: OpportunityCardProps) {
   const { t, lx, lxList } = useI18n()
 
   const statusColor =
@@ -39,6 +46,17 @@ export function OpportunityCard({ opportunity, onJoin }: OpportunityCardProps) {
             {t(`status.${opportunity.status}`)}
           </span>
         </div>
+        {admin && onAdminEdit && (
+          <button
+            type="button"
+            onClick={() => onAdminEdit(opportunity)}
+            className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-hawk-black/75 px-2.5 py-1 text-[11px] font-semibold text-hawk-gold backdrop-blur-sm hover:bg-hawk-black"
+            title={t('opp.admin.edit')}
+          >
+            <Pencil className="h-3 w-3" />
+            {t('opp.admin.edit')}
+          </button>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col p-5">

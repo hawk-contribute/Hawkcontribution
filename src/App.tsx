@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { SEEDED_OPPORTUNITIES } from './data/opportunities'
+import { useOpportunities } from './hooks/useOpportunities'
 import { useCommunity } from './hooks/useCommunity'
 import { isWithinActivityWindow } from './lib/communityCloud'
 import { useDonationFeed } from './hooks/useDonationFeed'
@@ -76,6 +76,7 @@ export default function App() {
   )
   const { claims, claim } = useNftClaims(session?.email, session?.userId)
   const nftCatalog = useNftCatalog({ live: tab === 'rewards' })
+  const opportunitiesApi = useOpportunities({ live: tab === 'browse' })
   const donationFeed = useDonationFeed({ live: true })
   const liveStats = useLiveStats({ live: tab === 'stats' })
 
@@ -392,9 +393,13 @@ export default function App() {
         )}
         {tab === 'browse' && (
           <BrowseView
-            opportunities={SEEDED_OPPORTUNITIES}
+            opportunities={opportunitiesApi.opportunities}
+            session={session}
+            fromCloud={opportunitiesApi.fromCloud}
             onJoin={handleJoin}
             onProvide={handleProvide}
+            onSaveOpportunity={opportunitiesApi.saveOpportunity}
+            onDeleteOpportunity={opportunitiesApi.removeOpportunity}
           />
         )}
         {tab === 'feed' && (
@@ -503,7 +508,7 @@ export default function App() {
         <UploadModal
           open={uploadOpen}
           session={session}
-          opportunities={SEEDED_OPPORTUNITIES}
+          opportunities={opportunitiesApi.opportunities}
           presetOpportunity={presetOpp}
           onClose={() => {
             setUploadOpen(false)
