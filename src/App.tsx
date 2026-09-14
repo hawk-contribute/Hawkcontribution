@@ -320,14 +320,17 @@ export default function App() {
   )
 
   const handleClaimNft = useCallback(
-    async (nftId: string, title: string, requiredPoints: number) => {
-      if (!session) return requireAuth('rewards')
+    async (nftId: string, title: string, requiredPoints: number): Promise<boolean> => {
+      if (!session) {
+        requireAuth('rewards')
+        return false
+      }
       if (account.total < requiredPoints) {
         setToast(t('toast.nftNeedPoints', { n: requiredPoints.toLocaleString() }))
-        return
+        return false
       }
       const entry = await claim(nftId)
-      if (!entry) return
+      if (!entry) return false
       await recordNftActivity({
         actorName: session.displayName,
         actorEmail: session.email,
@@ -335,6 +338,7 @@ export default function App() {
       })
       await refresh()
       setToast(t('toast.nftClaimed', { title }))
+      return true
     },
     [session, account.total, claim, requireAuth, refresh, t],
   )
@@ -456,7 +460,7 @@ export default function App() {
             catalog={nftCatalog.catalog}
             redeemPoints={nftCatalog.redeemPoints}
             onRequireAuth={() => requireAuth('rewards')}
-            onClaim={(id, title, pts) => void handleClaimNft(id, title, pts)}
+            onClaim={(id, title, pts) => handleClaimNft(id, title, pts)}
             onPlayGame={() => setTab('game')}
             onSaveRedeemPoints={nftCatalog.saveRedeemPoints}
             onSaveNft={nftCatalog.saveNft}

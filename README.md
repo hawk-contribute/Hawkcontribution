@@ -44,6 +44,16 @@ npm run preview  # preview production build
 - Owned NFTs can be **downloaded** locally. App collectibles (not on-chain).
 - Game tab is the **leftmost** nav item.
 - Game audio: procedural Web Audio SFX/BGM; mute pref in `hawk-contribute:game-mute`.
+- **Anti-bot verification** before claim / download (see below).
+
+## Anti-bot verification (Rewards)
+
+Claim and download stay disabled until the user passes a short human check on the Rewards page.
+
+- **Default (no API key):** built-in checkbox + timed interaction + simple math challenge. Works on GitHub Pages with zero third-party keys.
+- **Optional Turnstile:** set `VITE_TURNSTILE_SITE_KEY` (Cloudflare Turnstile site key) in the build env; when present, Turnstile is used instead of the built-in challenge.
+- After pass, a short-lived `claim_token` is stored in `sessionStorage` (`hawk-contribute:claim-token`, ~12 min TTL). It is cleared after one successful claim (or on expiry / retry).
+- **v1 is client-side only** (honest bot friction). It does not pretend to be server-verified unless a future Supabase check is added.
 
 ## Mini-game (Bald Eagle Whack)
 

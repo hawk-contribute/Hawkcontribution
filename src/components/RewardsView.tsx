@@ -18,7 +18,9 @@ import {
   uploadNftRewardImage,
   type NftUpsertInput,
 } from '../lib/nftCatalog'
+import { useHumanVerify } from '../hooks/useHumanVerify'
 import { DonationCard } from './DonationCard'
+import { HumanVerify } from './HumanVerify'
 
 interface RewardsViewProps {
   session: Session | null
@@ -27,7 +29,7 @@ interface RewardsViewProps {
   catalog: NftDefinition[]
   redeemPoints: number
   onRequireAuth: () => void
-  onClaim: (nftId: string, title: string, requiredPoints: number) => void
+  onClaim: (nftId: string, title: string, requiredPoints: number) => Promise<boolean>
   onPlayGame: () => void
   onSaveRedeemPoints?: (points: number) => Promise<void>
   onSaveNft?: (input: NftUpsertInput) => Promise<void>
@@ -96,6 +98,13 @@ export function RewardsView({
   const [imageFile, setImageFile] = useState<File | null>(null)
   /** Inline per-NFT points drafts keyed by nft id */
   const [pointsDrafts, setPointsDrafts] = useState<Record<string, string>>({})
+  const {
+    verified,
+    remainingMs,
+    markPassed,
+    consume: consumeVerify,
+    reset: resetVerify,
+  } = useHumanVerify()
 
   // Keep draft in sync when cloud threshold loads/changes
   useEffect(() => {
@@ -489,12 +498,21 @@ export function RewardsView({
         </div>
       )}
 
+      {session && (
+        <HumanVerify
+          verified={verified}
+          remainingMs={remainingMs}
+          onPassed={markPassed}
+          onReset={resetVerify}
+        />
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {catalog.map((nft) => {
           const owned = !!(session && claims[nft.id])
           const need = nft.requiredPoints
           const eligible = points >= need
-          const canClaim = !!session && eligible && !owned
+          const canClaim = !!session && eligible && !owned && verified
           const locked = !session || !eligible
           const fileName = nft.image.split('/').pop() || `${nft.id}.jpg`
           const title = resolveNftTitle(nft, t)
@@ -552,14 +570,16 @@ export function RewardsView({
                   ) : (
                     <button
                       type="button"
-                      disabled={!canClaim && !!session}
+                      disabled={!!session && (!eligible || (!verified && eligible) || owned)}
                       onClick={() => {
                         if (!session) {
                           onRequireAuth()
                           return
                         }
-                        if (!eligible) return
-                        onClaim(nft.id, title, need)
+                        if (!eligible || !verified) return
+                        void onClaim(nft.id, title, need).then((ok) => {
+                          if (ok) consumeVerify()
+                        })
                       }}
                       className={`hawk-btn w-full px-4 py-2.5 text-sm ${
                         canClaim
@@ -569,20 +589,33 @@ export function RewardsView({
                     >
                       {!session
                         ? t('auth.signIn')
-                        : eligible
-                          ? t('rewards.claim')
-                          : t('rewards.locked')}
+                        : !eligible
+                          ? t('rewards.locked')
+                          : !verified
+                            ? t('verify.required')
+                            : t('rewards.claim')}
                     </button>
                   )}
 
                   {(owned || (session && eligible)) && (
                     <button
                       type="button"
-                      className="hawk-btn hawk-btn-ghost w-full px-4 py-2 text-sm"
-                      onClick={() => void downloadNftImage(nft.image, fileName)}
+                      disabled={!verified}
+                      className={`hawk-btn hawk-btn-ghost w-full px-4 py-2 text-sm ${
+                        !verified ? 'cursor-not-allowed opacity-50' : ''
+                      }`}
+                      title={!verified ? t('verify.required') : undefined}
+                      onClick={() => {
+                        if (!verified) return
+                        void downloadNftImage(nft.image, fileName)
+                      }}
                     >
                       <Download className="h-3.5 w-3.5" />
-                      {owned ? t('rewards.downloadOwned') : t('rewards.download')}
+                      {!verified
+                        ? t('verify.required')
+                        : owned
+                          ? t('rewards.downloadOwned')
+                          : t('rewards.download')}
                     </button>
                   )}
                 </div>
