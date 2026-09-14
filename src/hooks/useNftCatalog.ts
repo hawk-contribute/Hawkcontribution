@@ -3,17 +3,25 @@ import { useVisibilityPoll } from './useVisibilityPoll'
 import {
   deleteNftCatalogItem,
   fetchNftCatalog,
+  updateContributeClaimSettings,
   updateNftRequiredPoints,
   updateRedeemPoints,
   upsertNftCatalogItem,
   type NftCatalogSnapshot,
   type NftUpsertInput,
 } from '../lib/nftCatalog'
+import {
+  DEFAULT_CONTRIBUTE_CLAIM_SETTINGS,
+  type ContributeClaimSettings,
+} from '../lib/contributeEligibility'
 import { NFT_CATALOG } from '../data/nfts'
 import { NFT_REDEEM_POINTS } from '../types'
 
 const fallback: NftCatalogSnapshot = {
-  settings: { redeemPoints: NFT_REDEEM_POINTS },
+  settings: {
+    redeemPoints: NFT_REDEEM_POINTS,
+    ...DEFAULT_CONTRIBUTE_CLAIM_SETTINGS,
+  },
   catalog: NFT_CATALOG,
   fromCloud: false,
 }
@@ -51,6 +59,14 @@ export function useNftCatalog(options?: { live?: boolean }) {
     [refresh],
   )
 
+  const saveContributeClaimSettings = useCallback(
+    async (input: ContributeClaimSettings) => {
+      await updateContributeClaimSettings(input)
+      await refresh()
+    },
+    [refresh],
+  )
+
   const saveNft = useCallback(
     async (input: NftUpsertInput) => {
       await upsertNftCatalogItem(input)
@@ -77,12 +93,16 @@ export function useNftCatalog(options?: { live?: boolean }) {
 
   return {
     redeemPoints: snap.settings.redeemPoints,
+    contributeValuePerItem: snap.settings.contributeValuePerItem,
+    contributeValueThreshold: snap.settings.contributeValueThreshold,
+    minContributeTypes: snap.settings.minContributeTypes,
     catalog: snap.catalog,
     fromCloud: snap.fromCloud,
     loading,
     error,
     refresh,
     saveRedeemPoints,
+    saveContributeClaimSettings,
     saveNft,
     saveNftPoints,
     removeNft,

@@ -7,6 +7,12 @@ import { useLiveStats } from './hooks/useLiveStats'
 import { useNftClaims } from './hooks/useNftClaims'
 import { useNftCatalog } from './hooks/useNftCatalog'
 import { CONTRIBUTE_REWARD_POINTS } from './types'
+import {
+  evaluateContributeEligibility,
+  getLocalEligibilityResetAt,
+  mergeEligibilityResetAt,
+} from './lib/contributeEligibility'
+import { fetchContributeEligibilityResetAt } from './lib/cloudSync'
 import { usePoints } from './hooks/usePoints'
 import { useSession } from './hooks/useSession'
 import { useI18n } from './i18n'
@@ -69,14 +75,38 @@ export default function App() {
     deleteQuote,
     deleteLike,
     deleteActivity,
-  } = useCommunity({ live: tab === 'feed' || tab === 'browse' || tab === 'ledger' || tab === 'stats' })
+  } = useCommunity({ live: tab === 'feed' || tab === 'browse' || tab === 'ledger' || tab === 'stats' || tab === 'rewards' })
   const { account, communityPoints, recordRound, awardBonus, applyClawback, refresh: refreshPoints } = usePoints(
     session?.email,
     session?.userId,
   )
   const { claims, claim } = useNftClaims(session?.email, session?.userId)
   const nftCatalog = useNftCatalog({ live: tab === 'rewards' })
+  const [eligibilityResetAt, setEligibilityResetAt] = useState<string | null>(null)
   const opportunitiesApi = useOpportunities({ live: tab === 'browse' })
+
+  useEffect(() => {
+    let cancelled = false
+    const run = async () => {
+      if (!session?.email) {
+        if (!cancelled) setEligibilityResetAt(null)
+        return
+      }
+      const local = getLocalEligibilityResetAt(session.email)
+      if (!session.userId) {
+        if (!cancelled) setEligibilityResetAt(local)
+        return
+      }
+      const cloud = await fetchContributeEligibilityResetAt(session.userId)
+      const merged = mergeEligibilityResetAt(cloud, local)
+      if (!cancelled) setEligibilityResetAt(merged)
+    }
+    void run()
+    return () => {
+      cancelled = true
+    }
+  }, [session?.email, session?.userId, claims])
+
   const donationFeed = useDonationFeed({ live: true })
   const liveStats = useLiveStats({ live: tab === 'stats' })
 
@@ -325,12 +355,37 @@ export default function App() {
         requireAuth('rewards')
         return false
       }
+      const elig = evaluateContributeEligibility(
+        contributions,
+        session,
+        {
+          contributeValuePerItem: nftCatalog.contributeValuePerItem,
+          contributeValueThreshold: nftCatalog.contributeValueThreshold,
+          minContributeTypes: nftCatalog.minContributeTypes,
+        },
+        eligibilityResetAt,
+      )
+      if (!elig.meetsContributeGate) {
+        setToast(
+          t('toast.nftNeedContribute', {
+            threshold: elig.threshold.toLocaleString(),
+            min: String(elig.minTypes),
+          }),
+        )
+        return false
+      }
       if (account.total < requiredPoints) {
         setToast(t('toast.nftNeedPoints', { n: requiredPoints.toLocaleString() }))
         return false
       }
       const entry = await claim(nftId)
       if (!entry) return false
+      // Claim cycle restarts: prior contribution value no longer counts.
+      const localReset = getLocalEligibilityResetAt(session.email)
+      const cloudReset = session.userId
+        ? await fetchContributeEligibilityResetAt(session.userId)
+        : null
+      setEligibilityResetAt(mergeEligibilityResetAt(cloudReset, localReset))
       await recordNftActivity({
         actorName: session.displayName,
         actorEmail: session.email,
@@ -340,7 +395,19 @@ export default function App() {
       setToast(t('toast.nftClaimed', { title }))
       return true
     },
-    [session, account.total, claim, requireAuth, refresh, t],
+    [
+      session,
+      account.total,
+      claim,
+      requireAuth,
+      refresh,
+      t,
+      contributions,
+      nftCatalog.contributeValuePerItem,
+      nftCatalog.contributeValueThreshold,
+      nftCatalog.minContributeTypes,
+      eligibilityResetAt,
+    ],
   )
 
   const myContributions = session
@@ -459,10 +526,19 @@ export default function App() {
             claims={claims}
             catalog={nftCatalog.catalog}
             redeemPoints={nftCatalog.redeemPoints}
+            contributions={contributions}
+            contributeSettings={{
+              contributeValuePerItem: nftCatalog.contributeValuePerItem,
+              contributeValueThreshold: nftCatalog.contributeValueThreshold,
+              minContributeTypes: nftCatalog.minContributeTypes,
+            }}
+            eligibilityResetAt={eligibilityResetAt}
             onRequireAuth={() => requireAuth('rewards')}
             onClaim={(id, title, pts) => handleClaimNft(id, title, pts)}
             onPlayGame={() => setTab('game')}
+            onProvide={handleProvide}
             onSaveRedeemPoints={nftCatalog.saveRedeemPoints}
+            onSaveContributeClaimSettings={nftCatalog.saveContributeClaimSettings}
             onSaveNft={nftCatalog.saveNft}
             onSaveNftPoints={nftCatalog.saveNftPoints}
             onDeleteNft={nftCatalog.removeNft}

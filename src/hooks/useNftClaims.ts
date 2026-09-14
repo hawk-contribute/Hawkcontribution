@@ -4,6 +4,7 @@ import {
   getClaimsForEmail,
 } from '../lib/nftClaims'
 import { claimNftCloud } from '../lib/cloudSync'
+import { setLocalEligibilityResetAt } from '../lib/contributeEligibility'
 import { subscribeStoreUpdates } from '../lib/sync'
 
 export function useNftClaims(email: string | undefined, userId?: string) {
@@ -29,6 +30,7 @@ export function useNftClaims(email: string | undefined, userId?: string) {
         return entry
       }
       const entry = claimNft(email, nftId)
+      if (entry) setLocalEligibilityResetAt(email, entry.claimedAt)
       refresh()
       return entry
     },

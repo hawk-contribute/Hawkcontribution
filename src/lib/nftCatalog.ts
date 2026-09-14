@@ -1,12 +1,16 @@
 import { NFT_CATALOG as STATIC_CATALOG } from '../data/nfts'
 import type { NftDefinition } from '../types'
 import { NFT_REDEEM_POINTS } from '../types'
+import {
+  DEFAULT_CONTRIBUTE_CLAIM_SETTINGS,
+  type ContributeClaimSettings,
+} from './contributeEligibility'
 import { supabase } from './supabase'
 import { safeNftImagePath } from './safeUrl'
 
 export type RewardSettings = {
   redeemPoints: number
-}
+} & ContributeClaimSettings
 
 export type NftCatalogSnapshot = {
   settings: RewardSettings
@@ -66,7 +70,10 @@ function mapRow(row: CatalogRow, globalPoints: number): NftDefinition {
 
 function staticSnapshot(globalPoints = NFT_REDEEM_POINTS): NftCatalogSnapshot {
   return {
-    settings: { redeemPoints: globalPoints },
+    settings: {
+      redeemPoints: globalPoints,
+      ...DEFAULT_CONTRIBUTE_CLAIM_SETTINGS,
+    },
     catalog: STATIC_CATALOG.map((n) => ({
       ...n,
       title: undefined,
@@ -83,7 +90,9 @@ export async function fetchNftCatalog(): Promise<NftCatalogSnapshot> {
     const [settingsRes, catalogRes] = await Promise.all([
       supabase
         .from('reward_settings')
-        .select('redeem_points')
+        .select(
+          'redeem_points,contribute_value_per_item,contribute_value_threshold,min_contribute_types',
+        )
         .eq('id', 1)
         .maybeSingle(),
       supabase
@@ -108,9 +117,29 @@ export async function fetchNftCatalog(): Promise<NftCatalogSnapshot> {
         ? settingsRes.data.redeem_points
         : NFT_REDEEM_POINTS
 
+    const perItemRaw = Number(settingsRes.data?.contribute_value_per_item)
+    const thresholdRaw = Number(settingsRes.data?.contribute_value_threshold)
+    const minTypesRaw = Number(settingsRes.data?.min_contribute_types)
+    const contributeSettings: ContributeClaimSettings = {
+      contributeValuePerItem:
+        Number.isFinite(perItemRaw) && perItemRaw >= 1
+          ? Math.floor(perItemRaw)
+          : DEFAULT_CONTRIBUTE_CLAIM_SETTINGS.contributeValuePerItem,
+      contributeValueThreshold:
+        Number.isFinite(thresholdRaw) && thresholdRaw >= 0
+          ? Math.floor(thresholdRaw)
+          : DEFAULT_CONTRIBUTE_CLAIM_SETTINGS.contributeValueThreshold,
+      minContributeTypes:
+        Number.isFinite(minTypesRaw) && minTypesRaw >= 1
+          ? Math.floor(minTypesRaw)
+          : DEFAULT_CONTRIBUTE_CLAIM_SETTINGS.minContributeTypes,
+    }
+
     const rows = (catalogRes.data as CatalogRow[] | null) ?? []
     if (!rows.length) {
-      return staticSnapshot(redeemPoints)
+      const snap = staticSnapshot(redeemPoints)
+      snap.settings = { redeemPoints, ...contributeSettings }
+      return snap
     }
 
     const catalog = rows
@@ -118,7 +147,7 @@ export async function fetchNftCatalog(): Promise<NftCatalogSnapshot> {
       .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
 
     return {
-      settings: { redeemPoints },
+      settings: { redeemPoints, ...contributeSettings },
       catalog,
       fromCloud: true,
     }
@@ -132,7 +161,28 @@ export async function updateRedeemPoints(points: number): Promise<void> {
   const n = Math.max(1, Math.floor(points))
   const { error } = await supabase
     .from('reward_settings')
-    .update({ redeem_points: n })
+    .update({ redeem_points: n, updated_at: new Date().toISOString() })
+    .eq('id', 1)
+  if (error) throw new Error(error.message)
+}
+
+export async function updateContributeClaimSettings(
+  input: ContributeClaimSettings,
+): Promise<void> {
+  const perItem = Math.max(1, Math.floor(input.contributeValuePerItem))
+  const threshold = Math.max(0, Math.floor(input.contributeValueThreshold))
+  const minTypes = Math.max(1, Math.floor(input.minContributeTypes))
+  if (!Number.isFinite(perItem) || !Number.isFinite(threshold) || !Number.isFinite(minTypes)) {
+    throw new Error('INVALID_CONTRIBUTE_SETTINGS')
+  }
+  const { error } = await supabase
+    .from('reward_settings')
+    .update({
+      contribute_value_per_item: perItem,
+      contribute_value_threshold: threshold,
+      min_contribute_types: minTypes,
+      updated_at: new Date().toISOString(),
+    })
     .eq('id', 1)
   if (error) throw new Error(error.message)
 }

@@ -12,6 +12,9 @@ import type {
 } from '../types'
 import { MAX_ACTIVITIES } from '../types'
 import { supabase } from './supabase'
+import {
+  DEFAULT_CONTRIBUTE_VALUE_PER_ITEM,
+} from './contributeEligibility'
 import { safeHttpUrl } from './safeUrl'
 import { clawbackContributePointsCloud } from './cloudSync'
 
@@ -50,6 +53,7 @@ type ContribRow = {
   participant_email: string
   attachment_names: string[] | null
   seeded: boolean | null
+  contribute_value: number | null
   created_at: string
 }
 
@@ -120,6 +124,12 @@ function mapContribution(row: ContribRow): Contribution {
     participantName: row.participant_name,
     participantEmail: row.participant_email,
     seeded: !!row.seeded,
+    contributeValue:
+      typeof row.contribute_value === 'number' && Number.isFinite(row.contribute_value)
+        ? Math.max(0, Math.floor(row.contribute_value))
+        : row.seeded
+          ? 0
+          : undefined,
   }
 }
 
@@ -160,7 +170,7 @@ export async function fetchCommunitySnapshot(): Promise<CommunitySnapshot> {
       supabase
         .from('contributions')
         .select(
-          'id,user_id,opportunity_id,category,title,description,proof_url,participant_name,participant_email,attachment_names,seeded,created_at',
+          'id,user_id,opportunity_id,category,title,description,proof_url,participant_name,participant_email,attachment_names,seeded,contribute_value,created_at',
         )
         .order('created_at', { ascending: false })
         .limit(200),
@@ -295,6 +305,18 @@ export async function createContributionCloud(input: {
 }): Promise<Contribution> {
   if (!input.session.userId) throw new Error('NOT_SIGNED_IN')
   const attachmentNames = input.files.map((f) => f.name).filter(Boolean)
+  let perItem = DEFAULT_CONTRIBUTE_VALUE_PER_ITEM
+  try {
+    const { data: rs } = await supabase
+      .from('reward_settings')
+      .select('contribute_value_per_item')
+      .eq('id', 1)
+      .maybeSingle()
+    const n = Number(rs?.contribute_value_per_item)
+    if (Number.isFinite(n) && n >= 1) perItem = Math.floor(n)
+  } catch {
+    /* keep default */
+  }
   const { data, error } = await supabase
     .from('contributions')
     .insert({
@@ -308,9 +330,10 @@ export async function createContributionCloud(input: {
       participant_email: input.session.email,
       attachment_names: attachmentNames,
       seeded: false,
+      contribute_value: perItem,
     })
     .select(
-      'id,user_id,opportunity_id,category,title,description,proof_url,participant_name,participant_email,attachment_names,seeded,created_at',
+      'id,user_id,opportunity_id,category,title,description,proof_url,participant_name,participant_email,attachment_names,seeded,contribute_value,created_at',
     )
     .single()
   if (error || !data) throw error ?? new Error('CREATE_FAILED')

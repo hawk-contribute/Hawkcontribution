@@ -47,6 +47,11 @@ export interface Contribution {
   participantEmail: string
   /** Seeded demo flag — optional */
   seeded?: boolean
+  /**
+   * Content contribution value (貢獻值) for claim eligibility.
+   * Seeded rows are 0; non-seeded default from reward_settings.contribute_value_per_item.
+   */
+  contributeValue?: number
 }
 
 export type ActivityKind = 'contribute' | 'like' | 'comment' | 'quote' | 'game' | 'nft' | 'donate'

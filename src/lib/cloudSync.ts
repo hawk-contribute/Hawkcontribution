@@ -11,6 +11,7 @@ import {
   setPointsTotal,
 } from './points'
 import { broadcastStoreUpdate } from './sync'
+import { setLocalEligibilityResetAt } from './contributeEligibility'
 
 const POINTS_KEY = 'hawk-contribute:points'
 const NFT_CLAIMS_KEY = 'hawk-contribute:nft-claims'
@@ -185,6 +186,50 @@ export async function syncNftClaimsFromCloud(
   }
 }
 
+
+/** Current claim-cycle epoch for this user (null = count all own posts). */
+export async function fetchContributeEligibilityResetAt(
+  userId: string,
+): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('contribute_eligibility_reset_at')
+      .eq('id', userId)
+      .maybeSingle()
+    if (error) throw error
+    const v = data?.contribute_eligibility_reset_at
+    return typeof v === 'string' && v ? v : null
+  } catch (e) {
+    console.warn('[hawk-contribute] eligibility reset fetch failed', e)
+    return null
+  }
+}
+
+/**
+ * After a successful NFT claim: advance this user's eligibility epoch so
+ * prior contributions no longer count toward the next claim (posts stay).
+ */
+export async function resetContributeEligibilityAfterClaim(
+  userId: string,
+): Promise<string | null> {
+  const at = new Date().toISOString()
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        contribute_eligibility_reset_at: at,
+        updated_at: at,
+      })
+      .eq('id', userId)
+    if (error) throw error
+    return at
+  } catch (e) {
+    console.warn('[hawk-contribute] eligibility reset after claim failed', e)
+    return null
+  }
+}
+
 export async function claimNftCloud(
   userId: string,
   email: string,
@@ -192,6 +237,7 @@ export async function claimNftCloud(
 ): Promise<{ claimedAt: string } | null> {
   const local = claimNftLocal(email, nftId)
   if (!local) return null
+  let cloudOk = false
   try {
     const { error } = await supabase.from('nft_claims').upsert(
       {
@@ -202,8 +248,18 @@ export async function claimNftCloud(
       { onConflict: 'user_id,nft_id' },
     )
     if (error) throw error
+    cloudOk = true
   } catch (e) {
     console.warn('[hawk-contribute] nft claim cloud write failed', e)
+  }
+  // Clear personal contribution-value progress for the next claim cycle.
+  // Prefer cloud success; still reset locally-tracked epoch when cloud wrote.
+  if (cloudOk) {
+    const at = await resetContributeEligibilityAfterClaim(userId)
+    setLocalEligibilityResetAt(email, at ?? local.claimedAt)
+  } else {
+    // Offline / cloud write failed: still start a new local claim cycle.
+    setLocalEligibilityResetAt(email, local.claimedAt)
   }
   return local
 }

@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
+  CheckCircle2,
+  Circle,
   Download,
   Gift,
   Lock,
@@ -8,10 +10,19 @@ import {
   Sparkles,
   Trash2,
 } from 'lucide-react'
-import type { NftDefinition, PointsAccount, Session } from '../types'
+import type {
+  Contribution,
+  NftDefinition,
+  PointsAccount,
+  Session,
+} from '../types'
 import { useI18n } from '../i18n'
 import { asset } from '../lib/asset'
 import { isSiteAdmin } from '../lib/admins'
+import {
+  evaluateContributeEligibility,
+  type ContributeClaimSettings,
+} from '../lib/contributeEligibility'
 import {
   resolveNftBlurb,
   resolveNftTitle,
@@ -28,10 +39,17 @@ interface RewardsViewProps {
   claims: Record<string, { claimedAt: string }>
   catalog: NftDefinition[]
   redeemPoints: number
+  /** All feed contributions; eligibility filters to this signed-in user only */
+  contributions: Contribution[]
+  contributeSettings: ContributeClaimSettings
+  /** Claim-cycle epoch: posts at/before this no longer count for this user */
+  eligibilityResetAt: string | null
   onRequireAuth: () => void
   onClaim: (nftId: string, title: string, requiredPoints: number) => Promise<boolean>
   onPlayGame: () => void
+  onProvide?: () => void
   onSaveRedeemPoints?: (points: number) => Promise<void>
+  onSaveContributeClaimSettings?: (input: ContributeClaimSettings) => Promise<void>
   onSaveNft?: (input: NftUpsertInput) => Promise<void>
   onSaveNftPoints?: (id: string, points: number) => Promise<void>
   onDeleteNft?: (id: string) => Promise<void>
@@ -79,10 +97,15 @@ export function RewardsView({
   claims,
   catalog,
   redeemPoints,
+  contributions,
+  contributeSettings,
+  eligibilityResetAt,
   onRequireAuth,
   onClaim,
   onPlayGame,
+  onProvide,
   onSaveRedeemPoints,
+  onSaveContributeClaimSettings,
   onSaveNft,
   onSaveNftPoints,
   onDeleteNft,
@@ -92,6 +115,15 @@ export function RewardsView({
   const points = account.total
 
   const [thresholdDraft, setThresholdDraft] = useState(String(redeemPoints))
+  const [perItemDraft, setPerItemDraft] = useState(
+    String(contributeSettings.contributeValuePerItem),
+  )
+  const [valueThresholdDraft, setValueThresholdDraft] = useState(
+    String(contributeSettings.contributeValueThreshold),
+  )
+  const [minTypesDraft, setMinTypesDraft] = useState(
+    String(contributeSettings.minContributeTypes),
+  )
   const [adminMsg, setAdminMsg] = useState<string | null>(null)
   const [adminBusy, setAdminBusy] = useState(false)
   const [form, setForm] = useState(emptyForm)
@@ -110,6 +142,24 @@ export function RewardsView({
   useEffect(() => {
     setThresholdDraft(String(redeemPoints))
   }, [redeemPoints])
+
+  useEffect(() => {
+    setPerItemDraft(String(contributeSettings.contributeValuePerItem))
+    setValueThresholdDraft(String(contributeSettings.contributeValueThreshold))
+    setMinTypesDraft(String(contributeSettings.minContributeTypes))
+  }, [contributeSettings])
+
+  const eligibility = useMemo(
+    () =>
+      evaluateContributeEligibility(
+        contributions,
+        session,
+        contributeSettings,
+        eligibilityResetAt,
+      ),
+    [contributions, session, contributeSettings, eligibilityResetAt],
+  )
+  const contributeReady = eligibility.meetsContributeGate
 
   // Sync inline drafts when catalog refreshes
   useEffect(() => {
@@ -194,6 +244,82 @@ export function RewardsView({
               {t('rewards.admin.saveThreshold')}
             </button>
           </div>
+
+          {onSaveContributeClaimSettings && (
+            <div className="mt-5 border-t border-hawk-border/60 pt-4">
+              <h3 className="text-xs font-bold uppercase tracking-wide text-hawk-cream">
+                {t('rewards.admin.contributeTitle')}
+              </h3>
+              <p className="mt-1 text-[11px] text-hawk-muted">
+                {t('rewards.admin.contributeHint')}
+              </p>
+              <div className="mt-3 flex flex-wrap items-end gap-3">
+                <label className="block min-w-[8rem] flex-1 text-left text-xs text-hawk-muted">
+                  {t('rewards.admin.perItemValue')}
+                  <input
+                    type="number"
+                    min={1}
+                    className="hawk-input mt-1 w-full"
+                    value={perItemDraft}
+                    onChange={(e) => setPerItemDraft(e.target.value)}
+                  />
+                </label>
+                <label className="block min-w-[8rem] flex-1 text-left text-xs text-hawk-muted">
+                  {t('rewards.admin.valueThreshold')}
+                  <input
+                    type="number"
+                    min={0}
+                    className="hawk-input mt-1 w-full"
+                    value={valueThresholdDraft}
+                    onChange={(e) => setValueThresholdDraft(e.target.value)}
+                  />
+                </label>
+                <label className="block min-w-[8rem] flex-1 text-left text-xs text-hawk-muted">
+                  {t('rewards.admin.minTypes')}
+                  <input
+                    type="number"
+                    min={1}
+                    className="hawk-input mt-1 w-full"
+                    value={minTypesDraft}
+                    onChange={(e) => setMinTypesDraft(e.target.value)}
+                  />
+                </label>
+                <button
+                  type="button"
+                  disabled={adminBusy}
+                  className="hawk-btn hawk-btn-primary px-4 py-2 text-sm"
+                  onClick={() => {
+                    const perItem = Number(perItemDraft)
+                    const thr = Number(valueThresholdDraft)
+                    const minT = Number(minTypesDraft)
+                    if (
+                      !Number.isFinite(perItem) ||
+                      perItem < 1 ||
+                      !Number.isFinite(thr) ||
+                      thr < 0 ||
+                      !Number.isFinite(minT) ||
+                      minT < 1
+                    ) {
+                      setAdminMsg(t('rewards.admin.invalidContribute'))
+                      return
+                    }
+                    setAdminBusy(true)
+                    setAdminMsg(null)
+                    void onSaveContributeClaimSettings({
+                      contributeValuePerItem: Math.floor(perItem),
+                      contributeValueThreshold: Math.floor(thr),
+                      minContributeTypes: Math.floor(minT),
+                    })
+                      .then(() => setAdminMsg(t('rewards.admin.saved')))
+                      .catch(() => setAdminMsg(t('rewards.admin.saveFailed')))
+                      .finally(() => setAdminBusy(false))
+                  }}
+                >
+                  {t('rewards.admin.saveContribute')}
+                </button>
+              </div>
+            </div>
+          )}
 
           <h3 className="mt-6 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-hawk-cream">
             <Plus className="h-3.5 w-3.5" />
@@ -499,6 +625,120 @@ export function RewardsView({
       )}
 
       {session && (
+        <div className="hawk-card mb-6 border border-hawk-gold/25 p-5">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-hawk-gold">
+            {t('rewards.criteria.title')}
+          </h2>
+          <p className="mt-1 text-xs text-hawk-muted">{t('rewards.criteria.hint')}</p>
+          <ul className="mt-4 space-y-2.5 text-sm">
+            <li className="flex items-start gap-2">
+              {eligibility.meetsValue ? (
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-hawk-gold" />
+              ) : (
+                <Circle className="mt-0.5 h-4 w-4 shrink-0 text-hawk-muted" />
+              )}
+              <span className={eligibility.meetsValue ? 'text-hawk-cream' : 'text-hawk-muted'}>
+                {eligibility.meetsValue
+                  ? t('rewards.criteria.valueOk', {
+                      sum: eligibility.sum.toLocaleString(),
+                      threshold: eligibility.threshold.toLocaleString(),
+                    })
+                  : t('rewards.criteria.value', {
+                      sum: eligibility.sum.toLocaleString(),
+                      threshold: eligibility.threshold.toLocaleString(),
+                    })}
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              {eligibility.meetsTypes ? (
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-hawk-gold" />
+              ) : (
+                <Circle className="mt-0.5 h-4 w-4 shrink-0 text-hawk-muted" />
+              )}
+              <div>
+                <span className={eligibility.meetsTypes ? 'text-hawk-cream' : 'text-hawk-muted'}>
+                  {eligibility.meetsTypes
+                    ? t('rewards.criteria.typesOk', {
+                        count: String(eligibility.typeCount),
+                        min: String(eligibility.minTypes),
+                      })
+                    : t('rewards.criteria.types', {
+                        count: String(eligibility.typeCount),
+                        min: String(eligibility.minTypes),
+                      })}
+                </span>
+                <p className="mt-0.5 text-xs text-hawk-muted">
+                  {eligibility.types.length
+                    ? t('rewards.criteria.typesList', {
+                        list: eligibility.types
+                          .map((k) => t(`type.${k}`))
+                          .join(' · '),
+                      })
+                    : t('rewards.criteria.typesNone')}
+                </p>
+              </div>
+            </li>
+            <li className="flex items-start gap-2">
+              {anyEligible ? (
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-hawk-gold" />
+              ) : (
+                <Circle className="mt-0.5 h-4 w-4 shrink-0 text-hawk-muted" />
+              )}
+              <span className={anyEligible ? 'text-hawk-cream' : 'text-hawk-muted'}>
+                {t('rewards.criteria.points', {
+                  have: points.toLocaleString(),
+                  need: progressTarget.toLocaleString(),
+                })}
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              {verified ? (
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-hawk-gold" />
+              ) : (
+                <Circle className="mt-0.5 h-4 w-4 shrink-0 text-hawk-muted" />
+              )}
+              <span className={verified ? 'text-hawk-cream' : 'text-hawk-muted'}>
+                {verified
+                  ? t('rewards.criteria.verifyOk')
+                  : t('rewards.criteria.verifyNeed')}
+              </span>
+            </li>
+          </ul>
+          {!contributeReady && (
+            <div className="mt-3 space-y-1 text-xs text-amber-200/90">
+              {!eligibility.meetsValue && (
+                <p>
+                  {t('rewards.criteria.blockedValue', {
+                    threshold: eligibility.threshold.toLocaleString(),
+                    sum: eligibility.sum.toLocaleString(),
+                  })}
+                </p>
+              )}
+              {!eligibility.meetsTypes && (
+                <p>
+                  {t('rewards.criteria.blockedTypes', {
+                    min: String(eligibility.minTypes),
+                    count: String(eligibility.typeCount),
+                  })}
+                </p>
+              )}
+              {onProvide && (
+                <button
+                  type="button"
+                  className="hawk-btn hawk-btn-ghost mt-2 px-3 py-1.5 text-xs"
+                  onClick={onProvide}
+                >
+                  {t('nav.provide') !== 'nav.provide'
+                    ? t('nav.provide')
+                    : t('contribute.title')}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {session && (
         <HumanVerify
           verified={verified}
           remainingMs={remainingMs}
@@ -512,8 +752,13 @@ export function RewardsView({
           const owned = !!(session && claims[nft.id])
           const need = nft.requiredPoints
           const eligible = points >= need
-          const canClaim = !!session && eligible && !owned && verified
-          const locked = !session || !eligible
+          const canClaim =
+            !!session &&
+            eligible &&
+            !owned &&
+            verified &&
+            contributeReady
+          const locked = !session || !eligible || !contributeReady
           const fileName = nft.image.split('/').pop() || `${nft.id}.jpg`
           const title = resolveNftTitle(nft, t)
           const blurb = resolveNftBlurb(nft, t)
@@ -570,13 +815,19 @@ export function RewardsView({
                   ) : (
                     <button
                       type="button"
-                      disabled={!!session && (!eligible || (!verified && eligible) || owned)}
+                      disabled={
+                        !!session &&
+                        (!eligible ||
+                          !contributeReady ||
+                          (!verified && eligible && contributeReady) ||
+                          owned)
+                      }
                       onClick={() => {
                         if (!session) {
                           onRequireAuth()
                           return
                         }
-                        if (!eligible || !verified) return
+                        if (!eligible || !contributeReady || !verified) return
                         void onClaim(nft.id, title, need).then((ok) => {
                           if (ok) consumeVerify()
                         })
@@ -589,15 +840,17 @@ export function RewardsView({
                     >
                       {!session
                         ? t('auth.signIn')
-                        : !eligible
-                          ? t('rewards.locked')
-                          : !verified
-                            ? t('verify.required')
-                            : t('rewards.claim')}
+                        : !contributeReady
+                          ? t('rewards.criteria.blockedContribute')
+                          : !eligible
+                            ? t('rewards.locked')
+                            : !verified
+                              ? t('verify.required')
+                              : t('rewards.claim')}
                     </button>
                   )}
 
-                  {(owned || (session && eligible)) && (
+                  {(owned || (session && eligible && contributeReady)) && (
                     <button
                       type="button"
                       disabled={!verified}
