@@ -5,11 +5,11 @@ import { isWithinActivityWindow } from './lib/communityCloud'
 import { useDonationFeed } from './hooks/useDonationFeed'
 import { useLiveStats } from './hooks/useLiveStats'
 import { useNftClaims } from './hooks/useNftClaims'
+import { useNftCatalog } from './hooks/useNftCatalog'
 import { usePoints } from './hooks/usePoints'
 import { useSession } from './hooks/useSession'
 import { useI18n } from './i18n'
 import { recordGameActivity, recordNftActivity } from './lib/storage'
-import { NFT_REDEEM_POINTS } from './types'
 import type { Contribution, Opportunity } from './types'
 import { ActivityMarquee } from './components/ActivityMarquee'
 import { AuthModal } from './components/AuthModal'
@@ -74,6 +74,7 @@ export default function App() {
     session?.userId,
   )
   const { claims, claim } = useNftClaims(session?.email, session?.userId)
+  const nftCatalog = useNftCatalog({ live: tab === 'rewards' })
   const donationFeed = useDonationFeed({ live: true })
   const liveStats = useLiveStats({ live: tab === 'stats' })
 
@@ -291,10 +292,10 @@ export default function App() {
   )
 
   const handleClaimNft = useCallback(
-    async (nftId: string, title: string) => {
+    async (nftId: string, title: string, requiredPoints: number) => {
       if (!session) return requireAuth('rewards')
-      if (account.total < NFT_REDEEM_POINTS) {
-        setToast(t('toast.nftNeedPoints'))
+      if (account.total < requiredPoints) {
+        setToast(t('toast.nftNeedPoints', { n: requiredPoints.toLocaleString() }))
         return
       }
       const entry = await claim(nftId)
@@ -434,9 +435,14 @@ export default function App() {
             session={session}
             account={account}
             claims={claims}
+            catalog={nftCatalog.catalog}
+            redeemPoints={nftCatalog.redeemPoints}
             onRequireAuth={() => requireAuth('rewards')}
-            onClaim={(id, title) => void handleClaimNft(id, title)}
+            onClaim={(id, title, pts) => void handleClaimNft(id, title, pts)}
             onPlayGame={() => setTab('game')}
+            onSaveRedeemPoints={nftCatalog.saveRedeemPoints}
+            onSaveNft={nftCatalog.saveNft}
+            onDeleteNft={nftCatalog.removeNft}
           />
         )}
         {tab === 'stats' && (

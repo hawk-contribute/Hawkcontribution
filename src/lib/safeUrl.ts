@@ -22,3 +22,21 @@ export function safeHttpUrl(
 export function isSafeHttpUrl(raw: string | null | undefined): boolean {
   return Boolean(safeHttpUrl(raw))
 }
+
+
+/**
+ * NFT image: absolute http(s) OR safe site-relative path (e.g. rewards/nft/foo.jpg).
+ */
+export function safeNftImagePath(
+  raw: string | null | undefined,
+): string | undefined {
+  const trimmed = (raw ?? '').trim()
+  if (!trimmed) return undefined
+  if (/^https?:\/\//i.test(trimmed)) return safeHttpUrl(trimmed)
+  const rel = trimmed.replace(/^\/+/, '')
+  if (!rel || rel.includes('..') || rel.includes('\\') || rel.includes(':')) {
+    return undefined
+  }
+  if (!/^[A-Za-z0-9][\w./\-]*$/.test(rel)) return undefined
+  return rel
+}

@@ -126,10 +126,18 @@ export const NFT_REDEEM_POINTS = 10_000
 export interface NftDefinition {
   id: string
   image: string
-  rarityKey: string // i18n key suffix e.g. legendary
-  titleKey: string
-  blurbKey: string
+  rarityKey: string // i18n key suffix e.g. legendary / epic / rare / common
+  /** Optional i18n overlay for seeded static items */
+  titleKey?: string
+  blurbKey?: string
+  /** Display text from DB (or static fallback) */
+  title?: string
+  blurb?: string
+  /** Effective points needed (override ?? global) */
   requiredPoints: number
+  /** Raw per-NFT override from DB; null/undefined → use global */
+  requiredPointsOverride?: number | null
+  sortOrder?: number
 }
 
 export type NftClaimsMap = Record<
