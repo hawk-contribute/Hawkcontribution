@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import type { Locale, LocalizedString, LocalizedStringList } from './types'
+import { resolveFirstVisitLocale } from './geoLocale'
 import {
   detectDefaultLocale,
   loadStoredLocale,
@@ -26,6 +27,7 @@ interface I18nContextValue {
 const I18nContext = createContext<I18nContextValue | null>(null)
 
 export function I18nProvider({ children }: { children: ReactNode }) {
+  // Prefer saved choice; otherwise sync navigator fallback until async IP geo resolves.
   const [locale, setLocaleState] = useState<Locale>(() => {
     return loadStoredLocale() ?? detectDefaultLocale()
   })
@@ -33,6 +35,23 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const setLocale = useCallback((next: Locale) => {
     saveLocale(next)
     setLocaleState(next)
+  }, [])
+
+  // First visit only: one-shot IP region → locale. Never overrides stored preference.
+  useEffect(() => {
+    if (loadStoredLocale()) return
+
+    let cancelled = false
+    void resolveFirstVisitLocale().then((resolved) => {
+      if (cancelled) return
+      // User may have switched language while the lookup was in flight.
+      if (loadStoredLocale()) return
+      setLocaleState(resolved)
+    })
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {

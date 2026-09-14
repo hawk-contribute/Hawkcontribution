@@ -72,8 +72,8 @@ UI supports **English / 简体中文 / 繁體中文**.
 - Switcher: header `EN | 简 | 繁` (`src/components/LanguageSwitcher.tsx`)
 - Strings: `src/i18n/translations.ts`
 - Context: `src/i18n/context.tsx` (`t()`, `lx()`, `lxList()`)
-- Locale persisted in `localStorage` key `hawk-contribute:locale`
-- Default: browser language when recognizable, else **繁體中文**
+- Locale persisted in `localStorage` key `hawk-contribute:locale` (only when the user picks a language)
+- First visit (no saved preference): IP region via `https://ipapi.co/json/` (`src/i18n/geoLocale.ts`) — **CN** → `zh-CN`, **TW/HK/MO/SG** → `zh-TW`, else `en`. Short timeout; on failure falls back to `navigator.language` then `en`. Saved preference is never overridden.
 - Seeded opportunities store keyed copy (`en` / `zh-CN` / `zh-TW`) in `src/data/opportunities.ts`
 
 ## Opportunity photos

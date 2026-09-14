@@ -1440,27 +1440,26 @@ export const translations: Record<Locale, Dict> = {
   },
 }
 
+/** Sync fallback from navigator.language (no IP). Used when geo fails or before geo resolves. */
 export function detectDefaultLocale(): Locale {
   try {
     const nav = (typeof navigator !== 'undefined' ? navigator.language : '') || ''
     const lower = nav.toLowerCase()
-    if (lower.startsWith('zh-cn') || lower === 'zh-hans' || lower.startsWith('zh-sg')) {
+    if (lower.startsWith('zh-cn') || lower.startsWith('zh-hans')) {
       return 'zh-CN'
     }
     if (
       lower.startsWith('zh-tw') ||
       lower.startsWith('zh-hk') ||
       lower.startsWith('zh-mo') ||
-      lower === 'zh-hant' ||
-      lower === 'zh'
+      lower.startsWith('zh-hant')
     ) {
       return 'zh-TW'
     }
-    if (lower.startsWith('en')) return 'en'
   } catch {
     /* ignore */
   }
-  return 'zh-TW'
+  return 'en'
 }
 
 export function loadStoredLocale(): Locale | null {
