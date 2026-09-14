@@ -300,7 +300,12 @@ export function GameView({
       {onBack && (
         <button
           type="button"
-          onClick={onBack}
+          onClick={() => {
+            clearTimers()
+            gameAudio.stopBgm()
+            phaseRef.current = 'idle'
+            onBack()
+          }}
           className="mb-4 inline-flex items-center gap-1.5 text-sm text-hawk-muted hover:text-hawk-cream"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -498,6 +503,21 @@ export function GameView({
             )}
           </button>
         )}
+        {phase === 'ended' && onBack && (
+          <button
+            type="button"
+            onClick={() => {
+              clearTimers()
+              gameAudio.stopBgm()
+              phaseRef.current = 'idle'
+              onBack()
+            }}
+            className="hawk-btn hawk-btn-ghost px-5 py-2.5 text-sm"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {t('gameHub.leave')}
+          </button>
+        )}
         {phase === 'playing' && (
           <p className="text-sm text-hawk-muted">{t('game.playingHint')}</p>
         )}
@@ -559,6 +579,22 @@ export function GameView({
                 <RotateCcw className="h-4 w-4" />
                 {t('game.playAgain')}
               </button>
+              {onBack && (
+                <button
+                  type="button"
+                  className="hawk-btn hawk-btn-ghost mt-2 w-full px-4 py-2.5 text-sm"
+                  onClick={() => {
+                    setShowKeepTrying(false)
+                    clearTimers()
+                    gameAudio.stopBgm()
+                    phaseRef.current = 'idle'
+                    onBack()
+                  }}
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  {t('gameHub.leave')}
+                </button>
+              )}
               <button
                 type="button"
                 className="hawk-btn hawk-btn-ghost mt-2 w-full px-4 py-2 text-sm"

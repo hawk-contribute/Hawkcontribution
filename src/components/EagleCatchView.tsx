@@ -606,6 +606,19 @@ export function EagleCatchView({
               <RotateCcw className="h-4 w-4" />
               {t('game.playAgain')}
             </button>
+            <button
+              type="button"
+              className="hawk-btn hawk-btn-ghost mt-3 inline-flex items-center gap-2 px-5 py-2.5"
+              onClick={() => {
+                clearRaf()
+                gameAudio.stopBgm()
+                phaseRef.current = 'idle'
+                onBack()
+              }}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {t('gameHub.leave')}
+            </button>
           </div>
         )}
       </div>
