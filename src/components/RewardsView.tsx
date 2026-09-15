@@ -8,6 +8,7 @@ import {
   Lock,
   Plus,
   Save,
+  ShieldCheck,
   Sparkles,
   Trash2,
 } from 'lucide-react'
@@ -32,6 +33,7 @@ import {
   type NftUpsertInput,
 } from '../lib/nftCatalog'
 import { useHumanVerify } from '../hooks/useHumanVerify'
+import { formatNftAuthCode, nftAuthCodeLines } from '../lib/nftAuthCode'
 import { formatClaimSerial, isValidClaimSerial } from '../lib/nftClaimSerial'
 import { downloadNftImage, stampedDownloadName } from '../lib/nftStamp'
 import { DonationCard } from './DonationCard'
@@ -185,6 +187,9 @@ export function RewardsView({
         </p>
         <p className="mt-2 text-xs text-hawk-muted">{t('rewards.offchainNote')}</p>
         <p className="mt-1 text-xs text-hawk-muted">{t('rewards.serialHint')}</p>
+        <p className="mt-1 text-xs text-hawk-muted">
+          {t('rewards.antiCounterfeitHint')}
+        </p>
       </div>
 
       {admin && onSaveRedeemPoints && onSaveNft && onSaveNftPoints && onDeleteNft && (
@@ -753,10 +758,20 @@ export function RewardsView({
           const serialDisplay = isValidClaimSerial(claim?.claimSerial)
             ? formatClaimSerial(claim.claimSerial)
             : t('rewards.claimSerialNone')
+          const authCode =
+            claim &&
+            formatNftAuthCode({
+              nftId: nft.id,
+              claimedAt: claim.claimedAt,
+              claimSerial: claim.claimSerial,
+            })
+          const authLines = nftAuthCodeLines(authCode ?? null)
           const stampCopy = {
             serialText: t('rewards.stamp.serial', { n: serialDisplay }),
             voucherText: t('rewards.stamp.voucher'),
             levelText: t('rewards.stamp.level', { level: rarityLabel }),
+            sealTitle: t('rewards.stamp.antiCounterfeit'),
+            authCode: authCode ?? '',
           }
 
           return (
@@ -784,16 +799,41 @@ export function RewardsView({
                   </span>
                 )}
                 {owned && (
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/75 to-transparent px-3 pb-2.5 pt-10">
-                    <p className="font-mono text-[11px] font-bold tracking-wide text-hawk-gold drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                      {t('rewards.stamp.serial', { n: serialDisplay })}
-                    </p>
-                    <p className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-hawk-cream drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                      {t('rewards.stamp.voucher')}
-                    </p>
-                    <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-hawk-gold/90">
-                      {t('rewards.stamp.level', { level: rarityLabel })}
-                    </p>
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/80 to-transparent px-3 pb-2.5 pt-10">
+                    <div className="flex items-end justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-mono text-[11px] font-bold tracking-wide text-hawk-gold drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                          {t('rewards.stamp.serial', { n: serialDisplay })}
+                        </p>
+                        <p className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-hawk-cream drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                          {t('rewards.stamp.voucher')}
+                        </p>
+                        <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-hawk-gold/90">
+                          {t('rewards.stamp.level', { level: rarityLabel })}
+                        </p>
+                      </div>
+                      <div
+                        className="flex h-[3.85rem] w-[3.85rem] shrink-0 flex-col items-center justify-center rounded-full border-[3px] border-hawk-gold shadow-[0_0_0_2px_rgba(5,7,12,0.95),0_0_12px_rgba(254,186,69,0.45)]"
+                        style={{
+                          background:
+                            'repeating-conic-gradient(from 12deg, rgba(254,186,69,0.22) 0deg 7deg, rgba(5,7,12,0.94) 7deg 14deg)',
+                        }}
+                        title={t('rewards.antiCounterfeit')}
+                      >
+                        <span className="rounded-full bg-hawk-black/75 px-1 text-[8px] font-bold uppercase tracking-wider text-hawk-gold">
+                          {t('rewards.stamp.antiCounterfeit')}
+                        </span>
+                        <span className="mt-0.5 px-1 text-center font-mono text-[8px] font-bold leading-[1.05] text-hawk-cream drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">
+                          {authLines.line1}
+                          {authLines.line2 ? (
+                            <>
+                              <br />
+                              {authLines.line2}
+                            </>
+                          ) : null}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 )}
                 {locked && !owned && (
@@ -825,6 +865,15 @@ export function RewardsView({
                     <p className="text-xs font-medium text-hawk-muted">
                       {t('rewards.level', { level: rarityLabel })}
                     </p>
+                    <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-hawk-gold">
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                      {t('rewards.antiCounterfeit')}
+                    </p>
+                    <p className="font-mono text-[11px] tracking-wide text-hawk-cream">
+                      {t('rewards.antiCounterfeitCode', {
+                        code: authCode ?? t('rewards.claimSerialNone'),
+                      })}
+                    </p>
                   </div>
                 )}
 
@@ -853,6 +902,11 @@ export function RewardsView({
                           if (!entry) return
                           consumeVerify()
                           const serial = entry.claimSerial
+                          const claimedCode = formatNftAuthCode({
+                            nftId: nft.id,
+                            claimedAt: entry.claimedAt,
+                            claimSerial: serial,
+                          })
                           void downloadNftImage(
                             nft.image,
                             stampedDownloadName(nft.image, nft.id, serial),
@@ -864,6 +918,8 @@ export function RewardsView({
                               levelText: t('rewards.stamp.level', {
                                 level: rarityLabel,
                               }),
+                              sealTitle: t('rewards.stamp.antiCounterfeit'),
+                              authCode: claimedCode ?? '',
                             },
                           )
                         })

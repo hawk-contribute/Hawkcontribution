@@ -42,7 +42,7 @@ npm run preview  # preview production build
 - Redeem at **10,000+** mini-game points (`hawk-contribute:points`).
 - Claims: `hawk-contribute:nft-claims` → `{ [email]: { [nftId]: { claimedAt, claimSerial? } } }`.
 - **Claim serial (領取序號):** global monotonic number across all users and NFT types (first successful claim is `000001`). Cloud assigns from Postgres sequence `nft_claim_serial_seq` when signed in; localStorage uses a best-effort counter offline. Legacy claims without a serial show **—** (not backfilled).
-- Owned NFTs stamp **serial + Hawk-token voucher note + level/tier** (rarity) onto the downloaded JPEG and show the same copy in the Rewards UI. App collectibles (not on-chain).
+- Owned NFTs stamp **serial + Hawk-token voucher note + level/tier + anti-counterfeit seal** (防偽標籤, code from serial + NFT id + claim time) onto the downloaded JPEG and show the same copy in the Rewards UI. App collectibles (not on-chain).
 - Game tab is the **leftmost** nav item.
 - Game audio: procedural Web Audio SFX/BGM; mute pref in `hawk-contribute:game-mute`.
 - **Anti-bot verification** before claim / download (see below).
