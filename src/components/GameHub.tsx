@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Bird, Feather, Gamepad2, Grid2x2, Lock, Swords, Target, Wind } from 'lucide-react'
-import type { PointsAccount, Session } from '../types'
+import type { MiniGameId, PointsAccount, Session } from '../types'
 import { useI18n } from '../i18n'
 import { asset } from '../lib/asset'
 import { GameView } from './GameView'
@@ -10,13 +10,13 @@ import { FlappyEagleView } from './FlappyEagleView'
 import { MemoryMatchView } from './MemoryMatchView'
 import { WingSoarView } from './WingSoarView'
 
-type GameId = 'hub' | 'whack' | 'fruit' | 'catch' | 'flappy' | 'memory' | 'wingSoar'
+type GameId = 'hub' | MiniGameId
 
 interface GameHubProps {
   session: Session | null
   account: PointsAccount
   onRequireAuth: () => void
-  onRoundComplete: (score: number, hits: number) => void
+  onRoundComplete: (score: number, hits: number, gameId: MiniGameId) => void
 }
 
 export function GameHub({
@@ -34,7 +34,7 @@ export function GameHub({
         session={session}
         account={account}
         onRequireAuth={onRequireAuth}
-        onRoundComplete={onRoundComplete}
+        onRoundComplete={(score, hits) => onRoundComplete(score, hits, 'whack')}
         onBack={() => setGame('hub')}
       />
     )
@@ -46,7 +46,7 @@ export function GameHub({
         session={session}
         account={account}
         onRequireAuth={onRequireAuth}
-        onRoundComplete={onRoundComplete}
+        onRoundComplete={(score, hits) => onRoundComplete(score, hits, 'fruit')}
         onBack={() => setGame('hub')}
       />
     )
@@ -58,7 +58,7 @@ export function GameHub({
         session={session}
         account={account}
         onRequireAuth={onRequireAuth}
-        onRoundComplete={onRoundComplete}
+        onRoundComplete={(score, hits) => onRoundComplete(score, hits, 'catch')}
         onBack={() => setGame('hub')}
       />
     )
@@ -70,7 +70,7 @@ export function GameHub({
         session={session}
         account={account}
         onRequireAuth={onRequireAuth}
-        onRoundComplete={onRoundComplete}
+        onRoundComplete={(score, hits) => onRoundComplete(score, hits, 'flappy')}
         onBack={() => setGame('hub')}
       />
     )
@@ -82,7 +82,7 @@ export function GameHub({
         session={session}
         account={account}
         onRequireAuth={onRequireAuth}
-        onRoundComplete={onRoundComplete}
+        onRoundComplete={(score, hits) => onRoundComplete(score, hits, 'memory')}
         onBack={() => setGame('hub')}
       />
     )
@@ -95,7 +95,7 @@ export function GameHub({
         session={session}
         account={account}
         onRequireAuth={onRequireAuth}
-        onRoundComplete={onRoundComplete}
+        onRoundComplete={(score, hits) => onRoundComplete(score, hits, 'wingSoar')}
         onBack={() => setGame('hub')}
       />
     )

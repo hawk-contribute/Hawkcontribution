@@ -4,6 +4,7 @@ import type {
   Comment,
   Contribution,
   LikesMap,
+  MiniGameId,
   Quote,
   Session,
   SocialState,
@@ -237,6 +238,7 @@ export function pushActivity(
     actorEmail: event.actorEmail,
     contributionId: event.contributionId,
     contributionTitle: event.contributionTitle,
+    ...(event.gameId ? { gameId: event.gameId } : {}),
   }
   return {
     ...social,
@@ -250,6 +252,7 @@ export async function recordGameActivity(input: {
   actorName: string
   actorEmail: string
   score: number
+  gameId: MiniGameId
 }): Promise<void> {
   await recordGameActivityCloud(input)
 }

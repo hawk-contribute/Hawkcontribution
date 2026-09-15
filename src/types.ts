@@ -62,6 +62,9 @@ export interface Contribution {
 
 export type ActivityKind = 'contribute' | 'like' | 'comment' | 'quote' | 'game' | 'nft' | 'donate'
 
+/** Stable ids for arcade mini-games (excludes the hub screen). */
+export type MiniGameId = 'whack' | 'fruit' | 'catch' | 'flappy' | 'memory' | 'wingSoar'
+
 export interface ActivityEvent {
   id: string
   kind: ActivityKind
@@ -70,6 +73,8 @@ export interface ActivityEvent {
   actorEmail: string
   contributionId: string
   contributionTitle: string
+  /** Set on kind `game` when recorded; omitted on legacy rows. */
+  gameId?: MiniGameId
 }
 
 export interface Comment {
