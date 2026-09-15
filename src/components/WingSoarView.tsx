@@ -7,7 +7,7 @@ import { gameAudio } from '../lib/gameAudio'
 
 const PROGRESS_KEY = 'hawk-contribute:wing-soar'
 
-export const WING_SOAR_LEVEL_POINTS = [300, 500, 1000, 1500, 2000] as const
+export const WING_SOAR_LEVEL_POINTS = [100, 100, 100, 200, 300] as const
 
 interface NodeDef {
   id: number
@@ -30,7 +30,7 @@ interface LevelDef {
 const LEVELS: LevelDef[] = [
   {
     id: 1,
-    points: 300,
+    points: 100,
     nameKey: 'wingSoar.level1',
     cosmeticKey: 'wingSoar.cosmetic1',
     nodes: [
@@ -46,7 +46,7 @@ const LEVELS: LevelDef[] = [
   },
   {
     id: 2,
-    points: 500,
+    points: 100,
     nameKey: 'wingSoar.level2',
     cosmeticKey: 'wingSoar.cosmetic2',
     nodes: [
@@ -64,7 +64,7 @@ const LEVELS: LevelDef[] = [
   },
   {
     id: 3,
-    points: 1000,
+    points: 100,
     nameKey: 'wingSoar.level3',
     cosmeticKey: 'wingSoar.cosmetic3',
     nodes: [
@@ -85,7 +85,7 @@ const LEVELS: LevelDef[] = [
   },
   {
     id: 4,
-    points: 1500,
+    points: 200,
     nameKey: 'wingSoar.level4',
     cosmeticKey: 'wingSoar.cosmetic4',
     // Twin wings sharing the heart node (Euler circuit)
@@ -111,7 +111,7 @@ const LEVELS: LevelDef[] = [
   },
   {
     id: 5,
-    points: 2000,
+    points: 300,
     nameKey: 'wingSoar.level5',
     cosmeticKey: 'wingSoar.cosmetic5',
     // Wings + body triangle (still Eulerian)
