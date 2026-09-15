@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Bird, Gamepad2, Grid2x2, Lock, Swords, Target, Wind } from 'lucide-react'
+import { Bird, Feather, Gamepad2, Grid2x2, Lock, Swords, Target, Wind } from 'lucide-react'
 import type { PointsAccount, Session } from '../types'
 import { useI18n } from '../i18n'
 import { asset } from '../lib/asset'
@@ -8,8 +8,9 @@ import { FruitSliceView } from './FruitSliceView'
 import { EagleCatchView } from './EagleCatchView'
 import { FlappyEagleView } from './FlappyEagleView'
 import { MemoryMatchView } from './MemoryMatchView'
+import { WingSoarView } from './WingSoarView'
 
-type GameId = 'hub' | 'whack' | 'fruit' | 'catch' | 'flappy' | 'memory'
+type GameId = 'hub' | 'whack' | 'fruit' | 'catch' | 'flappy' | 'memory' | 'wingSoar'
 
 interface GameHubProps {
   session: Session | null
@@ -78,6 +79,19 @@ export function GameHub({
   if (game === 'memory') {
     return (
       <MemoryMatchView
+        session={session}
+        account={account}
+        onRequireAuth={onRequireAuth}
+        onRoundComplete={onRoundComplete}
+        onBack={() => setGame('hub')}
+      />
+    )
+  }
+
+
+  if (game === 'wingSoar') {
+    return (
+      <WingSoarView
         session={session}
         account={account}
         onRequireAuth={onRequireAuth}
@@ -235,6 +249,29 @@ export function GameHub({
             <p className="mt-1.5 text-sm text-hawk-muted">{t('gameHub.memoryBlurb')}</p>
           </div>
         </button>
+
+        <button
+          type="button"
+          onClick={() => setGame('wingSoar')}
+          className="hawk-card group flex flex-col overflow-hidden p-0 text-left transition hover:border-hawk-gold/50"
+        >
+          <div className="relative h-40 overflow-hidden bg-hawk-navy/80 sm:h-44">
+            <img
+              src={asset('game/covers/cover-wing-soar.png')}
+              alt=""
+              className="h-full w-full object-cover opacity-90 transition group-hover:scale-105"
+            />
+            <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-xs font-medium text-hawk-gold">
+              <Feather className="h-3.5 w-3.5" />
+              {t('gameHub.wingSoarTag')}
+            </span>
+          </div>
+          <div className="p-5">
+            <h2 className="text-lg font-bold text-hawk-cream">{t('wingSoar.title')}</h2>
+            <p className="mt-1.5 text-sm text-hawk-muted">{t('gameHub.wingSoarBlurb')}</p>
+          </div>
+        </button>
+
       </div>
     </section>
   )
