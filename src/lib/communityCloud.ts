@@ -5,12 +5,14 @@ import type {
   Comment,
   Contribution,
   ContributionCategory,
+  MiniGameId,
   Quote,
   Session,
   SocialState,
   UploadedFileMeta,
 } from '../types'
 import { MAX_ACTIVITIES } from '../types'
+import { parseStoredMiniGameId } from './miniGames'
 import { supabase } from './supabase'
 import {
   DEFAULT_CONTRIBUTE_VALUE_PER_ITEM,
@@ -136,6 +138,11 @@ function mapContribution(row: ContribRow): Contribution {
 function mapActivity(row: ActivityRow): ActivityEvent {
   const meta = row.meta ?? {}
   const kind = row.kind as ActivityKind
+  const contributionId = String(meta.contribution_id ?? meta.contributionId ?? '')
+  const gameId =
+    kind === 'game'
+      ? parseStoredMiniGameId(meta.gameId ?? meta.game_id, contributionId)
+      : undefined
   return {
     id: row.id,
     kind: [
@@ -151,8 +158,9 @@ function mapActivity(row: ActivityRow): ActivityEvent {
     at: row.created_at,
     actorName: row.actor_name,
     actorEmail: row.actor_email,
-    contributionId: String(meta.contribution_id ?? meta.contributionId ?? ''),
+    contributionId,
     contributionTitle: row.title || String(meta.contribution_title ?? ''),
+    ...(gameId ? { gameId } : {}),
   }
 }
 
@@ -465,14 +473,15 @@ export async function recordGameActivityCloud(input: {
   actorName: string
   actorEmail: string
   score: number
+  gameId: MiniGameId
 }): Promise<void> {
   await insertActivity({
     kind: 'game',
     actorName: input.actorName,
     actorEmail: input.actorEmail,
     title: String(input.score),
-    contributionId: 'game-eagle',
-    meta: { score: input.score },
+    contributionId: `game-${input.gameId}`,
+    meta: { score: input.score, gameId: input.gameId },
   })
 }
 

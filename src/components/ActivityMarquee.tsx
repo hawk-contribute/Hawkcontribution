@@ -4,6 +4,7 @@ import type { ActivityEvent } from '../types'
 import { useI18n } from '../i18n'
 import { isSiteAdmin } from '../lib/admins'
 import { isWithinActivityWindow } from '../lib/communityCloud'
+import { miniGameNameI18nKey } from '../lib/miniGames'
 
 interface ActivityMarqueeProps {
   activities: ActivityEvent[]
@@ -38,6 +39,19 @@ function durationForCycle(cycleWidthPx: number, itemCount: number): number {
   return Math.max(MIN_DURATION_SEC, padded)
 }
 
+function activityText(
+  a: ActivityEvent,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+  locale: string,
+): string {
+  return t(`activity.${a.kind}`, {
+    name: a.actorName,
+    title: a.contributionTitle,
+    time: formatTime(a.at, locale),
+    game: t(miniGameNameI18nKey(a.gameId)),
+  })
+}
+
 export function ActivityMarquee({
   activities,
   sessionEmail,
@@ -63,13 +77,7 @@ export function ActivityMarquee({
   )
 
   const items = useMemo(() => {
-    return recent.map((a) =>
-      t(`activity.${a.kind}`, {
-        name: a.actorName,
-        title: a.contributionTitle,
-        time: formatTime(a.at, locale),
-      }),
-    )
+    return recent.map((a) => activityText(a, t, locale))
   }, [recent, t, locale])
 
   // Measure one cycle (= half of duplicated track) and set duration from px/s.
@@ -144,11 +152,7 @@ export function ActivityMarquee({
                 className="flex items-center justify-between gap-2 rounded-md bg-hawk-panel/40 px-2 py-1"
               >
                 <span className="min-w-0 truncate text-hawk-cream/90">
-                  {t(`activity.${a.kind}`, {
-                    name: a.actorName,
-                    title: a.contributionTitle,
-                    time: formatTime(a.at, locale),
-                  })}
+                  {activityText(a, t, locale)}
                 </span>
                 <button
                   type="button"

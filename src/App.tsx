@@ -17,7 +17,7 @@ import { usePoints } from './hooks/usePoints'
 import { useSession } from './hooks/useSession'
 import { useI18n } from './i18n'
 import { recordGameActivity, recordNftActivity } from './lib/storage'
-import type { Contribution, Opportunity } from './types'
+import type { Contribution, MiniGameId, Opportunity } from './types'
 import { ActivityMarquee } from './components/ActivityMarquee'
 import { AuthModal } from './components/AuthModal'
 import { BrowseView } from './components/BrowseView'
@@ -338,13 +338,14 @@ export default function App() {
   )
 
   const handleRoundComplete = useCallback(
-    (score: number, hits: number) => {
+    (score: number, hits: number, gameId: MiniGameId) => {
       if (!session || score <= 0) return
       recordRound(score, hits)
       void recordGameActivity({
         actorName: session.displayName,
         actorEmail: session.email,
         score,
+        gameId,
       }).then(() => refresh())
       setToast(t('toast.gamePoints', { n: score }))
     },
