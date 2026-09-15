@@ -4,6 +4,7 @@ import {
   Circle,
   Download,
   Gift,
+  Hash,
   Lock,
   Plus,
   Save,
@@ -12,6 +13,7 @@ import {
 } from 'lucide-react'
 import type {
   Contribution,
+  NftClaimEntry,
   NftDefinition,
   PointsAccount,
   Session,
@@ -30,13 +32,15 @@ import {
   type NftUpsertInput,
 } from '../lib/nftCatalog'
 import { useHumanVerify } from '../hooks/useHumanVerify'
+import { formatClaimSerial, isValidClaimSerial } from '../lib/nftClaimSerial'
+import { downloadNftImage, stampedDownloadName } from '../lib/nftStamp'
 import { DonationCard } from './DonationCard'
 import { HumanVerify } from './HumanVerify'
 
 interface RewardsViewProps {
   session: Session | null
   account: PointsAccount
-  claims: Record<string, { claimedAt: string }>
+  claims: Record<string, NftClaimEntry>
   catalog: NftDefinition[]
   redeemPoints: number
   /** All feed contributions; eligibility filters to this signed-in user only */
@@ -45,7 +49,11 @@ interface RewardsViewProps {
   /** Claim-cycle epoch: posts at/before this no longer count for this user */
   eligibilityResetAt: string | null
   onRequireAuth: () => void
-  onClaim: (nftId: string, title: string, requiredPoints: number) => Promise<boolean>
+  onClaim: (
+    nftId: string,
+    title: string,
+    requiredPoints: number,
+  ) => Promise<NftClaimEntry | null>
   onPlayGame: () => void
   onProvide?: () => void
   onSaveRedeemPoints?: (points: number) => Promise<void>
@@ -53,32 +61,6 @@ interface RewardsViewProps {
   onSaveNft?: (input: NftUpsertInput) => Promise<void>
   onSaveNftPoints?: (id: string, points: number) => Promise<void>
   onDeleteNft?: (id: string) => Promise<void>
-}
-
-async function downloadNftImage(path: string, filename: string) {
-  const url = asset(path)
-  try {
-    const res = await fetch(url)
-    const blob = await res.blob()
-    const objectUrl = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = objectUrl
-    a.download = filename
-    a.rel = 'noopener'
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    URL.revokeObjectURL(objectUrl)
-  } catch {
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    a.target = '_blank'
-    a.rel = 'noopener noreferrer'
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-  }
 }
 
 const emptyForm = {
@@ -202,6 +184,7 @@ export function RewardsView({
           {t('rewards.subtitle')}
         </p>
         <p className="mt-2 text-xs text-hawk-muted">{t('rewards.offchainNote')}</p>
+        <p className="mt-1 text-xs text-hawk-muted">{t('rewards.serialHint')}</p>
       </div>
 
       {admin && onSaveRedeemPoints && onSaveNft && onSaveNftPoints && onDeleteNft && (
@@ -750,6 +733,7 @@ export function RewardsView({
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {catalog.map((nft) => {
           const owned = !!(session && claims[nft.id])
+          const claim = session ? claims[nft.id] : undefined
           const need = nft.requiredPoints
           const eligible = points >= need
           const canClaim =
@@ -759,10 +743,21 @@ export function RewardsView({
             verified &&
             contributeReady
           const locked = !session || !eligible || !contributeReady
-          const fileName = nft.image.split('/').pop() || `${nft.id}.jpg`
           const title = resolveNftTitle(nft, t)
           const blurb = resolveNftBlurb(nft, t)
-          const rarityLabel = t(`rewards.rarity.${nft.rarityKey}`)
+          const rarityRaw = t(`rewards.rarity.${nft.rarityKey}`)
+          const rarityLabel =
+            rarityRaw === `rewards.rarity.${nft.rarityKey}`
+              ? nft.rarityKey
+              : rarityRaw
+          const serialDisplay = isValidClaimSerial(claim?.claimSerial)
+            ? formatClaimSerial(claim.claimSerial)
+            : t('rewards.claimSerialNone')
+          const stampCopy = {
+            serialText: t('rewards.stamp.serial', { n: serialDisplay }),
+            voucherText: t('rewards.stamp.voucher'),
+            levelText: t('rewards.stamp.level', { level: rarityLabel }),
+          }
 
           return (
             <article
@@ -781,14 +776,25 @@ export function RewardsView({
                   loading="lazy"
                 />
                 <span className="absolute left-3 top-3 rounded-full bg-hawk-black/75 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-hawk-gold backdrop-blur-sm">
-                  {rarityLabel === `rewards.rarity.${nft.rarityKey}`
-                    ? nft.rarityKey
-                    : rarityLabel}
+                  {rarityLabel}
                 </span>
                 {owned && (
                   <span className="absolute right-3 top-3 rounded-full bg-hawk-gold px-2.5 py-0.5 text-[10px] font-bold text-hawk-black">
                     {t('rewards.owned')}
                   </span>
+                )}
+                {owned && (
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/75 to-transparent px-3 pb-2.5 pt-10">
+                    <p className="font-mono text-[11px] font-bold tracking-wide text-hawk-gold drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                      {t('rewards.stamp.serial', { n: serialDisplay })}
+                    </p>
+                    <p className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-hawk-cream drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                      {t('rewards.stamp.voucher')}
+                    </p>
+                    <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-hawk-gold/90">
+                      {t('rewards.stamp.level', { level: rarityLabel })}
+                    </p>
+                  </div>
                 )}
                 {locked && !owned && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/35">
@@ -806,6 +812,21 @@ export function RewardsView({
                     n: need.toLocaleString(),
                   })}
                 </p>
+
+                {owned && (
+                  <div className="mt-3 space-y-1.5 rounded-lg border border-hawk-gold/25 bg-hawk-ink/70 px-3 py-2.5">
+                    <p className="inline-flex items-center gap-1.5 font-mono text-sm font-semibold text-hawk-gold">
+                      <Hash className="h-3.5 w-3.5" />
+                      {t('rewards.claimSerial', { n: serialDisplay })}
+                    </p>
+                    <p className="text-xs leading-relaxed text-hawk-cream">
+                      {t('rewards.voucherNote')}
+                    </p>
+                    <p className="text-xs font-medium text-hawk-muted">
+                      {t('rewards.level', { level: rarityLabel })}
+                    </p>
+                  </div>
+                )}
 
                 <div className="mt-3 flex flex-col gap-2">
                   {owned ? (
@@ -828,8 +849,23 @@ export function RewardsView({
                           return
                         }
                         if (!eligible || !contributeReady || !verified) return
-                        void onClaim(nft.id, title, need).then((ok) => {
-                          if (ok) consumeVerify()
+                        void onClaim(nft.id, title, need).then((entry) => {
+                          if (!entry) return
+                          consumeVerify()
+                          const serial = entry.claimSerial
+                          void downloadNftImage(
+                            nft.image,
+                            stampedDownloadName(nft.image, nft.id, serial),
+                            {
+                              serialText: t('rewards.stamp.serial', {
+                                n: formatClaimSerial(serial),
+                              }),
+                              voucherText: t('rewards.stamp.voucher'),
+                              levelText: t('rewards.stamp.level', {
+                                level: rarityLabel,
+                              }),
+                            },
+                          )
                         })
                       }}
                       className={`hawk-btn w-full px-4 py-2.5 text-sm ${
@@ -860,7 +896,21 @@ export function RewardsView({
                       title={!verified ? t('verify.required') : undefined}
                       onClick={() => {
                         if (!verified) return
-                        void downloadNftImage(nft.image, fileName)
+                        if (owned) {
+                          void downloadNftImage(
+                            nft.image,
+                            stampedDownloadName(
+                              nft.image,
+                              nft.id,
+                              claim?.claimSerial,
+                            ),
+                            stampCopy,
+                          )
+                        } else {
+                          const fileName =
+                            nft.image.split('/').pop() || `${nft.id}.jpg`
+                          void downloadNftImage(nft.image, fileName)
+                        }
                       }}
                     >
                       <Download className="h-3.5 w-3.5" />

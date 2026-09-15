@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import type { NftClaimEntry } from '../types'
 import {
   claimNft,
   getClaimsForEmail,
@@ -8,7 +9,7 @@ import { setLocalEligibilityResetAt } from '../lib/contributeEligibility'
 import { subscribeStoreUpdates } from '../lib/sync'
 
 export function useNftClaims(email: string | undefined, userId?: string) {
-  const [claims, setClaims] = useState<Record<string, { claimedAt: string }>>(
+  const [claims, setClaims] = useState<Record<string, NftClaimEntry>>(
     () => (email ? getClaimsForEmail(email) : {}),
   )
 

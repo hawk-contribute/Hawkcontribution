@@ -16,8 +16,9 @@ import { fetchContributeEligibilityResetAt } from './lib/cloudSync'
 import { usePoints } from './hooks/usePoints'
 import { useSession } from './hooks/useSession'
 import { useI18n } from './i18n'
+import { formatClaimSerial, isValidClaimSerial } from './lib/nftClaimSerial'
 import { recordGameActivity, recordNftActivity } from './lib/storage'
-import type { Contribution, MiniGameId, Opportunity } from './types'
+import type { Contribution, MiniGameId, NftClaimEntry, Opportunity } from './types'
 import { ActivityMarquee } from './components/ActivityMarquee'
 import { AuthModal } from './components/AuthModal'
 import { BrowseView } from './components/BrowseView'
@@ -353,10 +354,14 @@ export default function App() {
   )
 
   const handleClaimNft = useCallback(
-    async (nftId: string, title: string, requiredPoints: number): Promise<boolean> => {
+    async (
+      nftId: string,
+      title: string,
+      requiredPoints: number,
+    ): Promise<NftClaimEntry | null> => {
       if (!session) {
         requireAuth('rewards')
-        return false
+        return null
       }
       const elig = evaluateContributeEligibility(
         contributions,
@@ -375,14 +380,14 @@ export default function App() {
             min: String(elig.minTypes),
           }),
         )
-        return false
+        return null
       }
       if (account.total < requiredPoints) {
         setToast(t('toast.nftNeedPoints', { n: requiredPoints.toLocaleString() }))
-        return false
+        return null
       }
       const entry = await claim(nftId)
-      if (!entry) return false
+      if (!entry) return null
       // Claim cycle restarts: prior contribution value no longer counts.
       const localReset = getLocalEligibilityResetAt(session.email)
       const cloudReset = session.userId
@@ -395,8 +400,17 @@ export default function App() {
         nftTitle: title,
       })
       await refresh()
-      setToast(t('toast.nftClaimed', { title }))
-      return true
+      if (isValidClaimSerial(entry.claimSerial)) {
+        setToast(
+          t('toast.nftClaimedSerial', {
+            title,
+            serial: formatClaimSerial(entry.claimSerial),
+          }),
+        )
+      } else {
+        setToast(t('toast.nftClaimed', { title }))
+      }
+      return entry
     },
     [
       session,

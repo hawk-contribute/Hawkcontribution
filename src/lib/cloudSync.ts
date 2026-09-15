@@ -3,7 +3,10 @@ import {
   getClaimsForEmail,
   claimNft as claimNftLocal,
   loadAllNftClaims,
+  patchNftClaim,
 } from './nftClaims'
+import { noteSerialWatermark, parseClaimSerial } from './nftClaimSerial'
+import type { NftClaimEntry } from '../types'
 import {
   getPointsAccount,
   loadPointsMap,
@@ -54,11 +57,22 @@ function writeLocalPointsTotal(email: string, total: number): void {
 
 function writeLocalClaims(
   email: string,
-  claims: Record<string, { claimedAt: string }>,
+  claims: Record<string, NftClaimEntry>,
 ): void {
   try {
     const map = loadAllNftClaims()
-    map[email] = { ...(map[email] ?? {}), ...claims }
+    const existing = map[email] ?? {}
+    const merged: Record<string, NftClaimEntry> = { ...existing }
+    for (const [nftId, remote] of Object.entries(claims)) {
+      const prev = existing[nftId]
+      const claimSerial = remote.claimSerial ?? prev?.claimSerial
+      merged[nftId] = {
+        claimedAt: remote.claimedAt || prev?.claimedAt || new Date().toISOString(),
+        ...(claimSerial !== undefined ? { claimSerial } : {}),
+      }
+      if (claimSerial !== undefined) noteSerialWatermark(claimSerial)
+    }
+    map[email] = merged
     localStorage.setItem(NFT_CLAIMS_KEY, JSON.stringify(map))
     broadcastStoreUpdate()
   } catch {
@@ -170,18 +184,20 @@ export async function upsertGamePoints(
 export async function syncNftClaimsFromCloud(
   userId: string,
   email: string,
-): Promise<Record<string, { claimedAt: string }> | null> {
+): Promise<Record<string, NftClaimEntry> | null> {
   try {
     const { data, error } = await supabase
       .from('nft_claims')
-      .select('nft_id, claimed_at')
+      .select('nft_id, claimed_at, claim_serial')
       .eq('user_id', userId)
     if (error) throw error
-    const remote: Record<string, { claimedAt: string }> = {}
+    const remote: Record<string, NftClaimEntry> = {}
     for (const row of data ?? []) {
       if (row.nft_id) {
+        const claimSerial = parseClaimSerial(row.claim_serial)
         remote[row.nft_id] = {
           claimedAt: row.claimed_at ?? new Date().toISOString(),
+          ...(claimSerial !== undefined ? { claimSerial } : {}),
         }
       }
     }
@@ -241,21 +257,46 @@ export async function claimNftCloud(
   userId: string,
   email: string,
   nftId: string,
-): Promise<{ claimedAt: string } | null> {
+): Promise<NftClaimEntry | null> {
   const local = claimNftLocal(email, nftId)
   if (!local) return null
   let cloudOk = false
   try {
-    const { error } = await supabase.from('nft_claims').upsert(
-      {
+    // Insert only (no client-supplied serial). A BEFORE INSERT trigger assigns
+    // the global sequence. Do not upsert: nft_claims has no UPDATE policy, and
+    // serials must stay immutable.
+    const inserted = await supabase
+      .from('nft_claims')
+      .insert({
         user_id: userId,
         nft_id: nftId,
         claimed_at: local.claimedAt,
-      },
-      { onConflict: 'user_id,nft_id' },
-    )
-    if (error) throw error
-    cloudOk = true
+      })
+      .select('claimed_at, claim_serial')
+      .maybeSingle()
+    let row = inserted.data
+    if (inserted.error || !row) {
+      const existing = await supabase
+        .from('nft_claims')
+        .select('claimed_at, claim_serial')
+        .eq('user_id', userId)
+        .eq('nft_id', nftId)
+        .maybeSingle()
+      if (existing.error) throw existing.error
+      row = existing.data
+    }
+    if (row) {
+      cloudOk = true
+      const cloudSerial = parseClaimSerial(row.claim_serial)
+      const claimedAt =
+        typeof row.claimed_at === 'string' && row.claimed_at
+          ? row.claimed_at
+          : local.claimedAt
+      patchNftClaim(email, nftId, {
+        claimedAt,
+        ...(cloudSerial !== undefined ? { claimSerial: cloudSerial } : {}),
+      })
+    }
   } catch (e) {
     console.warn('[hawk-contribute] nft claim cloud write failed', e)
   }
@@ -268,5 +309,6 @@ export async function claimNftCloud(
     // Offline / cloud write failed: still start a new local claim cycle.
     setLocalEligibilityResetAt(email, local.claimedAt)
   }
-  return local
+  const latest = getClaimsForEmail(email)[nftId]
+  return latest ?? local
 }
