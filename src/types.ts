@@ -161,7 +161,16 @@ export interface NftDefinition {
   sortOrder?: number
 }
 
-export type NftClaimsMap = Record<
-  string,
-  Record<string, { claimedAt: string }>
->
+/** One successful NFT claim (app-side collectible; not an on-chain mint). */
+export interface NftClaimEntry {
+  claimedAt: string
+  /**
+   * Global monotonic claim serial (領取序號), 1-based, across all users and NFT types.
+   * Cloud (`nft_claim_serial_seq`) is source of truth when signed in.
+   * Absent on legacy claims — UI shows "—".
+   */
+  claimSerial?: number
+}
+
+/** email → nftId → claim */
+export type NftClaimsMap = Record<string, Record<string, NftClaimEntry>>
