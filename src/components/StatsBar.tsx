@@ -28,7 +28,11 @@ export function StatsBar({ stats }: { stats: CommunityStats }) {
 
   return (
     <div className="mx-auto max-w-5xl px-4 pt-4 sm:px-6">
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-3 lg:grid-cols-9">
+      <div
+        className={`grid grid-cols-3 gap-2 sm:grid-cols-4 ${
+          cells.length >= 9 ? 'lg:grid-cols-9' : 'lg:grid-cols-8'
+        }`}
+      >
         {cells.map((c) => (
           <div
             key={c.label}

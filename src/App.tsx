@@ -76,7 +76,7 @@ export default function App() {
     deleteLike,
     deleteActivity,
   } = useCommunity({ live: tab === 'feed' || tab === 'browse' || tab === 'ledger' || tab === 'stats' || tab === 'rewards' })
-  const { account, communityPoints, recordRound, awardBonus, applyClawback, refresh: refreshPoints } = usePoints(
+  const { account, recordRound, awardBonus, applyClawback, refresh: refreshPoints } = usePoints(
     session?.email,
     session?.userId,
   )
@@ -120,9 +120,10 @@ export default function App() {
       .slice(0, 40)
   }, [donationFeed.activities, social.activities])
 
+  // 積分 = current user points only; hide for guests so localStorage totals never look like a balance.
   const statsWithPoints = useMemo(
-    () => ({ ...stats, points: communityPoints }),
-    [stats, communityPoints],
+    () => (session ? { ...stats, points: account.total } : { ...stats, points: undefined }),
+    [stats, session, account.total],
   )
 
   const openUpload = useCallback(

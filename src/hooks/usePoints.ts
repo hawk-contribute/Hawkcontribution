@@ -4,7 +4,6 @@ import {
   addBonusPoints,
   addRoundPoints,
   getPointsAccount,
-  getTotalPointsAll,
   setPointsTotal,
   subtractBonusPoints,
 } from '../lib/points'
@@ -15,11 +14,10 @@ export function usePoints(email: string | undefined, userId?: string) {
   const [account, setAccount] = useState<PointsAccount>(() =>
     email ? getPointsAccount(email) : { total: 0, history: [] },
   )
-  const [communityPoints, setCommunityPoints] = useState(() => getTotalPointsAll())
 
   const refresh = useCallback(() => {
+    // No session → empty account so UI never shows a previous user's local points.
     setAccount(email ? getPointsAccount(email) : { total: 0, history: [] })
-    setCommunityPoints(getTotalPointsAll())
   }, [email])
 
   useEffect(() => {
@@ -40,7 +38,6 @@ export function usePoints(email: string | undefined, userId?: string) {
         }
         const next = addRoundPoints(email, score, hits)
         setAccount(next)
-        setCommunityPoints(getTotalPointsAll())
         if (userId) {
           await upsertGamePoints(userId, next.total)
         }
@@ -61,7 +58,6 @@ export function usePoints(email: string | undefined, userId?: string) {
       }
       const next = addBonusPoints(email, points)
       setAccount(next)
-      setCommunityPoints(getTotalPointsAll())
       if (userId) {
         await upsertGamePoints(userId, next.total)
       }
@@ -82,7 +78,6 @@ export function usePoints(email: string | undefined, userId?: string) {
           ? setPointsTotal(email, cloudTotal)
           : subtractBonusPoints(email, points)
       setAccount(next)
-      setCommunityPoints(getTotalPointsAll())
       return next
     },
     [email, refresh],
@@ -90,7 +85,6 @@ export function usePoints(email: string | undefined, userId?: string) {
 
   return {
     account,
-    communityPoints,
     recordRound,
     awardBonus,
     applyClawback,
