@@ -71,6 +71,7 @@ function mapAuthError(msg: string, t: (k: string) => string): string {
   if (m === 'password_mismatch') return t('auth.passwordMismatch')
   if (m === 'no_session') return t('auth.noSession')
   if (m === 'wallet_rejected') return t('auth.walletRejected')
+  if (m === 'network_rejected') return t('auth.networkRejected')
   if (m === 'no_wallet') return t('auth.noWallet')
   if (m === 'web3_disabled') return t('auth.web3Disabled')
   return t('auth.authFailed')
@@ -86,6 +87,7 @@ function formatError(msg: string, t: (k: string) => string): string {
     raw === 'PASSWORD_MISMATCH' ||
     raw === 'NO_SESSION' ||
     raw === 'WALLET_REJECTED' ||
+    raw === 'NETWORK_REJECTED' ||
     raw === 'NO_WALLET' ||
     raw === 'WEB3_DISABLED'
   ) {

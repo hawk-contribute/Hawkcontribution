@@ -146,9 +146,78 @@ export function isUserRejectedError(err: unknown): boolean {
 const DEFAULT_STATEMENT =
   'Sign in to Hawk Contribute. This signature proves wallet ownership and does not send a transaction or cost gas.'
 
+/** BNB Smart Chain (BSC) — required before SIWE so chainId in the signed message is 56. */
+export const BSC_CHAIN_ID = 56
+export const BSC_CHAIN_ID_HEX = '0x38'
+
+const BSC_ADD_CHAIN_PARAMS = {
+  chainId: BSC_CHAIN_ID_HEX,
+  chainName: 'BNB Smart Chain',
+  nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 },
+  rpcUrls: ['https://bsc-dataseed.binance.org'],
+  blockExplorerUrls: ['https://bscscan.com'],
+} as const
+
+function walletErrorCode(err: unknown): number | string | undefined {
+  if (!err || typeof err !== 'object') return undefined
+  const e = err as { code?: number | string; data?: { originalError?: { code?: number | string } } }
+  return e.code ?? e.data?.originalError?.code
+}
+
+function isUnrecognizedChainError(err: unknown): boolean {
+  const code = walletErrorCode(err)
+  if (code === 4902 || code === '4902') return true
+  const msg = err && typeof err === 'object'
+    ? String((err as { message?: string }).message ?? '')
+    : String(err ?? '')
+  return /unrecognized chain|chain.*(not|missing)|4902/i.test(msg)
+}
+
+/**
+ * Request accounts, then ensure the wallet is on BSC (56 / 0x38).
+ * Switches via wallet_switchEthereumChain; if the chain is missing (4902), adds it.
+ * Throws NETWORK_REJECTED if the user rejects the switch/add prompt.
+ */
+export async function ensureBscChain(wallet: EthereumWallet): Promise<void> {
+  await wallet.request({ method: 'eth_requestAccounts' })
+
+  const chainIdRaw = (await wallet.request({ method: 'eth_chainId' })) as string
+  const hex = (chainIdRaw ?? '').toLowerCase()
+  const onBsc =
+    hex === BSC_CHAIN_ID_HEX ||
+    hex === '0x038' ||
+    Number.parseInt(hex, 16) === BSC_CHAIN_ID
+  if (onBsc) return
+
+  try {
+    await wallet.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: BSC_CHAIN_ID_HEX }],
+    })
+  } catch (err) {
+    if (isUserRejectedError(err)) {
+      throw new Error('NETWORK_REJECTED')
+    }
+    if (!isUnrecognizedChainError(err)) {
+      throw err
+    }
+    try {
+      await wallet.request({
+        method: 'wallet_addEthereumChain',
+        params: [{ ...BSC_ADD_CHAIN_PARAMS }],
+      })
+    } catch (addErr) {
+      if (isUserRejectedError(addErr)) {
+        throw new Error('NETWORK_REJECTED')
+      }
+      throw addErr
+    }
+  }
+}
+
 /**
  * Connect injected wallet (EIP-6963 / window.ethereum) and sign SIWE via Supabase Auth.
- * Server verifies the signature — no eth_sendTransaction.
+ * Ensures BSC first, then server verifies the signature — no eth_sendTransaction.
  */
 export async function signInWithEthereumWallet(options?: {
   statement?: string
@@ -169,6 +238,9 @@ export async function signInWithEthereumWallet(options?: {
     throw new Error('NO_WALLET')
   }
 
+  // Ensure BSC before SIWE so the signed message carries chainId 56.
+  await ensureBscChain(wallet)
+
   // Prefer site origin for SIWE URI so Redirect URL allow-list matches Pages / localhost.
   const url = authRedirectTo()
 
@@ -178,7 +250,7 @@ export async function signInWithEthereumWallet(options?: {
     // Injected providers satisfy request(); cast for SDK's full EIP-1193 type.
     wallet: wallet as never,
     // SIWE URI must match Supabase Redirect URL allow-list (Pages / localhost).
-    // chainId comes from the wallet (e.g. BSC 56) — personal_sign only, no tx / gas.
+    // chainId comes from the wallet (BSC 56 after ensureBscChain) — personal_sign only, no tx / gas.
     options: { url },
   })
 

@@ -231,10 +231,13 @@ export function useSession() {
       setAuthError(null)
       return user
     } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      if (msg === 'NETWORK_REJECTED') {
+        throw new Error('NETWORK_REJECTED')
+      }
       if (isUserRejectedError(err)) {
         throw new Error('WALLET_REJECTED')
       }
-      const msg = err instanceof Error ? err.message : String(err)
       if (msg === 'NO_WALLET' || msg.includes('No compatible Ethereum wallet')) {
         throw new Error('NO_WALLET')
       }

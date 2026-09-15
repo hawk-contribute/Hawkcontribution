@@ -198,7 +198,8 @@ Without step 1 the client shows `auth.web3Disabled`.
 
 ### Client flow
 
-- `supabase.auth.signInWithWeb3({ chain: 'ethereum', statement, wallet, options: { url } })` via `src/lib/walletAuth.ts`
+- `ensureBscChain` then `supabase.auth.signInWithWeb3({ chain: 'ethereum', statement, wallet, options: { url } })` via `src/lib/walletAuth.ts`
+- Before SIWE: `eth_requestAccounts` → ensure chain `0x38` (BSC); `wallet_switchEthereumChain` / `wallet_addEthereumChain` if needed
 - EIP-6963 discovery + `window.ethereum` fallback (no WalletConnect / wagmi required)
 - Profile column `wallet_address` (unique, nullable) upserted after sign-in
 
