@@ -63,7 +63,14 @@ export interface Contribution {
 export type ActivityKind = 'contribute' | 'like' | 'comment' | 'quote' | 'game' | 'nft' | 'donate'
 
 /** Stable ids for arcade mini-games (excludes the hub screen). */
-export type MiniGameId = 'whack' | 'fruit' | 'catch' | 'flappy' | 'memory' | 'wingSoar'
+export type MiniGameId =
+  | 'whack'
+  | 'fruit'
+  | 'catch'
+  | 'flappy'
+  | 'memory'
+  | 'wingSoar'
+  | 'hatchDay'
 
 export interface ActivityEvent {
   id: string
