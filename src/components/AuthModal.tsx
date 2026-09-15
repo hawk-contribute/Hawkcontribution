@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Wallet, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { useI18n } from '../i18n'
 import { isValidEmail } from '../lib/storage'
-import { shortenAddress } from '../lib/walletAuth'
 
 type AuthMode = 'signin' | 'signup' | 'forgot' | 'recovery' | 'change'
 
@@ -24,8 +23,6 @@ interface AuthModalProps {
   }) => Promise<'signed_in' | 'confirm_email'>
   onRequestReset: (email: string) => Promise<void>
   onUpdatePassword: (password: string) => Promise<void>
-  /** Wallet SIWE / personal_sign login (no on-chain tx). */
-  onWalletSignIn?: () => Promise<{ address?: string } | void>
 }
 
 function isInvalidLoginCredentials(msg: string): boolean {
@@ -70,10 +67,6 @@ function mapAuthError(msg: string, t: (k: string) => string): string {
   }
   if (m === 'password_mismatch') return t('auth.passwordMismatch')
   if (m === 'no_session') return t('auth.noSession')
-  if (m === 'wallet_rejected') return t('auth.walletRejected')
-  if (m === 'network_rejected') return t('auth.networkRejected')
-  if (m === 'no_wallet') return t('auth.noWallet')
-  if (m === 'web3_disabled') return t('auth.web3Disabled')
   return t('auth.authFailed')
 }
 
@@ -85,11 +78,7 @@ function formatError(msg: string, t: (k: string) => string): string {
     raw === 'INVALID_EMAIL' ||
     raw === 'WEAK_PASSWORD' ||
     raw === 'PASSWORD_MISMATCH' ||
-    raw === 'NO_SESSION' ||
-    raw === 'WALLET_REJECTED' ||
-    raw === 'NETWORK_REJECTED' ||
-    raw === 'NO_WALLET' ||
-    raw === 'WEB3_DISABLED'
+    raw === 'NO_SESSION'
   ) {
     return mapped
   }
@@ -107,7 +96,6 @@ export function AuthModal({
   onSignUp,
   onRequestReset,
   onUpdatePassword,
-  onWalletSignIn,
 }: AuthModalProps) {
   const { t } = useI18n()
   const [mode, setMode] = useState<AuthMode>('signin')
@@ -119,7 +107,6 @@ export function AuthModal({
   const [showSignupHint, setShowSignupHint] = useState(false)
   const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
-  const [walletAddress, setWalletAddress] = useState('')
 
   useEffect(() => {
     if (!open) return
@@ -131,7 +118,6 @@ export function AuthModal({
       setShowSignupHint(false)
       setInfo('')
       setBusy(false)
-      setWalletAddress('')
       return
     }
     if (changePassword) {
@@ -142,7 +128,6 @@ export function AuthModal({
       setShowSignupHint(false)
       setInfo('')
       setBusy(false)
-      setWalletAddress('')
       return
     }
     setMode('signin')
@@ -154,7 +139,6 @@ export function AuthModal({
     setShowSignupHint(false)
     setInfo('')
     setBusy(false)
-    setWalletAddress('')
   }, [open, passwordRecovery, changePassword])
 
   useEffect(() => {
@@ -184,29 +168,6 @@ export function AuthModal({
         : mode === 'change'
           ? t('auth.changeHint')
           : t('auth.hint')
-
-  const handleWalletSignIn = async () => {
-    if (!onWalletSignIn) return
-    setError('')
-    setShowSignupHint(false)
-    setInfo('')
-    setBusy(true)
-    try {
-      const result = await onWalletSignIn()
-      const addr =
-        result && typeof result === 'object' && 'address' in result
-          ? String((result as { address?: string }).address ?? '')
-          : ''
-      if (addr) setWalletAddress(addr)
-      onClose()
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      console.error('[auth] wallet sign-in error', err)
-      setError(formatError(msg, t))
-    } finally {
-      setBusy(false)
-    }
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -341,40 +302,6 @@ export function AuthModal({
             >
               {t('auth.modeSignUp')}
             </button>
-          </div>
-        )}
-
-        {showTabs && onWalletSignIn && (
-          <div className="mb-4 space-y-2">
-            <button
-              type="button"
-              className="hawk-btn hawk-btn-ghost flex w-full items-center justify-center gap-2 px-4 py-2.5"
-              disabled={busy}
-              onClick={() => void handleWalletSignIn()}
-            >
-              <Wallet className="h-4 w-4 text-hawk-gold" />
-              {busy ? t('auth.working') : t('auth.walletSignIn')}
-            </button>
-            {walletAddress && (
-              <p className="text-center text-xs text-hawk-muted">
-                {t('auth.walletConnected', {
-                  address: shortenAddress(walletAddress),
-                })}
-              </p>
-            )}
-            <p className="text-center text-[11px] text-hawk-muted">
-              {t('auth.walletHint')}
-            </p>
-            <div className="relative py-1">
-              <div className="absolute inset-0 flex items-center" aria-hidden>
-                <div className="w-full border-t border-hawk-border/60" />
-              </div>
-              <div className="relative flex justify-center">
-                <span className="bg-hawk-panel px-2 text-[11px] uppercase tracking-wide text-hawk-muted">
-                  {t('auth.orEmail')}
-                </span>
-              </div>
-            </div>
           </div>
         )}
 

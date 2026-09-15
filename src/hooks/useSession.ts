@@ -13,12 +13,9 @@ import {
   upsertProfile,
 } from '../lib/cloudSync'
 import {
-  isUserRejectedError,
   sessionKeyForUser,
   shortenAddress,
-  signInWithEthereumWallet,
   walletAddressFromUser,
-  type EthereumWallet,
 } from '../lib/walletAuth'
 
 function sessionFromUser(user: User): Session {
@@ -223,35 +220,6 @@ export function useSession() {
     [],
   )
 
-  const signInWithWallet = useCallback(async (wallet?: EthereumWallet) => {
-    try {
-      const { user } = await signInWithEthereumWallet({ wallet })
-      applySessionNow(user, setSessionState, syncedUserRef, true)
-      setPasswordRecovery(false)
-      setAuthError(null)
-      return user
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      if (msg === 'NETWORK_REJECTED') {
-        throw new Error('NETWORK_REJECTED')
-      }
-      if (isUserRejectedError(err)) {
-        throw new Error('WALLET_REJECTED')
-      }
-      if (msg === 'NO_WALLET' || msg.includes('No compatible Ethereum wallet')) {
-        throw new Error('NO_WALLET')
-      }
-      if (
-        msg.toLowerCase().includes('web3 provider is disabled') ||
-        msg.toLowerCase().includes('ethereum web3 provider is disabled') ||
-        msg.toLowerCase().includes('provider is disabled')
-      ) {
-        throw new Error('WEB3_DISABLED')
-      }
-      console.error('[auth] signInWithWallet failed', err)
-      throw err
-    }
-  }, [])
 
   const requestPasswordReset = useCallback(async (emailRaw: string) => {
     const email = emailRaw.trim()
@@ -296,7 +264,6 @@ export function useSession() {
     clearPasswordRecovery,
     signInWithPassword,
     signUpWithPassword,
-    signInWithWallet,
     requestPasswordReset,
     updatePassword,
     signOut,
