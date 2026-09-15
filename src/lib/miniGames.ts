@@ -7,6 +7,7 @@ export const MINI_GAME_IDS: readonly MiniGameId[] = [
   'flappy',
   'memory',
   'wingSoar',
+  'hatchDay',
 ]
 
 /** Locale-appropriate short display names already used in the game hub. */
@@ -17,6 +18,7 @@ export const MINI_GAME_NAME_I18N_KEY: Record<MiniGameId, string> = {
   flappy: 'flappy.badge',
   memory: 'memory.badge',
   wingSoar: 'wingSoar.badge',
+  hatchDay: 'hatchDay.badge',
 }
 
 export function isMiniGameId(value: unknown): value is MiniGameId {
