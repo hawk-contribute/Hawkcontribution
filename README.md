@@ -181,6 +181,36 @@ Vite `base` is `/Hawkcontribution/`. Asset paths go through `src/lib/asset.ts`.
 Current publish source: **`gh-pages` branch** (built `dist`).  
 Actions workflow is prepared at `.github/workflows/deploy-pages.yml` — pushing it requires a token with the `workflow` scope (`gh auth refresh -h github.com -s workflow`), then switch Pages to **GitHub Actions**.
 
+## Wallet signature login (SIWE / Web3)
+
+Supabase Auth **Sign in with Web3** (Ethereum / EIP-4361). Users connect an injected wallet (MetaMask etc.), sign a login message (`personal_sign` only — **no on-chain tx / gas**), and receive a normal Supabase session. Email + password login remains available.
+
+### Enable on the project (required once)
+
+1. Open [Auth → Providers](https://supabase.com/dashboard/project/bqccemvnwmtcuzaoouwr/auth/providers) and enable **Web3** → **Ethereum**.
+2. [URL Configuration](https://supabase.com/dashboard/project/bqccemvnwmtcuzaoouwr/auth/url-configuration) — add Redirect URLs:
+   - `https://hawk-contribute.github.io/Hawkcontribution/**`
+   - `https://hawk-contribute.github.io/**`
+   - `http://localhost:5173/**` (local Vite)
+3. Optional: rate-limit Web3 under Auth → Rate Limits.
+
+Without step 1 the client shows `auth.web3Disabled`.
+
+### Client flow
+
+- `supabase.auth.signInWithWeb3({ chain: 'ethereum', statement, wallet, options: { url } })` via `src/lib/walletAuth.ts`
+- EIP-6963 discovery + `window.ethereum` fallback (no WalletConnect / wagmi required)
+- Profile column `wallet_address` (unique, nullable) upserted after sign-in
+
+Optional env: `VITE_WALLETCONNECT_PROJECT_ID` (reserved; injected wallets work without it).
+
+### How to test
+
+1. Enable Ethereum Web3 + redirect URLs (above).
+2. Open the live site (or `npm run dev`), open Sign in → **Sign in with wallet** / **錢包簽名登入**.
+3. Approve connection + signature in MetaMask (BSC or any EVM chain is fine).
+4. Header shows shortened address; points / NFT sync use the same session path as email.
+
 ## Security / env
 
 - Use **anon** key only in `VITE_SUPABASE_ANON_KEY` (public by design for the SPA).

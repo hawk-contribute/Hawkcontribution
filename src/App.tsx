@@ -20,6 +20,7 @@ import { recordGameActivity, recordNftActivity } from './lib/storage'
 import type { Contribution, Opportunity } from './types'
 import { ActivityMarquee } from './components/ActivityMarquee'
 import { AuthModal } from './components/AuthModal'
+import { walletAddressFromUser } from './lib/walletAuth'
 import { BrowseView } from './components/BrowseView'
 import { FeedView } from './components/FeedView'
 import { GameHub } from './components/GameHub'
@@ -57,6 +58,7 @@ export default function App() {
     clearAuthError,
     signInWithPassword,
     signUpWithPassword,
+    signInWithWallet,
     requestPasswordReset,
     updatePassword,
     signOut,
@@ -212,6 +214,12 @@ export default function App() {
     },
     [signUpWithPassword, t],
   )
+
+  const handleWalletSignIn = useCallback(async () => {
+    const user = await signInWithWallet()
+    setToast(t('toast.signedIn'))
+    return { address: walletAddressFromUser(user) ?? undefined }
+  }, [signInWithWallet, t])
 
   const handleRequestReset = useCallback(
     async (email: string) => {
@@ -432,10 +440,14 @@ export default function App() {
           setAuthOpen(true)
         }}
         onSignOut={() => void handleSignOut()}
-        onChangePassword={() => {
-          setChangePasswordOpen(true)
-          setAuthOpen(true)
-        }}
+        onChangePassword={
+          session?.walletAddress && session.email.endsWith('@ethereum.wallet')
+            ? undefined
+            : () => {
+                setChangePasswordOpen(true)
+                setAuthOpen(true)
+              }
+        }
         onProvide={handleProvide}
         contributionCount={myContributions.length}
       />
@@ -583,6 +595,7 @@ export default function App() {
         onSignUp={handlePasswordSignUp}
         onRequestReset={handleRequestReset}
         onUpdatePassword={handleUpdatePassword}
+        onWalletSignIn={handleWalletSignIn}
       />
 
       {session && (

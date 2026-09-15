@@ -12,9 +12,18 @@ import {
   takePendingDisplayName,
   upsertProfile,
 } from '../lib/cloudSync'
+import {
+  isUserRejectedError,
+  sessionKeyForUser,
+  shortenAddress,
+  signInWithEthereumWallet,
+  walletAddressFromUser,
+  type EthereumWallet,
+} from '../lib/walletAuth'
 
 function sessionFromUser(user: User): Session {
-  const email = (user.email ?? '').trim()
+  const walletAddress = walletAddressFromUser(user) ?? undefined
+  const email = sessionKeyForUser(user, walletAddress)
   const metaName =
     (typeof user.user_metadata?.display_name === 'string' &&
       user.user_metadata.display_name.trim()) ||
@@ -23,12 +32,17 @@ function sessionFromUser(user: User): Session {
     ''
   const pending = peekPendingDisplayName()
   const displayName =
-    metaName || pending || email.split('@')[0] || 'Hawk Member'
+    metaName ||
+    pending ||
+    (walletAddress ? shortenAddress(walletAddress) : '') ||
+    email.split('@')[0] ||
+    'Hawk Member'
   return {
     email,
     displayName,
     signedInAt: user.last_sign_in_at ?? new Date().toISOString(),
     userId: user.id,
+    walletAddress,
   }
 }
 
@@ -39,8 +53,9 @@ async function afterSignedIn(user: User, appSession: Session): Promise<void> {
     userId: user.id,
     email: appSession.email,
     displayName: appSession.displayName,
+    walletAddress: appSession.walletAddress,
   })
-  if (appSession.displayName) {
+  if (appSession.displayName && !appSession.walletAddress) {
     try {
       await supabase.auth.updateUser({
         data: { display_name: appSession.displayName },
@@ -80,11 +95,12 @@ export function useSession() {
     let cancelled = false
 
     const applyUser = (user: User | null, shouldSync: boolean) => {
-      if (!user?.email) {
+      if (!user?.id) {
         syncedUserRef.current = null
         if (!cancelled) setSessionState(null)
         return
       }
+      // Email-less Web3 users are valid; only require auth user id.
       if (!cancelled) {
         applySessionNow(user, setSessionState, syncedUserRef, shouldSync)
       }
@@ -158,7 +174,6 @@ export function useSession() {
         console.error('[auth] signInWithPassword: no session/user in response', data)
         throw new Error('NO_SESSION')
       }
-      // Explicitly apply session — do not wait only on onAuthStateChange
       applySessionNow(data.session.user, setSessionState, syncedUserRef, true)
       setPasswordRecovery(false)
       setAuthError(null)
@@ -208,6 +223,33 @@ export function useSession() {
     [],
   )
 
+  const signInWithWallet = useCallback(async (wallet?: EthereumWallet) => {
+    try {
+      const { user } = await signInWithEthereumWallet({ wallet })
+      applySessionNow(user, setSessionState, syncedUserRef, true)
+      setPasswordRecovery(false)
+      setAuthError(null)
+      return user
+    } catch (err) {
+      if (isUserRejectedError(err)) {
+        throw new Error('WALLET_REJECTED')
+      }
+      const msg = err instanceof Error ? err.message : String(err)
+      if (msg === 'NO_WALLET' || msg.includes('No compatible Ethereum wallet')) {
+        throw new Error('NO_WALLET')
+      }
+      if (
+        msg.toLowerCase().includes('web3 provider is disabled') ||
+        msg.toLowerCase().includes('ethereum web3 provider is disabled') ||
+        msg.toLowerCase().includes('provider is disabled')
+      ) {
+        throw new Error('WEB3_DISABLED')
+      }
+      console.error('[auth] signInWithWallet failed', err)
+      throw err
+    }
+  }, [])
+
   const requestPasswordReset = useCallback(async (emailRaw: string) => {
     const email = emailRaw.trim()
     if (!isValidEmail(email)) throw new Error('INVALID_EMAIL')
@@ -251,6 +293,7 @@ export function useSession() {
     clearPasswordRecovery,
     signInWithPassword,
     signUpWithPassword,
+    signInWithWallet,
     requestPasswordReset,
     updatePassword,
     signOut,

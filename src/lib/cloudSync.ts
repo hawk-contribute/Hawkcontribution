@@ -70,16 +70,23 @@ export async function upsertProfile(input: {
   userId: string
   email: string
   displayName: string
+  walletAddress?: string | null
 }): Promise<void> {
   try {
-    await supabase.from('profiles').upsert(
-      {
-        id: input.userId,
-        email: input.email,
-        display_name: input.displayName,
-      },
-      { onConflict: 'id' },
-    )
+    const row: Record<string, unknown> = {
+      id: input.userId,
+      display_name: input.displayName,
+    }
+    // Store real emails only; synthetic wallet keys stay out of profiles.email
+    const email = input.email.trim()
+    if (email && !email.endsWith('@ethereum.wallet') && !email.startsWith('uid:')) {
+      row.email = email
+    }
+    const wallet = input.walletAddress?.trim()
+    if (wallet) {
+      row.wallet_address = wallet.toLowerCase()
+    }
+    await supabase.from('profiles').upsert(row, { onConflict: 'id' })
   } catch (e) {
     console.warn('[hawk-contribute] profile upsert failed', e)
   }

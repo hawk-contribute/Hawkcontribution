@@ -1,0 +1,6 @@
+# Reference / local Auth config notes for Hawk Contribute.
+# Hosted project: enable Ethereum Web3 in Dashboard → Auth → Providers
+# https://supabase.com/dashboard/project/bqccemvnwmtcuzaoouwr/auth/providers
+
+[auth.web3.ethereum]
+enabled = true

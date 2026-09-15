@@ -17,13 +17,19 @@ export interface Opportunity {
   image: string
 }
 
-/** Signed-in app session (Supabase Auth magic link) */
+/** Signed-in app session (Supabase Auth email or Web3 wallet) */
 export interface Session {
+  /**
+   * Account key for local points/claims ledgers.
+   * Real email for password users; synthetic `0x…@ethereum.wallet` for Web3-only.
+   */
   email: string
   displayName: string
   signedInAt: string // ISO
   /** Supabase auth user id when available */
   userId?: string
+  /** Verified EVM address when signed in via SIWE / Web3 */
+  walletAddress?: string
 }
 
 export interface UploadedFileMeta {
