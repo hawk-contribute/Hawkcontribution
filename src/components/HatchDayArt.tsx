@@ -255,8 +255,9 @@ export function DecorSprite({ id, x, y }: { id: DecorId; x: number; y: number })
       )}
       {id === 'swing' && (
         <>
-          <path d="M-12 -20 L-6 4 M12 -20 L6 4" stroke="#6b4228" strokeWidth="1.6" />
-          <rect x="-8" y="4" width="16" height="3.5" rx="1" fill="#c4895c" />
+          <path d="M-14 -10 H14" stroke="#6b4228" strokeWidth="2.2" strokeLinecap="round" />
+          <path d="M-7 -10 L-6 8 M7 -10 L6 8" stroke="#8d5a3a" strokeWidth="1.8" />
+          <rect x="-9" y="8" width="18" height="4" rx="1.2" fill="#c4895c" />
         </>
       )}
     </g>

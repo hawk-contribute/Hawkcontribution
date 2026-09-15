@@ -88,12 +88,6 @@ export function HatchDayView({
     saveRef.current = save
   }, [save])
 
-  const showHint = useCallback((key: string, vars?: Record<string, string | number>) => {
-    setHint(t(key, vars))
-    if (hintTimer.current != null) window.clearTimeout(hintTimer.current)
-    hintTimer.current = window.setTimeout(() => setHint(null), 2600)
-  }, [t])
-
   const patch = useCallback((updater: (prev: HatchDaySave) => HatchDaySave) => {
     setSave((prev) => {
       const next = updater(prev)
@@ -102,6 +96,13 @@ export function HatchDayView({
       return next
     })
   }, [])
+
+  const showHint = useCallback((key: string, vars?: Record<string, string | number>) => {
+    setHint(t(key, vars))
+    if (hintTimer.current != null) window.clearTimeout(hintTimer.current)
+    hintTimer.current = window.setTimeout(() => setHint(null), 2600)
+  }, [t])
+
 
   const award = useCallback(
     (score: number, hits: number) => {
