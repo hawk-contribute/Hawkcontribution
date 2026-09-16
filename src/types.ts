@@ -71,6 +71,7 @@ export type MiniGameId =
   | 'memory'
   | 'wingSoar'
   | 'hatchDay'
+  | 'fluffySoar'
 
 export interface ActivityEvent {
   id: string

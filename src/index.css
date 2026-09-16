@@ -251,6 +251,34 @@
   50% { transform: translateY(-6px); opacity: 0.25; }
 }
 
+/* Fly, Fluffy Eagle — pastel sunset cloud sea */
+.fluffy-scene {
+  background: #f6c9b8;
+}
+
+.fluffy-sky {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 55% 45% at 82% 12%, rgba(255, 236, 179, 0.95), transparent 58%),
+    radial-gradient(ellipse 70% 50% at 12% 8%, rgba(255, 183, 197, 0.55), transparent 55%),
+    radial-gradient(ellipse 90% 40% at 50% 100%, rgba(186, 214, 240, 0.7), transparent 55%),
+    linear-gradient(180deg, #f9b4a8 0%, #f7c9a8 28%, #f5d6c8 52%, #d7c4ee 78%, #b8d4f0 100%);
+  pointer-events: none;
+}
+
+.fluffy-pengpeng {
+  animation: hatch-float 2.4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+
+.fluffy-jelly {
+  animation: hatch-wobble 1.6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hatch-papa,
   .hatch-blink,
@@ -260,7 +288,9 @@
   .hatch-preen,
   .hatch-wobble,
   .hatch-float,
-  .hatch-steam {
+  .hatch-steam,
+  .fluffy-pengpeng,
+  .fluffy-jelly {
     animation: none;
   }
 }
