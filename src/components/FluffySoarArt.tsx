@@ -13,10 +13,11 @@ export function FluffySoarCover() {
       >
         <SunsetSun />
         <CloudSea />
-        <JellyRainbow x={72} y={78} scale={1.05} />
-        <SoftCloud x={168} y={148} scale={1.15} />
-        <PengpengSprite x={248} y={108} scale={1.12} />
-        <JellyRainbow x={328} y={58} scale={0.72} />
+        <JellyRainbow x={78} y={92} scale={1.25} />
+        <SoftCloud x={210} y={158} scale={1.55} />
+        <PengpengSprite x={210} y={112} scale={1.45} />
+        <JellyRainbow x={332} y={64} scale={0.95} />
+        <SoftCloud x={48} y={168} scale={1.1} />
       </svg>
     </div>
   )
@@ -80,13 +81,14 @@ export function PengpengSprite({ x, y, scale = 1 }: { x: number; y: number; scal
       {/* far wing */}
       <ellipse cx="-20" cy="6" rx="12" ry="7" fill="#c48b6a" transform="rotate(-28 -20 6)" />
       {/* cotton body */}
+      <ellipse cx="1" cy="13" rx="22" ry="18" fill="#8a4f2e" opacity="0.22" />
       <ellipse cx="0" cy="10" rx="22" ry="18" fill="#d4a07a" />
       <ellipse cx="-2" cy="12" rx="14" ry="12" fill="#e8b894" />
       <ellipse cx="10" cy="8" rx="8" ry="7" fill="#c4895c" opacity="0.55" />
       {/* near wing */}
       <ellipse cx="18" cy="8" rx="11" ry="6.5" fill="#b87a58" transform="rotate(22 18 8)" />
       {/* cotton-candy white head */}
-      <circle cx="0" cy="-10" r="16" fill="#fff6f0" />
+      <circle cx="0" cy="-10" r="16" fill="#fff6f0" stroke="#e8c4b0" strokeWidth="1.2" />
       <ellipse cx="-11" cy="-12" rx="7" ry="8" fill="#ffe4f0" />
       <ellipse cx="11" cy="-12" rx="7" ry="8" fill="#ffe4f0" />
       <ellipse cx="0" cy="-18" rx="9" ry="7" fill="#ffffff" />
