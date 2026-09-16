@@ -255,6 +255,33 @@ export const gameAudio = {
     }
   },
 
+  /** Healing jelly-cloud smash — crisp 啵啵 pop. */
+  playBobo(): void {
+    void resume().then(() => {
+      tone(988, 0.05, 'sine', 0, 0.75)
+      tone(1318, 0.07, 'triangle', 0.03, 0.7)
+      tone(1760, 0.09, 'sine', 0.07, 0.45)
+      noiseBurst(0.04, 0.06)
+    })
+  },
+
+  /** Soft tap breeze whoosh under 蓬蓬. */
+  playBreeze(): void {
+    void resume().then(() => {
+      noiseBurst(0.1, 0.07)
+      tone(246, 0.12, 'sine', 0, 0.28)
+      tone(330, 0.1, 'triangle', 0.04, 0.22)
+    })
+  },
+
+  /** Cotton safety-cloud catch puff. */
+  playCotton(): void {
+    void resume().then(() => {
+      tone(392, 0.1, 'sine', 0, 0.4)
+      tone(523, 0.14, 'triangle', 0.05, 0.32)
+    })
+  },
+
   startBgm(): void {
     void resume().then(() => {
       stopBgmLoop()

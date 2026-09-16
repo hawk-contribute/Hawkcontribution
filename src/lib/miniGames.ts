@@ -8,6 +8,7 @@ export const MINI_GAME_IDS: readonly MiniGameId[] = [
   'memory',
   'wingSoar',
   'hatchDay',
+  'fluffySoar',
 ]
 
 /** Locale-appropriate short display names already used in the game hub. */
@@ -19,6 +20,7 @@ export const MINI_GAME_NAME_I18N_KEY: Record<MiniGameId, string> = {
   memory: 'memory.badge',
   wingSoar: 'wingSoar.badge',
   hatchDay: 'hatchDay.badge',
+  fluffySoar: 'fluffySoar.badge',
 }
 
 export function isMiniGameId(value: unknown): value is MiniGameId {
@@ -31,8 +33,10 @@ export function parseStoredMiniGameId(
   contributionId?: string,
 ): MiniGameId | undefined {
   if (isMiniGameId(metaGameId)) return metaGameId
+  if (metaGameId === 'pengpeng') return 'fluffySoar'
   const raw = (contributionId ?? '').replace(/^game-/, '')
   if (raw === 'eagle') return 'whack'
+  if (raw === 'pengpeng') return 'fluffySoar'
   if (isMiniGameId(raw)) return raw
   return undefined
 }
