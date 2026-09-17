@@ -150,14 +150,14 @@ export function sfxIntensity(mode: BabyMode): number {
   return 1
 }
 
-/** Hold long enough for the named keyframe to finish; still interruptible via poseTick. */
+/** Hold long enough for the 4–5 frame reel to finish; still interruptible via poseTick. */
 export function reactionHoldMs(mode: BabyMode, pose: BabyPose): number {
   const gentleBonus = mode === 'gentle' ? 500 : 0
   const extra =
-    pose === 'tickle' || pose === 'crazy'
-      ? 640
-      : pose === 'kick' || pose === 'grab' || pose === 'nuzzle' || pose === 'pout'
-        ? 400
+    pose === 'tickle' || pose === 'crazy' || pose === 'kick'
+      ? 800
+      : pose === 'grab' || pose === 'cuddle' || pose === 'nuzzle' || pose === 'pout'
+        ? 560
         : 160
   return BABY_REACTION_MS + gentleBonus + extra
 }

@@ -4,14 +4,35 @@ import { asset } from '../lib/asset'
 
 const NURSERY_SRC = asset('game/baby-touch/nursery.png')
 const COVER_SRC = asset('game/baby-touch/cover.png')
+const POSE_TICKLE_LOOK = asset('game/baby-touch/pose-tickle-look.png')
 const POSE_TICKLE_SIT = asset('game/baby-touch/pose-tickle-sit.png')
+const POSE_TICKLE_MID = asset('game/baby-touch/pose-tickle-mid.png')
 const POSE_TICKLE_ROLL = asset('game/baby-touch/pose-tickle-roll.png')
+const POSE_KICK_LIFT = asset('game/baby-touch/pose-kick-lift.png')
 const POSE_KICK = asset('game/baby-touch/pose-kick.png')
+const POSE_NUZZLE_LEAN = asset('game/baby-touch/pose-nuzzle-lean.png')
 const POSE_NUZZLE = asset('game/baby-touch/pose-nuzzle.png')
 const POSE_LAUGH = asset('game/baby-touch/pose-laugh-sit.png')
+const POSE_GRAB_REACH = asset('game/baby-touch/pose-grab-reach.png')
+const POSE_CUDDLE = asset('game/baby-touch/pose-cuddle.png')
+
+const PRELOAD = [
+  NURSERY_SRC,
+  POSE_TICKLE_LOOK,
+  POSE_TICKLE_SIT,
+  POSE_TICKLE_MID,
+  POSE_TICKLE_ROLL,
+  POSE_KICK_LIFT,
+  POSE_KICK,
+  POSE_NUZZLE_LEAN,
+  POSE_NUZZLE,
+  POSE_LAUGH,
+  POSE_GRAB_REACH,
+  POSE_CUDDLE,
+]
 
 if (typeof window !== 'undefined') {
-  ;[NURSERY_SRC, POSE_TICKLE_SIT, POSE_TICKLE_ROLL, POSE_KICK, POSE_NUZZLE, POSE_LAUGH].forEach((src) => {
+  PRELOAD.forEach((src) => {
     const img = new Image()
     img.src = src
   })
@@ -32,9 +53,9 @@ export function BabyTouchCover() {
 }
 
 function tempoScale(mode: BabyMode): number {
-  if (mode === 'gentle') return 1.22
+  if (mode === 'gentle') return 1.2
   if (mode === 'crazy') return 0.62
-  return 0.88
+  return 0.9
 }
 
 function tempoClass(mode: BabyMode): string {
@@ -43,36 +64,51 @@ function tempoClass(mode: BabyMode): string {
   return 'baby-tempo-funny'
 }
 
-/** 2–3 painted frames per tap. Times are delays from tap start (ms). Framing stays locked. */
-function clipFor(pose: BabyPose, mode: BabyMode): { srcs: string[]; at: number[] } {
+function beats(mode: BabyMode, ms: number[]): number[] {
   const t = tempoScale(mode)
+  return ms.map((n) => Math.round(n * t))
+}
+
+/**
+ * 4–5 painted frames per tap. Times are delays from tap start (ms).
+ * Anticipation → peak → settle. Framing stays locked — no stage bounce.
+ */
+function clipFor(pose: BabyPose, mode: BabyMode): { srcs: string[]; at: number[] } {
   switch (pose) {
     case 'tickle':
+      return {
+        srcs: [NURSERY_SRC, POSE_TICKLE_LOOK, POSE_TICKLE_SIT, POSE_TICKLE_MID, POSE_TICKLE_ROLL],
+        at: beats(mode, [0, 140, 340, 620, 980]),
+      }
     case 'crazy':
       return {
-        srcs: [NURSERY_SRC, POSE_TICKLE_SIT, POSE_TICKLE_ROLL],
-        at: [0, Math.round(120 * t), Math.round(420 * t)],
+        srcs: [NURSERY_SRC, POSE_LAUGH, POSE_TICKLE_SIT, POSE_TICKLE_MID, POSE_TICKLE_ROLL],
+        at: beats(mode, [0, 90, 260, 500, 820]),
       }
     case 'kick':
       return {
-        srcs: [NURSERY_SRC, POSE_LAUGH, POSE_KICK],
-        at: [0, Math.round(110 * t), Math.round(380 * t)],
+        srcs: [NURSERY_SRC, POSE_LAUGH, POSE_KICK_LIFT, POSE_KICK, POSE_LAUGH],
+        at: beats(mode, [0, 130, 360, 640, 1000]),
       }
     case 'nuzzle':
+      return {
+        srcs: [NURSERY_SRC, POSE_LAUGH, POSE_NUZZLE_LEAN, POSE_NUZZLE],
+        at: beats(mode, [0, 140, 380, 720]),
+      }
     case 'pout':
       return {
-        srcs: [NURSERY_SRC, POSE_LAUGH, POSE_NUZZLE],
-        at: [0, Math.round(90 * t), Math.round(320 * t)],
+        srcs: [NURSERY_SRC, POSE_NUZZLE_LEAN, POSE_LAUGH, POSE_NUZZLE],
+        at: beats(mode, [0, 130, 360, 700]),
       }
     case 'grab':
       return {
-        srcs: [NURSERY_SRC, POSE_LAUGH],
-        at: [0, Math.round(90 * t)],
+        srcs: [NURSERY_SRC, POSE_LAUGH, POSE_GRAB_REACH, POSE_LAUGH],
+        at: beats(mode, [0, 140, 400, 820]),
       }
     case 'cuddle':
       return {
-        srcs: [NURSERY_SRC, POSE_LAUGH],
-        at: [0, Math.round(140 * t)],
+        srcs: [NURSERY_SRC, POSE_LAUGH, POSE_CUDDLE, POSE_LAUGH],
+        at: beats(mode, [0, 150, 420, 860]),
       }
     default:
       return { srcs: [NURSERY_SRC], at: [0] }
@@ -170,6 +206,11 @@ export function NurseryScene({
         </>
       )}
       {pose === 'grab' && (
+        <span className="baby-fx-heart" aria-hidden>
+          ♡
+        </span>
+      )}
+      {pose === 'cuddle' && (
         <span className="baby-fx-heart" aria-hidden>
           ♡
         </span>

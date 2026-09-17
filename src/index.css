@@ -477,18 +477,18 @@
 }
 
 .baby-art {
-  --baby-fade: 0.2s;
+  --baby-fade: 0.16s;
   isolation: isolate;
 }
 
 .baby-tempo-gentle {
-  --baby-fade: 0.28s;
+  --baby-fade: 0.22s;
 }
 .baby-tempo-funny {
-  --baby-fade: 0.2s;
+  --baby-fade: 0.16s;
 }
 .baby-tempo-crazy {
-  --baby-fade: 0.14s;
+  --baby-fade: 0.1s;
 }
 
 .baby-bg,
