@@ -427,6 +427,21 @@
   box-shadow: 0 0 0 2px #fff, 0 0 0 4px currentColor;
   filter: brightness(1.04);
 }
+.baby-pill-gentle.is-on {
+  background: #f2a0b4;
+  color: #fff8f4;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #c45a7a;
+}
+.baby-pill-funny.is-on {
+  background: #f08a3a;
+  color: #fff8f4;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #c46a18;
+}
+.baby-pill-crazy.is-on {
+  background: #7a4ec8;
+  color: #fff8f4;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #7a4ec8;
+}
 
 .baby-sign-in {
   display: flex;
@@ -511,6 +526,92 @@
   background: rgba(255, 220, 120, 0.22);
 }
 
+.baby-hit-burst {
+  position: absolute;
+  z-index: 9;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+.baby-hit-glow {
+  position: absolute;
+  left: -52px;
+  top: -52px;
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 242, 150, 0.92) 0%, rgba(255, 214, 80, 0.42) 42%, transparent 72%);
+  animation: baby-hit-glow 0.95s ease-out 1;
+}
+.baby-hit-ring {
+  position: absolute;
+  left: -38px;
+  top: -38px;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  border: 2.5px solid rgba(255, 224, 90, 0.9);
+  box-shadow: 0 0 14px rgba(255, 210, 70, 0.65);
+  animation: baby-hit-ring 1.05s ease-out 1;
+}
+.baby-hit-spark {
+  position: absolute;
+  color: #f0c45a;
+  font-size: 0.9rem;
+  line-height: 1;
+  animation: baby-twinkle 0.7s ease-in-out infinite;
+  text-shadow: 0 0 6px rgba(255, 220, 80, 0.8);
+}
+.baby-hit-spark-a { left: 22px; top: -28px; }
+.baby-hit-spark-b { left: -30px; top: 8px; font-size: 0.7rem; animation-delay: 0.12s; }
+.baby-hit-spark-c { left: 10px; top: 24px; font-size: 0.75rem; animation-delay: 0.2s; }
+
+.baby-comic {
+  position: absolute;
+  z-index: 10;
+  max-width: 58%;
+  padding: 0.55rem 0.8rem;
+  background: #fff;
+  border: 2.5px solid #2a2420;
+  border-radius: 1.35rem;
+  color: #2a2420;
+  font-weight: 800;
+  font-size: clamp(0.72rem, 2.8vw, 0.88rem);
+  line-height: 1.35;
+  box-shadow: 0 3px 0 #2a2420;
+  pointer-events: none;
+  animation: baby-bubble-in 0.28s ease-out;
+}
+.baby-comic.is-right {
+  right: 5%;
+  top: 16%;
+}
+.baby-comic.is-left {
+  left: 4%;
+  top: 26%;
+}
+.baby-comic.is-right::after,
+.baby-comic.is-left::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  border-right: 2.5px solid #2a2420;
+  border-bottom: 2.5px solid #2a2420;
+}
+.baby-comic.is-right::after {
+  left: 22%;
+  bottom: -8px;
+  transform: rotate(45deg);
+}
+.baby-comic.is-left::after {
+  right: 18%;
+  bottom: -8px;
+  transform: rotate(45deg);
+}
+
 .baby-fx-zzz {
   position: absolute;
   left: 62%;
@@ -553,19 +654,19 @@
 }
 
 .baby-tempo-gentle {
-  --baby-tempo: 1.4s;
-  --baby-amp: 0.62;
+  --baby-tempo: 1.55s;
+  --baby-amp: 0.48;
 }
 .baby-tempo-funny {
-  --baby-tempo: 0.92s;
-  --baby-amp: 1;
+  --baby-tempo: 1.05s;
+  --baby-amp: 0.88;
 }
 .baby-tempo-crazy {
-  --baby-tempo: 0.58s;
-  --baby-amp: 1.32;
+  --baby-tempo: 0.78s;
+  --baby-amp: 1.12;
 }
 
-/* Layered puppet: each part is a masked copy of the nursery painting. */
+/* Layered puppet: masked painting clones rotate from joints, not scale as blobs. */
 .baby-puppet {
   position: absolute;
   inset: 0;
@@ -577,6 +678,7 @@
   inset: 0;
   pointer-events: none;
   opacity: 0;
+  backface-visibility: hidden;
 }
 .baby-art:not([data-pose="idle"]) .baby-part {
   opacity: 1;
@@ -594,30 +696,50 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: 3;
+  z-index: 8;
   overflow: visible;
+  pointer-events: none;
 }
 
-.baby-part-torso { transform-origin: 51% 58%; z-index: 2; }
-.baby-part-hand-l { transform-origin: 38% 54%; z-index: 4; }
-.baby-part-hand-r { transform-origin: 66% 56%; z-index: 4; }
-.baby-part-rattle { transform-origin: 32% 58%; z-index: 5; }
-.baby-part-foot-l { transform-origin: 43% 76%; z-index: 3; }
-.baby-part-foot-r { transform-origin: 59% 76%; z-index: 3; }
-.baby-part-hair { transform-origin: 52% 14%; z-index: 7; }
-.baby-part-cheek-l { transform-origin: 41% 40%; z-index: 7; }
-.baby-part-cheek-r { transform-origin: 62% 40%; z-index: 7; }
+/* Anatomical hinges in 400×533 scene space (atlas, shoulders, hips, wrists, ankles). */
+.baby-head {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+  transform-origin: 51.4% 38%;
+  backface-visibility: hidden;
+}
+.baby-part-torso { transform-origin: 51.4% 70%; z-index: 2; }
+.baby-part-hand-l { transform-origin: 42.5% 51.5%; z-index: 4; }
+.baby-part-hand-r { transform-origin: 64% 53%; z-index: 4; }
+.baby-part-rattle { transform-origin: 42.5% 51.5%; z-index: 5; }
+.baby-part-foot-l { transform-origin: 44.5% 79.5%; z-index: 3; }
+.baby-part-foot-r { transform-origin: 58.2% 79.5%; z-index: 3; }
+.baby-part-hair { transform-origin: 51.4% 38%; z-index: 7; }
+.baby-part-cheek-l { transform-origin: 40.4% 40.6%; z-index: 6; }
+.baby-part-cheek-r { transform-origin: 62.6% 40.6%; z-index: 6; }
 
-/* Idle motion lives on the face overlay only — the crib painting stays still. */
+/* Hair stroke — nod / tilt from the neck, not a spinning hair blob. */
+.baby-art[data-pose="nuzzle"] .baby-head {
+  animation: baby-head-nod var(--baby-tempo) ease-in-out 2;
+}
 
-.baby-art[data-pose="nuzzle"] .baby-part-hair {
-  animation: baby-hair-bob calc(var(--baby-tempo) * 0.85) ease-in-out 2;
+/* Cheek — local press on the tapped side + slight head turn. */
+.baby-art[data-pose="pout"][data-limb="left"] .baby-head {
+  animation: baby-head-turn-l calc(var(--baby-tempo) * 0.9) ease-in-out 2;
+}
+.baby-art[data-pose="pout"][data-limb="right"] .baby-head {
+  animation: baby-head-turn-r calc(var(--baby-tempo) * 0.9) ease-in-out 2;
+}
+.baby-art[data-pose="pout"][data-limb="both"] .baby-head {
+  animation: baby-head-nod calc(var(--baby-tempo) * 0.9) ease-in-out 2;
 }
 .baby-art[data-pose="pout"] .baby-part-cheek-l {
-  animation: baby-cheek-squash-l calc(var(--baby-tempo) * 0.7) ease-in-out 2;
+  animation: baby-cheek-press-l calc(var(--baby-tempo) * 0.75) ease-in-out 2;
 }
 .baby-art[data-pose="pout"] .baby-part-cheek-r {
-  animation: baby-cheek-squash-r calc(var(--baby-tempo) * 0.7) ease-in-out 2;
+  animation: baby-cheek-press-r calc(var(--baby-tempo) * 0.75) ease-in-out 2;
 }
 .baby-art[data-pose="pout"][data-limb="left"] .baby-part-cheek-r {
   animation: none;
@@ -626,103 +748,131 @@
   animation: none;
 }
 .baby-art[data-pose="pout"] .baby-part-hand-l {
-  animation: baby-bat-l 0.42s ease-in-out 3;
+  animation: baby-wrist-wave-l calc(var(--baby-tempo) * 0.7) ease-in-out 2;
+  animation-delay: 0.06s;
 }
 .baby-art[data-pose="pout"] .baby-part-hand-r {
-  animation: baby-bat-r 0.42s ease-in-out 3;
+  animation: baby-wrist-wave-r calc(var(--baby-tempo) * 0.7) ease-in-out 2;
+  animation-delay: 0.06s;
 }
 
+/* Palm — arm wave from the shoulder; rattle rides the same hinge. */
 .baby-art[data-pose="grab"] .baby-part-torso {
-  animation: baby-torso-lean var(--baby-tempo) ease-in-out 2;
+  animation: baby-torso-rock var(--baby-tempo) ease-in-out 2;
 }
 .baby-art[data-pose="grab"][data-limb="right"] .baby-part-torso {
-  animation: baby-torso-lean-r var(--baby-tempo) ease-in-out 2;
+  animation: baby-torso-rock-r var(--baby-tempo) ease-in-out 2;
 }
 .baby-art[data-pose="grab"] .baby-part-hand-l,
 .baby-art[data-pose="grab"][data-limb="both"] .baby-part-hand-l {
-  animation: baby-hand-shake calc(var(--baby-tempo) * 0.55) ease-in-out 3;
+  animation: baby-arm-wave-l calc(var(--baby-tempo) * 0.85) ease-in-out 2;
 }
 .baby-art[data-pose="grab"][data-limb="right"] .baby-part-hand-l {
   animation: none;
 }
 .baby-art[data-pose="grab"] .baby-part-hand-r {
-  animation: baby-arm-giggle calc(var(--baby-tempo) * 0.7) ease-in-out 3;
+  animation: baby-arm-wave-r calc(var(--baby-tempo) * 0.9) ease-in-out 2;
+  animation-delay: 0.05s;
 }
 .baby-art[data-pose="grab"][data-limb="right"] .baby-part-hand-r {
-  animation: baby-hand-shake calc(var(--baby-tempo) * 0.55) ease-in-out 3;
+  animation: baby-arm-wave-r calc(var(--baby-tempo) * 0.85) ease-in-out 2;
+  animation-delay: 0s;
 }
 .baby-art[data-pose="grab"] .baby-part-rattle {
-  animation: baby-rattle-shake calc(var(--baby-tempo) * 0.45) ease-in-out 4;
+  animation: baby-arm-wave-l calc(var(--baby-tempo) * 0.85) ease-in-out 2;
 }
 .baby-art[data-pose="grab"][data-limb="right"] .baby-part-rattle {
   animation: none;
 }
-.baby-art[data-pose="grab"] .baby-part-hair {
-  animation: baby-hair-bob calc(var(--baby-tempo) * 0.8) ease-in-out 2;
+.baby-art[data-pose="grab"] .baby-head {
+  animation: baby-head-nod calc(var(--baby-tempo) * 0.95) ease-in-out 1;
+  animation-delay: 0.08s;
 }
 
+/* Shoulder — soft torso rock from the hips + arms close from the shoulders. */
 .baby-art[data-pose="cuddle"] .baby-part-torso {
-  animation: baby-torso-cuddle var(--baby-tempo) ease-in-out 2;
+  animation: baby-torso-rock var(--baby-tempo) ease-in-out 2;
 }
-.baby-art[data-pose="cuddle"] .baby-part-hair {
-  animation: baby-hair-bob var(--baby-tempo) ease-in-out 2;
+.baby-art[data-pose="cuddle"] .baby-head {
+  animation: baby-head-nod var(--baby-tempo) ease-in-out 2;
 }
 .baby-art[data-pose="cuddle"] .baby-part-hand-l {
-  animation: baby-hug-l 0.55s ease-in-out 3;
+  animation: baby-hug-l calc(var(--baby-tempo) * 0.85) ease-in-out 2;
 }
 .baby-art[data-pose="cuddle"] .baby-part-hand-r {
-  animation: baby-hug-r 0.55s ease-in-out 3;
+  animation: baby-hug-r calc(var(--baby-tempo) * 0.85) ease-in-out 2;
+}
+.baby-art[data-pose="cuddle"] .baby-part-rattle {
+  animation: baby-hug-l calc(var(--baby-tempo) * 0.85) ease-in-out 2;
 }
 
+/* Belly — seated rock / small roll, no squash-stretch of the onesie. */
 .baby-art[data-pose="tickle"] .baby-part-torso {
-  animation: baby-tummy-jiggle calc(var(--baby-tempo) * 0.55) ease-in-out 4;
+  animation: baby-torso-tickle var(--baby-tempo) ease-in-out 2;
 }
 .baby-art[data-pose="tickle"] .baby-tummy-glow {
-  animation: baby-tummy-glow calc(var(--baby-tempo) * 0.55) ease-in-out 4;
+  animation: baby-tummy-glow calc(var(--baby-tempo) * 0.85) ease-in-out 2;
 }
-.baby-art[data-pose="tickle"] .baby-part-foot-l,
+.baby-art[data-pose="tickle"] .baby-head {
+  animation: baby-head-nod calc(var(--baby-tempo) * 0.9) ease-in-out 2;
+  animation-delay: 0.06s;
+}
+.baby-art[data-pose="tickle"] .baby-part-foot-l {
+  animation: baby-ankle-wiggle-l calc(var(--baby-tempo) * 0.7) ease-in-out 2;
+  animation-delay: 0.08s;
+}
 .baby-art[data-pose="tickle"] .baby-part-foot-r {
-  animation: baby-legs-curl 0.5s ease-in-out 3;
+  animation: baby-ankle-wiggle-r calc(var(--baby-tempo) * 0.7) ease-in-out 2;
+  animation-delay: 0.12s;
 }
 .baby-art[data-pose="tickle"] .baby-part-hand-l,
+.baby-art[data-pose="tickle"] .baby-part-rattle {
+  animation: baby-wrist-wave-l calc(var(--baby-tempo) * 0.75) ease-in-out 2;
+  animation-delay: 0.05s;
+}
 .baby-art[data-pose="tickle"] .baby-part-hand-r {
-  animation: baby-arm-giggle 0.48s ease-in-out 3;
+  animation: baby-wrist-wave-r calc(var(--baby-tempo) * 0.75) ease-in-out 2;
+  animation-delay: 0.09s;
 }
 
+/* Foot — hinged lift from the ankle; hands/head are light follow-through. */
 .baby-art[data-pose="kick"] .baby-part-foot-l.is-kick {
-  animation: baby-kick-l var(--baby-tempo) ease-out 2;
+  animation: baby-kick-l var(--baby-tempo) ease-in-out 2;
 }
 .baby-art[data-pose="kick"] .baby-part-foot-r.is-kick {
-  animation: baby-kick-r var(--baby-tempo) ease-out 2;
+  animation: baby-kick-r var(--baby-tempo) ease-in-out 2;
 }
 .baby-art[data-pose="kick"] .baby-part-hand-l {
-  animation: baby-reach-foot-l 0.55s ease-in-out 2;
+  animation: baby-wrist-wave-l calc(var(--baby-tempo) * 0.8) ease-in-out 1;
+  animation-delay: 0.1s;
 }
 .baby-art[data-pose="kick"] .baby-part-hand-r {
-  animation: baby-reach-foot-r 0.55s ease-in-out 2;
+  animation: baby-wrist-wave-r calc(var(--baby-tempo) * 0.8) ease-in-out 1;
+  animation-delay: 0.1s;
 }
-.baby-art[data-pose="kick"] .baby-part-hair {
-  animation: baby-hair-bob calc(var(--baby-tempo) * 0.9) ease-in-out 2;
+.baby-art[data-pose="kick"] .baby-head {
+  animation: baby-head-watch-kick calc(var(--baby-tempo) * 0.9) ease-in-out 2;
 }
 
-.baby-art[data-pose="crazy"] .baby-part-hair {
-  animation: baby-hair-bob 0.45s ease-in-out 4;
+/* Crazy laugh — controlled head roll + hip counter, still joint-based. */
+.baby-art[data-pose="crazy"] .baby-head {
+  animation: baby-head-roll calc(var(--baby-tempo) * 1.15) ease-in-out 2;
 }
 .baby-art[data-pose="crazy"] .baby-part-torso {
-  animation: baby-torso-counter-roll 1.05s ease-in-out 2;
+  animation: baby-torso-counter-roll calc(var(--baby-tempo) * 1.15) ease-in-out 2;
 }
-.baby-art[data-pose="crazy"] .baby-part-hand-l {
-  animation: baby-bat-l 0.38s ease-in-out 4;
+.baby-art[data-pose="crazy"] .baby-part-hand-l,
+.baby-art[data-pose="crazy"] .baby-part-rattle {
+  animation: baby-arm-wave-l calc(var(--baby-tempo) * 0.7) ease-in-out 3;
 }
 .baby-art[data-pose="crazy"] .baby-part-hand-r {
-  animation: baby-bat-r 0.38s ease-in-out 4;
+  animation: baby-arm-wave-r calc(var(--baby-tempo) * 0.7) ease-in-out 3;
 }
-.baby-art[data-pose="crazy"] .baby-part-rattle {
-  animation: baby-rattle-shake 0.32s ease-in-out 5;
+.baby-art[data-pose="crazy"] .baby-part-foot-l {
+  animation: baby-ankle-wiggle-l calc(var(--baby-tempo) * 0.65) ease-in-out 3;
 }
-.baby-art[data-pose="crazy"] .baby-part-foot-l,
 .baby-art[data-pose="crazy"] .baby-part-foot-r {
-  animation: baby-legs-curl 0.46s ease-in-out 3;
+  animation: baby-ankle-wiggle-r calc(var(--baby-tempo) * 0.65) ease-in-out 3;
 }
 
 .baby-lid {
@@ -743,15 +893,18 @@
   transform-origin: center;
 }
 .baby-tummy-glow {
-  opacity: 0.35;
-  mix-blend-mode: multiply;
+  opacity: 0.95;
+  mix-blend-mode: screen;
   transform-box: fill-box;
   transform-origin: center;
 }
+.baby-cheek-blob.is-hot,
+.baby-cheek-blob.is-puff {
+  opacity: 0.52;
+}
 .baby-art[data-pose="pout"] .baby-cheek-blob.is-hot,
 .baby-art[data-pose="crazy"] .baby-cheek-blob.is-puff {
-  opacity: 0.62;
-  animation: baby-cheek-puff calc(var(--baby-tempo) * 0.65) ease-in-out 2;
+  animation: baby-cheek-puff calc(var(--baby-tempo) * 0.75) ease-in-out 2;
 }
 .baby-happy-eyes {
   opacity: 0.95;
@@ -761,150 +914,144 @@
 }
 
 .baby-tongue {
-  animation: baby-tongue 0.18s linear infinite;
+  animation: baby-tongue 0.32s ease-in-out infinite;
   transform-box: fill-box;
   transform-origin: center top;
+}
+
+.baby-laugh-mouth {
+  transform-box: fill-box;
+  transform-origin: center top;
+  animation: baby-laugh-mouth calc(var(--baby-tempo) * 0.55) ease-in-out 3;
 }
 
 .baby-twinkle {
   animation: baby-twinkle 2.4s ease-in-out infinite;
 }
 
-@keyframes baby-head-nuzzle {
-  0%, 100% { transform: rotate(0) translateY(0) scale(1); }
-  12% { transform: scale(1.04, 0.96); }
-  40% { transform: rotate(calc(var(--baby-amp) * -8deg)) translateY(calc(var(--baby-amp) * 3px)) scale(1.02, 0.98); }
-  72% { transform: rotate(calc(var(--baby-amp) * 5deg)) translateY(calc(var(--baby-amp) * -2px)); }
-}
-@keyframes baby-hair-bob {
-  0%, 100% { transform: translateY(0) rotate(0); }
-  50% { transform: translateY(calc(var(--baby-amp) * 3px)) rotate(calc(var(--baby-amp) * 8deg)); }
-}
-@keyframes baby-head-pout {
-  0%, 100% { transform: rotate(0) scale(1); }
-  18% { transform: scale(0.97, 1.04); }
-  50% { transform: rotate(calc(var(--baby-amp) * -3deg)) scale(1.03, 0.97); }
-}
-@keyframes baby-cheek-squash-l {
-  0%, 100% { transform: scale(1); }
-  40% { transform: scale(calc(1 + var(--baby-amp) * 0.22), calc(1 - var(--baby-amp) * 0.16)) translate(calc(var(--baby-amp) * -2px), 2px); }
-}
-@keyframes baby-cheek-squash-r {
-  0%, 100% { transform: scale(1); }
-  40% { transform: scale(calc(1 + var(--baby-amp) * 0.22), calc(1 - var(--baby-amp) * 0.16)) translate(calc(var(--baby-amp) * 2px), 2px); }
-}
-@keyframes baby-cheek-puff {
-  0%, 100% { transform: scale(1); opacity: 0.35; }
-  50% { transform: scale(1.18); opacity: 0.6; }
-}
-@keyframes baby-hand-shake {
-  0%, 100% { transform: rotate(0) translate(0, 0); }
-  25% { transform: rotate(calc(var(--baby-amp) * -12deg)) translate(calc(var(--baby-amp) * -4px), calc(var(--baby-amp) * -3px)); }
-  75% { transform: rotate(calc(var(--baby-amp) * 10deg)) translate(calc(var(--baby-amp) * 5px), calc(var(--baby-amp) * -2px)); }
-}
-@keyframes baby-rattle-shake {
-  0%, 100% { transform: rotate(0); }
-  25% { transform: rotate(calc(var(--baby-amp) * -16deg)); }
-  75% { transform: rotate(calc(var(--baby-amp) * 14deg)); }
-}
-@keyframes baby-arm-giggle {
-  0%, 100% { transform: translateY(0) rotate(0); }
-  50% { transform: translateY(calc(var(--baby-amp) * -5px)) rotate(calc(var(--baby-amp) * 8deg)); }
-}
-@keyframes baby-torso-lean {
-  0%, 100% { transform: rotate(0) scale(1); }
-  40% { transform: rotate(calc(var(--baby-amp) * -5deg)) scale(1.02, 0.98) translateX(calc(var(--baby-amp) * -3px)); }
-}
-@keyframes baby-torso-lean-r {
-  0%, 100% { transform: rotate(0) scale(1); }
-  40% { transform: rotate(calc(var(--baby-amp) * 5deg)) scale(1.02, 0.98) translateX(calc(var(--baby-amp) * 3px)); }
-}
-@keyframes baby-head-giggle {
+@keyframes baby-head-nod {
   0%, 100% { transform: rotate(0) translateY(0); }
-  30% { transform: rotate(calc(var(--baby-amp) * -4deg)) translateY(calc(var(--baby-amp) * 2px)); }
-  65% { transform: rotate(calc(var(--baby-amp) * 4deg)) translateY(calc(var(--baby-amp) * -3px)); }
+  32% { transform: rotate(calc(var(--baby-amp) * -5deg)) translateY(calc(var(--baby-amp) * 1.5px)); }
+  68% { transform: rotate(calc(var(--baby-amp) * 3.5deg)) translateY(calc(var(--baby-amp) * -1px)); }
 }
-@keyframes baby-torso-cuddle {
-  0%, 100% { transform: rotate(0) scale(1); }
-  40% { transform: rotate(calc(var(--baby-amp) * -4deg)) scale(1.03) translateY(2px); }
-  70% { transform: rotate(calc(var(--baby-amp) * 3deg)) scale(1.02); }
-}
-@keyframes baby-head-cuddle {
+@keyframes baby-head-turn-l {
   0%, 100% { transform: rotate(0); }
-  45% { transform: rotate(calc(var(--baby-amp) * 6deg)) translateY(calc(var(--baby-amp) * 2px)); }
+  42% { transform: rotate(calc(var(--baby-amp) * 4.5deg)); }
 }
-@keyframes baby-tummy-glow {
-  0%, 100% { transform: scale(1); opacity: 0.22; }
-  50% { transform: scale(1.18); opacity: 0.5; }
-}
-@keyframes baby-tummy-jiggle {
-  0%, 100% { transform: scale(1) rotate(0); }
-  25% { transform: scale(1.06, 0.94) rotate(calc(var(--baby-amp) * -3deg)); }
-  50% { transform: scale(0.96, 1.07) rotate(calc(var(--baby-amp) * 3deg)); }
-  75% { transform: scale(1.04, 0.97) rotate(calc(var(--baby-amp) * -2deg)); }
-}
-@keyframes baby-legs-curl {
-  0%, 100% { transform: rotate(0) translateY(0); }
-  50% { transform: rotate(calc(var(--baby-amp) * -10deg)) translateY(calc(var(--baby-amp) * -6px)) scale(0.94, 1.06); }
-}
-@keyframes baby-kick-l {
-  0%, 100% { transform: rotate(0) translate(0, 0) scale(1); }
-  14% { transform: scale(1.06, 0.9); }
-  42% { transform: rotate(calc(var(--baby-amp) * -18deg)) translate(calc(var(--baby-amp) * -8px), calc(var(--baby-amp) * -22px)); }
-  68% { transform: rotate(calc(var(--baby-amp) * 8deg)) translate(2px, 4px); }
-}
-@keyframes baby-kick-r {
-  0%, 100% { transform: rotate(0) translate(0, 0) scale(1); }
-  14% { transform: scale(1.06, 0.9); }
-  42% { transform: rotate(calc(var(--baby-amp) * 18deg)) translate(calc(var(--baby-amp) * 8px), calc(var(--baby-amp) * -22px)); }
-  68% { transform: rotate(calc(var(--baby-amp) * -8deg)) translate(-2px, 4px); }
-}
-@keyframes baby-reach-foot-l {
-  0%, 100% { transform: translate(0, 0) rotate(0); }
-  50% { transform: translate(calc(var(--baby-amp) * 8px), calc(var(--baby-amp) * 14px)) rotate(18deg); }
-}
-@keyframes baby-reach-foot-r {
-  0%, 100% { transform: translate(0, 0) rotate(0); }
-  50% { transform: translate(calc(var(--baby-amp) * -8px), calc(var(--baby-amp) * 14px)) rotate(-18deg); }
+@keyframes baby-head-turn-r {
+  0%, 100% { transform: rotate(0); }
+  42% { transform: rotate(calc(var(--baby-amp) * -4.5deg)); }
 }
 @keyframes baby-head-watch-kick {
   0%, 100% { transform: rotate(0) translateY(0); }
-  45% { transform: rotate(calc(var(--baby-amp) * 5deg)) translateY(calc(var(--baby-amp) * 3px)); }
+  45% { transform: rotate(calc(var(--baby-amp) * 3.5deg)) translateY(calc(var(--baby-amp) * 1px)); }
 }
 @keyframes baby-head-roll {
   0%, 100% { transform: rotate(0) translateX(0); }
-  18% { transform: scale(0.97, 1.04); }
-  40% { transform: rotate(calc(var(--baby-amp) * 14deg)) translateX(calc(var(--baby-amp) * 6px)); }
-  70% { transform: rotate(calc(var(--baby-amp) * -16deg)) translateX(calc(var(--baby-amp) * -5px)); }
+  28% { transform: rotate(calc(var(--baby-amp) * 7deg)) translateX(calc(var(--baby-amp) * 2px)); }
+  62% { transform: rotate(calc(var(--baby-amp) * -8deg)) translateX(calc(var(--baby-amp) * -2px)); }
+}
+@keyframes baby-cheek-press-l {
+  0%, 100% { transform: translate(0, 0); }
+  40% { transform: translate(calc(var(--baby-amp) * 2px), calc(var(--baby-amp) * 1.5px)); }
+}
+@keyframes baby-cheek-press-r {
+  0%, 100% { transform: translate(0, 0); }
+  40% { transform: translate(calc(var(--baby-amp) * -2px), calc(var(--baby-amp) * 1.5px)); }
+}
+@keyframes baby-cheek-puff {
+  0%, 100% { transform: scale(1); opacity: 0.32; }
+  50% { transform: scale(1.1, 0.94); opacity: 0.58; }
+}
+@keyframes baby-arm-wave-l {
+  0%, 100% { transform: rotate(0); }
+  28% { transform: rotate(calc(var(--baby-amp) * -9deg)); }
+  62% { transform: rotate(calc(var(--baby-amp) * 6deg)); }
+}
+@keyframes baby-arm-wave-r {
+  0%, 100% { transform: rotate(0); }
+  28% { transform: rotate(calc(var(--baby-amp) * 9deg)); }
+  62% { transform: rotate(calc(var(--baby-amp) * -6deg)); }
+}
+@keyframes baby-wrist-wave-l {
+  0%, 100% { transform: rotate(0); }
+  50% { transform: rotate(calc(var(--baby-amp) * -7deg)); }
+}
+@keyframes baby-wrist-wave-r {
+  0%, 100% { transform: rotate(0); }
+  50% { transform: rotate(calc(var(--baby-amp) * 7deg)); }
+}
+@keyframes baby-torso-rock {
+  0%, 100% { transform: rotate(0) translateY(0); }
+  40% { transform: rotate(calc(var(--baby-amp) * -3.5deg)) translateY(calc(var(--baby-amp) * 1.5px)); }
+  72% { transform: rotate(calc(var(--baby-amp) * 2.5deg)) translateY(calc(var(--baby-amp) * -1px)); }
+}
+@keyframes baby-torso-rock-r {
+  0%, 100% { transform: rotate(0) translateY(0); }
+  40% { transform: rotate(calc(var(--baby-amp) * 3.5deg)) translateY(calc(var(--baby-amp) * 1.5px)); }
+  72% { transform: rotate(calc(var(--baby-amp) * -2.5deg)) translateY(calc(var(--baby-amp) * -1px)); }
+}
+@keyframes baby-torso-tickle {
+  0%, 100% { transform: rotate(0) translateX(0); }
+  25% { transform: rotate(calc(var(--baby-amp) * -3deg)) translateX(calc(var(--baby-amp) * -2px)); }
+  55% { transform: rotate(calc(var(--baby-amp) * 3.2deg)) translateX(calc(var(--baby-amp) * 2px)); }
+  78% { transform: rotate(calc(var(--baby-amp) * -1.5deg)); }
 }
 @keyframes baby-torso-counter-roll {
   0%, 100% { transform: rotate(0); }
-  40% { transform: rotate(calc(var(--baby-amp) * -7deg)); }
-  70% { transform: rotate(calc(var(--baby-amp) * 8deg)); }
+  30% { transform: rotate(calc(var(--baby-amp) * -4.5deg)); }
+  65% { transform: rotate(calc(var(--baby-amp) * 5deg)); }
 }
-@keyframes baby-bat-l {
-  0%, 100% { transform: rotate(0); }
-  50% { transform: rotate(calc(var(--baby-amp) * -28deg)) translateY(calc(var(--baby-amp) * -5px)); }
+@keyframes baby-tummy-glow {
+  0%, 100% { transform: scale(1); opacity: 0.72; }
+  50% { transform: scale(1.06); opacity: 1; }
 }
-@keyframes baby-bat-r {
+@keyframes baby-kick-l {
   0%, 100% { transform: rotate(0); }
-  50% { transform: rotate(calc(var(--baby-amp) * 28deg)) translateY(calc(var(--baby-amp) * -5px)); }
+  38% { transform: rotate(calc(var(--baby-amp) * -12deg)); }
+  62% { transform: rotate(calc(var(--baby-amp) * 3deg)); }
+}
+@keyframes baby-kick-r {
+  0%, 100% { transform: rotate(0); }
+  38% { transform: rotate(calc(var(--baby-amp) * 12deg)); }
+  62% { transform: rotate(calc(var(--baby-amp) * -3deg)); }
+}
+@keyframes baby-ankle-wiggle-l {
+  0%, 100% { transform: rotate(0); }
+  50% { transform: rotate(calc(var(--baby-amp) * -5deg)); }
+}
+@keyframes baby-ankle-wiggle-r {
+  0%, 100% { transform: rotate(0); }
+  50% { transform: rotate(calc(var(--baby-amp) * 5deg)); }
 }
 @keyframes baby-hug-l {
-  0%, 100% { transform: translate(0, 0) rotate(0); }
-  50% { transform: translate(calc(var(--baby-amp) * 10px), calc(var(--baby-amp) * 8px)) rotate(16deg); }
+  0%, 100% { transform: rotate(0); }
+  50% { transform: rotate(calc(var(--baby-amp) * 8deg)); }
 }
 @keyframes baby-hug-r {
-  0%, 100% { transform: translate(0, 0) rotate(0); }
-  50% { transform: translate(calc(var(--baby-amp) * -10px), calc(var(--baby-amp) * 8px)) rotate(-16deg); }
+  0%, 100% { transform: rotate(0); }
+  50% { transform: rotate(calc(var(--baby-amp) * -8deg)); }
 }
 @keyframes baby-blink {
   0%, 88%, 96%, 100% { transform: scaleY(0.1); opacity: 0; }
   91%, 93% { transform: scaleY(1); opacity: 0.92; }
 }
 @keyframes baby-tongue {
-  0%, 100% { transform: translateY(0) rotate(-6deg); }
-  50% { transform: translateY(3px) rotate(6deg); }
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50% { transform: translateY(2px) rotate(4deg); }
+}
+@keyframes baby-laugh-mouth {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04, 0.96); }
+}
+@keyframes baby-hit-glow {
+  0% { opacity: 0; transform: scale(0.4); }
+  35% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0.35; transform: scale(1.12); }
+}
+@keyframes baby-hit-ring {
+  0% { opacity: 0.95; transform: scale(0.55); }
+  100% { opacity: 0; transform: scale(1.28); }
 }
 @keyframes baby-twinkle {
   0%, 100% { opacity: 0.35; transform: translateY(0) scale(1); }
@@ -928,13 +1075,19 @@
   .fluffy-pengpeng,
   .fluffy-jelly,
   .baby-part,
+  .baby-head,
   .baby-lid,
   .baby-tongue,
+  .baby-laugh-mouth,
   .baby-twinkle,
   .baby-fx-zzz,
   .baby-fx-spark,
   .baby-fx-heart,
   .baby-bubble,
+  .baby-comic,
+  .baby-hit-glow,
+  .baby-hit-ring,
+  .baby-hit-spark,
   .baby-cheek-blob,
   .baby-tummy-glow {
     animation: none;

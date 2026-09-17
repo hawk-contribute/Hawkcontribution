@@ -25,9 +25,10 @@ function partMask(ellipse: string): { WebkitMaskImage: string; maskImage: string
 
 /** Clip regions in the 400×533 nursery painting. Kept snug so idle pixels match. */
 const MASKS = {
-  hair: partMask('ellipse 15% 10% at 51.4% 16.2%'),
-  cheekL: partMask('ellipse 7.2% 6% at 40.4% 40.4%'),
-  cheekR: partMask('ellipse 7.2% 6% at 62.6% 40.4%'),
+  /** Hair + upper crown — nods from the atlas, not the curl. */
+  hair: partMask('ellipse 15.5% 12% at 51.4% 17.8%'),
+  cheekL: partMask('ellipse 6.4% 5.2% at 40.4% 40.6%'),
+  cheekR: partMask('ellipse 6.4% 5.2% at 62.6% 40.6%'),
   torso: partMask('ellipse 16% 13% at 51.4% 61%'),
   handL: partMask('ellipse 9.5% 8% at 34% 58.2%'),
   handR: partMask('ellipse 7.2% 7% at 68.4% 61.4%'),
@@ -52,12 +53,33 @@ function ClippedPart({
   )
 }
 
+type FaceKind = 'idle' | 'sleep' | 'pout' | 'smile' | 'laugh' | 'crazy'
+
+function faceKindFor(pose: BabyPose): FaceKind {
+  switch (pose) {
+    case 'nuzzle':
+    case 'cuddle':
+      return 'sleep'
+    case 'pout':
+      return 'pout'
+    case 'grab':
+      return 'smile'
+    case 'tickle':
+    case 'kick':
+      return 'laugh'
+    case 'crazy':
+      return 'crazy'
+    default:
+      return 'idle'
+  }
+}
+
 function FaceOverlay({ pose, focusSide }: { pose: BabyPose; focusSide: BabyFocusSide }) {
-  const squint = pose === 'nuzzle' || pose === 'cuddle'
-  const giggle = pose === 'grab' || pose === 'tickle'
-  const crazy = pose === 'crazy'
+  const kind = faceKindFor(pose)
+  const coverEyes = kind === 'sleep' || kind === 'laugh' || kind === 'crazy'
   const pinchL = pose === 'pout' && focusSide !== 'right'
   const pinchR = pose === 'pout' && focusSide !== 'left'
+  const blush = kind === 'pout' || kind === 'laugh' || kind === 'crazy' || kind === 'smile'
 
   return (
     <svg
@@ -66,57 +88,87 @@ function FaceOverlay({ pose, focusSide }: { pose: BabyPose; focusSide: BabyFocus
       preserveAspectRatio="xMidYMid slice"
       aria-hidden
     >
-      <g className={pose === 'idle' ? 'baby-lids-idle' : 'baby-lids-hidden'}>
-        <ellipse className="baby-lid baby-lid-l" cx="176" cy="200" rx="22" ry="16" fill="#f0c4a4" />
-        <ellipse className="baby-lid baby-lid-r" cx="236" cy="200" rx="22" ry="16" fill="#f0c4a4" />
+      <defs>
+        <filter id="baby-skin-soft" x="-25%" y="-25%" width="150%" height="150%">
+          <feGaussianBlur stdDeviation="2.6" />
+        </filter>
+      </defs>
+      <g className={kind === 'idle' ? 'baby-lids-idle' : 'baby-lids-hidden'}>
+        <ellipse className="baby-lid baby-lid-l" cx="176" cy="200" rx="22" ry="16" fill="#f0c2a4" />
+        <ellipse className="baby-lid baby-lid-r" cx="236" cy="200" rx="22" ry="16" fill="#f0c2a4" />
       </g>
 
-      {squint && (
-        <g stroke="#5a3a2a" strokeWidth="3.4" strokeLinecap="round" fill="none">
-          <path d="M158 204 Q176 214 194 204" />
-          <path d="M219 204 Q237 214 255 204" />
+      {coverEyes && (
+        <g className="baby-face-cover" filter="url(#baby-skin-soft)">
+          <ellipse cx="206" cy="218" rx="82" ry="48" fill="#f0c2a4" />
+        </g>
+      )}
+      {kind !== 'idle' && (
+        <ellipse cx="206" cy="258" rx="26" ry="22" fill="#f0c2a4" filter="url(#baby-skin-soft)" />
+      )}
+
+      {kind === 'sleep' && (
+        <g stroke="#4a3428" strokeWidth="4.4" strokeLinecap="round" fill="none">
+          <path d="M148 218 Q174 232 200 218" />
+          <path d="M212 218 Q238 232 264 218" />
+          <path d="M194 262 Q206 268 218 262" strokeWidth="3.2" />
         </g>
       )}
 
-      {giggle && (
-        <g stroke="#5a3a2a" strokeWidth="3.2" strokeLinecap="round" fill="none" opacity="0.9">
-          <path d="M158 200 Q176 188 194 200" />
-          <path d="M218 200 Q236 188 254 200" />
+      {kind === 'smile' && (
+        <g>
+          <ellipse cx="206" cy="264" rx="16" ry="13" fill="#3d2a20" />
+          <path d="M192 258 Q206 252 220 258" fill="#fff6ee" />
+          <ellipse cx="206" cy="270" rx="7" ry="4" fill="#e07080" />
         </g>
       )}
 
-      {crazy && (
-        <g stroke="#4a3428" strokeWidth="3.4" strokeLinecap="round" fill="none">
-          <path d="M160 188 L192 210 M160 210 L192 188" />
-          <path d="M220 188 L252 210 M220 210 L252 188" />
+      {(kind === 'laugh' || kind === 'crazy') && (
+        <g>
+          <g stroke="#4a3428" strokeWidth="5" strokeLinecap="round" fill="none">
+            <path d="M146 216 Q174 236 202 216" />
+            <path d="M210 216 Q238 236 266 216" />
+          </g>
+          <g>
+            <ellipse cx="206" cy="266" rx="24" ry="17" fill="#3d2a20" />
+            <path d="M186 258 Q206 248 226 258" fill="#fff6ee" />
+            {kind === 'laugh' && <ellipse cx="206" cy="274" rx="11" ry="6" fill="#e07080" />}
+          </g>
         </g>
+      )}
+
+      {kind === 'pout' && (
+        <path d="M194 262 Q206 258 218 262" stroke="#4a3428" strokeWidth="3.2" fill="none" strokeLinecap="round" />
       )}
 
       <ellipse
-        className={`baby-cheek-blob baby-cheek-blob-l${pinchL ? ' is-hot' : ''}${crazy ? ' is-puff' : ''}`}
-        cx="160"
-        cy="218"
-        rx="18"
-        ry="13"
+        className={`baby-cheek-blob baby-cheek-blob-l${pinchL ? ' is-hot' : ''}${blush ? ' is-puff' : ''}`}
+        cx="154"
+        cy="232"
+        rx="20"
+        ry="14"
         fill="#f2a0b0"
       />
       <ellipse
-        className={`baby-cheek-blob baby-cheek-blob-r${pinchR ? ' is-hot' : ''}${crazy ? ' is-puff' : ''}`}
-        cx="252"
-        cy="218"
-        rx="18"
-        ry="13"
+        className={`baby-cheek-blob baby-cheek-blob-r${pinchR ? ' is-hot' : ''}${blush ? ' is-puff' : ''}`}
+        cx="258"
+        cy="232"
+        rx="20"
+        ry="14"
         fill="#f2a0b0"
       />
 
       {pose === 'tickle' && (
-        <ellipse className="baby-tummy-glow" cx="206" cy="358" rx="26" ry="20" fill="#f3c2b4" />
+        <g className="baby-tummy-glow" pointerEvents="none">
+          <ellipse cx="206" cy="352" rx="42" ry="32" fill="#ffe08a" opacity="0.28" />
+          <ellipse cx="206" cy="352" rx="28" ry="22" fill="none" stroke="#f5d15a" strokeWidth="3" />
+        </g>
       )}
 
-      {crazy && (
+      {kind === 'crazy' && (
         <g className="baby-tongue">
-          <ellipse cx="206" cy="252" rx="8" ry="12" fill="#f08090" />
-          <path d="M206 242 L206 260" stroke="#e06070" strokeWidth="1.3" />
+          <ellipse cx="206" cy="288" rx="11" ry="16" fill="#f08090" />
+          <path d="M206 274 L206 300" stroke="#e06070" strokeWidth="1.6" />
         </g>
       )}
     </svg>
@@ -128,16 +180,21 @@ export function NurseryScene({
   mode,
   focusSide = null,
   poseTick = 0,
+  comic = null,
+  hit = null,
 }: {
   pose: BabyPose
   mode: BabyMode
   focusSide?: BabyFocusSide
   poseTick?: number
+  comic?: string | null
+  hit?: { x: number; y: number } | null
 }) {
   const tempo = mode === 'gentle' ? 'baby-tempo-gentle' : mode === 'crazy' ? 'baby-tempo-crazy' : 'baby-tempo-funny'
   const bothFeet = pose === 'kick' && focusSide == null
   const kickL = pose === 'kick' && (focusSide === 'left' || bothFeet)
   const kickR = pose === 'kick' && (focusSide === 'right' || bothFeet)
+  const comicSide = pose === 'kick' ? 'is-left' : 'is-right'
 
   return (
     <div
@@ -169,11 +226,24 @@ export function NurseryScene({
           className={`baby-part-foot-r${kickR ? ' is-kick' : ''}`}
           mask={MASKS.footR}
         />
-        <ClippedPart src={NURSERY_SRC} className="baby-part-hair" mask={MASKS.hair} />
+        <div className="baby-head">
+          {/* Head group pivots at the atlas so hair nods instead of spinning in place. */}
+          <ClippedPart src={NURSERY_SRC} className="baby-part-hair" mask={MASKS.hair} />
+        </div>
         <ClippedPart src={NURSERY_SRC} className="baby-part-cheek-l" mask={MASKS.cheekL} />
         <ClippedPart src={NURSERY_SRC} className="baby-part-cheek-r" mask={MASKS.cheekR} />
         <FaceOverlay pose={pose} focusSide={focusSide} />
       </div>
+
+      {hit && pose !== 'idle' && (
+        <div className="baby-hit-burst" style={{ left: `${hit.x}%`, top: `${hit.y}%` }}>
+          <span className="baby-hit-glow" />
+          <span className="baby-hit-ring" />
+          <span className="baby-hit-spark baby-hit-spark-a">✦</span>
+          <span className="baby-hit-spark baby-hit-spark-b">✦</span>
+          <span className="baby-hit-spark baby-hit-spark-c">✧</span>
+        </div>
+      )}
 
       {pose === 'nuzzle' && (
         <span className="baby-fx-zzz" aria-hidden>
@@ -195,6 +265,8 @@ export function NurseryScene({
           ✦
         </span>
       )}
+
+      {comic && pose !== 'idle' && <div className={`baby-comic ${comicSide}`}>{comic}</div>}
     </div>
   )
 }
