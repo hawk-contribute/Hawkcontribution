@@ -223,7 +223,7 @@ export function BabyEagleSprite({
 export function BabySpeechBubble({ text }: { text: string }) {
   if (!text) return null
   return (
-    <div className="baby-bubble pointer-events-none absolute left-1/2 top-3 z-10 w-[min(92%,22rem)] -translate-x-1/2 rounded-2xl border border-[#e8c37a]/70 bg-[#fff8ee]/95 px-3 py-2 text-center text-sm font-medium text-[#4a3424] shadow-[0_8px_24px_rgba(40,24,12,0.25)] sm:text-base">
+    <div className="baby-bubble w-full rounded-2xl border border-[#e8c37a]/70 bg-[#fff8ee] px-4 py-3 text-center text-sm font-semibold leading-snug text-[#4a3424] shadow-[0_8px_24px_rgba(40,24,12,0.25)] sm:text-base">
       {text}
     </div>
   )

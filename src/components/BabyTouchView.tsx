@@ -10,7 +10,7 @@ import {
   BABY_TOUCH_COOLDOWN_MS,
   BABY_TOUCH_SESSION_CAP,
   clampSessionAward,
-  detectCrazyCombo,
+  comboProgress,
   pointsForAction,
   poseForZone,
   pruneCheekTaps,
@@ -32,14 +32,26 @@ interface BabyTouchViewProps {
   onBack: () => void
 }
 
-const ZONES: { id: BabyZone; style: CSSProperties }[] = [
-  { id: 'hair', style: { top: '16%', left: '30%', width: '40%', height: '16%' } },
-  { id: 'cheekL', style: { top: '32%', left: '26%', width: '20%', height: '15%' } },
-  { id: 'cheekR', style: { top: '32%', left: '54%', width: '20%', height: '15%' } },
-  { id: 'palm', style: { top: '46%', left: '16%', width: '20%', height: '16%' } },
-  { id: 'belly', style: { top: '48%', left: '36%', width: '28%', height: '16%' } },
-  { id: 'feet', style: { top: '64%', left: '30%', width: '40%', height: '16%' } },
+const ZONE_ANCHORS: { id: BabyZone; x: number; y: number; r: number }[] = [
+  { id: 'hair', x: 200, y: 88, r: 26 },
+  { id: 'cheekL', x: 154, y: 168, r: 46 },
+  { id: 'cheekR', x: 246, y: 168, r: 46 },
+  { id: 'palm', x: 108, y: 224, r: 36 },
+  { id: 'belly', x: 200, y: 230, r: 32 },
+  { id: 'feet', x: 200, y: 312, r: 44 },
 ]
+
+const ZONES: { id: BabyZone; style: CSSProperties }[] = ZONE_ANCHORS.map((z) => ({
+  id: z.id,
+  style: {
+    left: `${(z.x / 400) * 100}%`,
+    top: `${(z.y / 420) * 100}%`,
+    width: `${((z.r * 2) / 400) * 100}%`,
+    height: `${((z.r * 2) / 420) * 100}%`,
+    transform: 'translate(-50%, -50%)',
+    zIndex: z.id === 'cheekL' || z.id === 'cheekR' ? 6 : 4,
+  },
+}))
 
 function playPoseSfx(pose: BabyPose, intensity: number) {
   switch (pose) {
@@ -78,6 +90,7 @@ export function BabyTouchView({
   const [pose, setPose] = useState<BabyPose>('idle')
   const [pinchSide, setPinchSide] = useState<'left' | 'right' | null>(null)
   const [bubble, setBubble] = useState<string | null>(null)
+  const [comboHint, setComboHint] = useState<string | null>(null)
   const [sessionPts, setSessionPts] = useState(0)
   const [touches, setTouches] = useState(0)
   const [capped, setCapped] = useState(false)
@@ -91,6 +104,7 @@ export function BabyTouchView({
   const lastAwardAt = useRef(0)
   const lastZoneAt = useRef<Partial<Record<BabyZone | 'combo', number>>>({})
   const cheekTaps = useRef<CheekTap[]>([])
+  const lastCheekRef = useRef<{ side: 'left' | 'right'; at: number } | null>(null)
   const pendingPts = useRef(0)
   const pendingHits = useRef(0)
   const sessionPtsRef = useRef(0)
@@ -98,6 +112,10 @@ export function BabyTouchView({
   useEffect(() => {
     modeRef.current = mode
   }, [mode])
+
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [])
 
   const flushPoints = useCallback(() => {
     const pts = pendingPts.current
@@ -175,26 +193,33 @@ export function BabyTouchView({
       const isCheek = zone === 'cheekL' || zone === 'cheekR'
 
       if (isCheek) {
-        const side = zone === 'cheekL' ? 'left' : 'right'
+        const side: 'left' | 'right' = zone === 'cheekL' ? 'left' : 'right'
+        const prev = lastCheekRef.current
+        lastCheekRef.current = { side, at: now }
         cheekTaps.current = pruneCheekTaps([...cheekTaps.current, { side, at: now }], now)
-        const comboReady = detectCrazyCombo(cheekTaps.current, now, BABY_COMBO_WINDOW_MS)
-        if (comboReady) {
-          cheekTaps.current = []
-          if (modeRef.current !== 'crazy') {
-            showHint('babyTouch.lockedCrazy')
-            const last = lastZoneAt.current[zone] ?? 0
-            if (now - last < BABY_TOUCH_COOLDOWN_MS) return
-            lastZoneAt.current[zone] = now
-            awardTouch(false)
-            runReaction('pout', side)
+
+        if (modeRef.current === 'crazy') {
+          const pair =
+            !!prev && prev.side !== side && now - prev.at <= BABY_COMBO_WINDOW_MS
+          const prog = comboProgress(cheekTaps.current, now)
+          if (pair || prog.ready) {
+            cheekTaps.current = []
+            lastCheekRef.current = null
+            setComboHint(null)
+            awardTouch(true)
+            runReaction('crazy', null)
             return
           }
-          const lastCombo = lastZoneAt.current.combo ?? 0
-          if (now - lastCombo < BABY_TOUCH_COOLDOWN_MS) return
-          lastZoneAt.current.combo = now
-          awardTouch(true)
-          runReaction('crazy', null)
+          setComboHint(t('babyTouch.comboProgress', { n: 1, total: 2 }))
+          awardTouch(false)
+          setBubble(t('babyTouch.reactCheek'))
+          void gameAudio.unlock().then(() => gameAudio.playPout(sfxIntensity('crazy')))
           return
+        }
+        if (comboProgress(cheekTaps.current, now).ready) {
+          cheekTaps.current = []
+          lastCheekRef.current = null
+          showHint('babyTouch.lockedCrazy')
         }
       } else {
         cheekTaps.current = pruneCheekTaps(cheekTaps.current, now)
@@ -207,7 +232,7 @@ export function BabyTouchView({
       const side = zone === 'cheekL' ? 'left' : zone === 'cheekR' ? 'right' : null
       runReaction(poseForZone(zone), side)
     },
-    [session, onRequireAuth, awardTouch, runReaction, showHint],
+    [session, onRequireAuth, awardTouch, runReaction, showHint, t],
   )
 
   useEffect(
@@ -255,7 +280,10 @@ export function BabyTouchView({
       type="button"
       onClick={() => {
         setMode(id)
+        modeRef.current = id
         cheekTaps.current = []
+        lastCheekRef.current = null
+        setComboHint(null)
         void gameAudio.unlock()
       }}
       className={`hawk-btn flex min-h-12 flex-1 flex-col items-center gap-0.5 px-2 py-2 text-xs sm:text-sm ${
@@ -383,8 +411,15 @@ export function BabyTouchView({
         </div>
       </div>
 
+      <div className="mx-auto mb-3 w-full max-w-lg space-y-2 sm:max-w-xl">
+        <BabySpeechBubble text={bubble ?? t('babyTouch.idlePrompt')} />
+        {comboHint && (
+          <p className="text-center text-xs font-medium text-hawk-gold">{comboHint}</p>
+        )}
+      </div>
+
       <div
-        className={`baby-scene relative mx-auto aspect-[400/420] w-full max-w-lg overflow-hidden rounded-2xl border border-[#c9a07a]/40 shadow-[0_18px_40px_rgba(40,24,12,0.35)] sm:max-w-xl ${
+        className={`baby-scene relative mx-auto aspect-[400/420] w-full max-w-md overflow-hidden rounded-2xl border border-[#c9a07a]/40 shadow-[0_18px_40px_rgba(40,24,12,0.35)] sm:max-w-lg ${
           mode === 'gentle' ? 'baby-mode-gentle' : mode === 'crazy' ? 'baby-mode-crazy' : 'baby-mode-funny'
         }`}
         role="application"
@@ -403,7 +438,6 @@ export function BabyTouchView({
             <BabyEagleSprite pose={pose} mode={mode} pinchSide={pinchSide} />
           </g>
         </svg>
-        <BabySpeechBubble text={bubble ?? ''} />
         {ZONES.map((z) => (
           <button
             key={z.id}
@@ -411,11 +445,27 @@ export function BabyTouchView({
             className="baby-hotspot"
             style={z.style}
             aria-label={t(zoneLabelKey(z.id))}
-            onPointerDown={(ev) => {
-              ev.preventDefault()
-              onZone(z.id)
-            }}
-          />
+            onClick={() => onZone(z.id)}
+          >
+            {(z.id === 'cheekL' || z.id === 'cheekR') && (
+              <span className="text-[11px] font-bold text-white drop-shadow">
+                {z.id === 'cheekL' ? 'L' : 'R'}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      <div className="mx-auto mt-3 grid w-full max-w-md grid-cols-3 gap-2 sm:max-w-lg sm:grid-cols-6">
+        {ZONES.map((z) => (
+          <button
+            key={`chip-${z.id}`}
+            type="button"
+            className="hawk-btn hawk-btn-ghost min-h-11 px-2 py-2 text-[11px] text-hawk-cream sm:text-xs"
+            onClick={() => onZone(z.id)}
+          >
+            {t(zoneLabelKey(z.id))}
+          </button>
         ))}
       </div>
 

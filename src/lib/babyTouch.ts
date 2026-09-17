@@ -3,10 +3,12 @@
  *
  * Shared Hawk Games account (via onRoundComplete / recordGameActivity):
  * - Successful touch: +3 pts (Gentle / Playful) or +4 pts (Crazy)
- * - Crazy-mode double-cheek combo: +8 pts
+ * - Crazy-mode left-then-right cheek combo: +8 pts (8s window)
  * - Same-zone cooldown (~420ms) so mash-tapping cannot farm
  * - Session cap 90 pts (leave the game and re-enter to start a new session)
  * Play stays unlimited after the cap; only account points stop.
+ *
+ * Crazy combo: tap left cheek then right cheek (or vice versa) within 8s.
  *
  * Marquee: the view batches pending points (flush at 12 pts, on leave, or at cap)
  * so each cuddle does not spam the activity ticker.
@@ -27,11 +29,11 @@ export const BABY_TOUCH_POINTS = {
 
 export const BABY_TOUCH_SESSION_CAP = 90
 export const BABY_TOUCH_COOLDOWN_MS = 420
-export const BABY_COMBO_WINDOW_MS = 1000
-export const BABY_COMBO_MIN_EACH = 2
+export const BABY_COMBO_WINDOW_MS = 8000
+export const BABY_COMBO_MIN_EACH = 1
 /** Flush batched account points once this many are pending. */
 export const BABY_BATCH_FLUSH_AT = 12
-export const BABY_REACTION_MS = 1600
+export const BABY_REACTION_MS = 2400
 
 export interface CheekTap {
   side: CheekSide
@@ -49,11 +51,11 @@ export function clampSessionAward(already: number, next: number, cap = BABY_TOUC
   return Math.max(0, Math.min(next, cap - already))
 }
 
-export function detectCrazyCombo(
+export function comboProgress(
   taps: readonly CheekTap[],
   now: number,
   windowMs = BABY_COMBO_WINDOW_MS,
-): boolean {
+): { left: number; right: number; ready: boolean } {
   const recent = taps.filter((t) => now - t.at <= windowMs)
   let left = 0
   let right = 0
@@ -61,7 +63,19 @@ export function detectCrazyCombo(
     if (t.side === 'left') left += 1
     else right += 1
   }
-  return left >= BABY_COMBO_MIN_EACH && right >= BABY_COMBO_MIN_EACH
+  return {
+    left,
+    right,
+    ready: left >= BABY_COMBO_MIN_EACH && right >= BABY_COMBO_MIN_EACH,
+  }
+}
+
+export function detectCrazyCombo(
+  taps: readonly CheekTap[],
+  now: number,
+  windowMs = BABY_COMBO_WINDOW_MS,
+): boolean {
+  return comboProgress(taps, now, windowMs).ready
 }
 
 export function pruneCheekTaps(
