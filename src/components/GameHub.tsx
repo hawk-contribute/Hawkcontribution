@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Bird, CloudSun, Egg, Feather, Gamepad2, Grid2x2, Lock, Swords, Target, Wind } from 'lucide-react'
+import { Baby, Bird, CloudSun, Egg, Feather, Gamepad2, Grid2x2, Lock, Swords, Target, Wind } from 'lucide-react'
 import type { MiniGameId, PointsAccount, Session } from '../types'
 import { useI18n } from '../i18n'
 import { asset } from '../lib/asset'
@@ -13,6 +13,8 @@ import { HatchDayView } from './HatchDayView'
 import { HatchDayCover } from './HatchDayArt'
 import { FluffySoarView } from './FluffySoarView'
 import { FluffySoarCover } from './FluffySoarArt'
+import { BabyTouchView } from './BabyTouchView'
+import { BabyTouchCover } from './BabyTouchArt'
 
 type GameId = 'hub' | MiniGameId
 
@@ -31,6 +33,11 @@ export function GameHub({
 }: GameHubProps) {
   const { t } = useI18n()
   const [game, setGame] = useState<GameId>('hub')
+
+  const openGame = (id: MiniGameId) => {
+    window.scrollTo(0, 0)
+    setGame(id)
+  }
 
   if (game === 'whack') {
     return (
@@ -129,6 +136,18 @@ export function GameHub({
     )
   }
 
+  if (game === 'babyTouch') {
+    return (
+      <BabyTouchView
+        session={session}
+        account={account}
+        onRequireAuth={onRequireAuth}
+        onRoundComplete={(score, hits) => onRoundComplete(score, hits, 'babyTouch')}
+        onBack={() => setGame('hub')}
+      />
+    )
+  }
+
   if (!session) {
     return (
       <section className="hawk-card mx-auto max-w-lg px-6 py-14 text-center">
@@ -170,7 +189,7 @@ export function GameHub({
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
         <button
           type="button"
-          onClick={() => setGame('whack')}
+          onClick={() => openGame('whack')}
           className="hawk-card group flex flex-col overflow-hidden p-0 text-left transition hover:border-hawk-gold/50"
         >
           <div className="relative h-40 overflow-hidden bg-hawk-navy/80 sm:h-44">
@@ -192,7 +211,7 @@ export function GameHub({
 
         <button
           type="button"
-          onClick={() => setGame('fruit')}
+          onClick={() => openGame('fruit')}
           className="hawk-card group flex flex-col overflow-hidden p-0 text-left transition hover:border-hawk-gold/50"
         >
           <div className="relative h-40 overflow-hidden bg-hawk-navy/80 sm:h-44">
@@ -214,7 +233,7 @@ export function GameHub({
 
         <button
           type="button"
-          onClick={() => setGame('catch')}
+          onClick={() => openGame('catch')}
           className="hawk-card group flex flex-col overflow-hidden p-0 text-left transition hover:border-hawk-gold/50"
         >
           <div className="relative h-40 overflow-hidden bg-hawk-navy/80 sm:h-44">
@@ -236,7 +255,7 @@ export function GameHub({
 
         <button
           type="button"
-          onClick={() => setGame('flappy')}
+          onClick={() => openGame('flappy')}
           className="hawk-card group flex flex-col overflow-hidden p-0 text-left transition hover:border-hawk-gold/50"
         >
           <div className="relative h-40 overflow-hidden bg-hawk-navy/80 sm:h-44">
@@ -258,7 +277,7 @@ export function GameHub({
 
         <button
           type="button"
-          onClick={() => setGame('memory')}
+          onClick={() => openGame('memory')}
           className="hawk-card group flex flex-col overflow-hidden p-0 text-left transition hover:border-hawk-gold/50"
         >
           <div className="relative h-40 overflow-hidden bg-hawk-navy/80 sm:h-44">
@@ -280,7 +299,7 @@ export function GameHub({
 
         <button
           type="button"
-          onClick={() => setGame('wingSoar')}
+          onClick={() => openGame('wingSoar')}
           className="hawk-card group flex flex-col overflow-hidden p-0 text-left transition hover:border-hawk-gold/50"
         >
           <div className="relative h-40 overflow-hidden bg-hawk-navy/80 sm:h-44">
@@ -302,7 +321,7 @@ export function GameHub({
 
         <button
           type="button"
-          onClick={() => setGame('hatchDay')}
+          onClick={() => openGame('hatchDay')}
           className="hawk-card group flex flex-col overflow-hidden p-0 text-left transition hover:border-hawk-gold/50"
         >
           <div className="relative h-40 overflow-hidden bg-hawk-navy/80 sm:h-44">
@@ -320,7 +339,7 @@ export function GameHub({
 
         <button
           type="button"
-          onClick={() => setGame('fluffySoar')}
+          onClick={() => openGame('fluffySoar')}
           className="hawk-card group flex flex-col overflow-hidden p-0 text-left transition hover:border-hawk-gold/50"
         >
           <div className="relative h-40 overflow-hidden bg-hawk-navy/80 sm:h-44">
@@ -333,6 +352,24 @@ export function GameHub({
           <div className="p-5">
             <h2 className="text-lg font-bold text-hawk-cream">{t('fluffySoar.title')}</h2>
             <p className="mt-1.5 text-sm text-hawk-muted">{t('gameHub.fluffySoarBlurb')}</p>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => openGame('babyTouch')}
+          className="hawk-card group flex flex-col overflow-hidden p-0 text-left transition hover:border-hawk-gold/50"
+        >
+          <div className="relative h-40 overflow-hidden bg-hawk-navy/80 sm:h-44">
+            <BabyTouchCover />
+            <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-xs font-medium text-hawk-gold">
+              <Baby className="h-3.5 w-3.5" />
+              {t('gameHub.babyTouchTag')}
+            </span>
+          </div>
+          <div className="p-5">
+            <h2 className="text-lg font-bold text-hawk-cream">{t('babyTouch.title')}</h2>
+            <p className="mt-1.5 text-sm text-hawk-muted">{t('gameHub.babyTouchBlurb')}</p>
           </div>
         </button>
 

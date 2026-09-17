@@ -9,6 +9,7 @@ export const MINI_GAME_IDS: readonly MiniGameId[] = [
   'wingSoar',
   'hatchDay',
   'fluffySoar',
+  'babyTouch',
 ]
 
 /** Locale-appropriate short display names already used in the game hub. */
@@ -21,6 +22,7 @@ export const MINI_GAME_NAME_I18N_KEY: Record<MiniGameId, string> = {
   wingSoar: 'wingSoar.badge',
   hatchDay: 'hatchDay.badge',
   fluffySoar: 'fluffySoar.badge',
+  babyTouch: 'babyTouch.badge',
 }
 
 export function isMiniGameId(value: unknown): value is MiniGameId {

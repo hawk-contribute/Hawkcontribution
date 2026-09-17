@@ -282,6 +282,76 @@ export const gameAudio = {
     })
   },
 
+  /** Soft bedtime hum (hair stroke). */
+  playHum(intensity = 1): void {
+    void resume().then(() => {
+      const g = intensity
+      tone(392, 0.28, 'sine', 0, 0.35 * g)
+      tone(349, 0.32, 'sine', 0.18, 0.32 * g)
+      tone(330, 0.4, 'triangle', 0.36, 0.28 * g)
+      tone(262, 0.45, 'sine', 0.5, 0.22 * g)
+    })
+  },
+
+  /** Pinch-cheek pout. */
+  playPout(intensity = 1): void {
+    void resume().then(() => {
+      const g = intensity
+      tone(320, 0.08, 'square', 0, 0.45 * g)
+      tone(240, 0.12, 'sawtooth', 0.06, 0.4 * g)
+      tone(190, 0.16, 'triangle', 0.12, 0.35 * g)
+    })
+  },
+
+  /** Palm-grab giggle. */
+  playGiggle(intensity = 1): void {
+    void resume().then(() => {
+      const g = intensity
+      const hops = [784, 880, 988, 880, 1046, 1174]
+      hops.forEach((f, i) => {
+        tone(f, 0.07, i % 2 === 0 ? 'square' : 'sine', i * 0.07, 0.55 * g)
+      })
+    })
+  },
+
+  /** Belly tickle laugh. */
+  playTickle(intensity = 1): void {
+    void resume().then(() => {
+      const g = intensity
+      noiseBurst(0.08, 0.08 * g)
+      tone(660, 0.06, 'square', 0, 0.5 * g)
+      tone(784, 0.07, 'sine', 0.06, 0.55 * g)
+      tone(880, 0.08, 'square', 0.12, 0.5 * g)
+      tone(988, 0.1, 'triangle', 0.18, 0.45 * g)
+      tone(1174, 0.12, 'sine', 0.26, 0.4 * g)
+    })
+  },
+
+  /** Stinky-foot kick blast. */
+  playKick(intensity = 1): void {
+    void resume().then(() => {
+      const g = intensity
+      noiseBurst(0.12, 0.14 * g)
+      tone(180, 0.1, 'sawtooth', 0, 0.7 * g)
+      tone(240, 0.12, 'square', 0.08, 0.55 * g)
+      tone(420, 0.16, 'triangle', 0.16, 0.5 * g)
+    })
+  },
+
+  /** Raspberry / tongue trill (crazy combo). */
+  playRaspberry(intensity = 1): void {
+    void resume().then(() => {
+      const g = intensity
+      noiseBurst(0.28, 0.22 * g)
+      for (let i = 0; i < 8; i++) {
+        const f = 140 + (i % 2 === 0 ? 40 : 0)
+        tone(f, 0.05, 'sawtooth', i * 0.04, 0.7 * g)
+        tone(f * 1.5, 0.04, 'square', i * 0.04 + 0.01, 0.35 * g)
+      }
+      tone(220, 0.18, 'triangle', 0.32, 0.4 * g)
+    })
+  },
+
   startBgm(): void {
     void resume().then(() => {
       stopBgmLoop()
