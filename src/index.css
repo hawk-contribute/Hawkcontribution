@@ -595,22 +595,70 @@
 }
 
 /* Layered puppet: each part is a masked copy of the nursery painting. */
+/* Hide the still painting only for whole-body moves so we don't clone the baby. */
 .baby-bed-cover {
   position: absolute;
-  inset: 0;
+  left: 29%;
+  top: 13%;
+  z-index: 1;
+  width: 44%;
+  height: 72%;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse at 50% 28%, #c3d4e6 0%, #d5e2ee 38%, #eadfcd 62%, #f2ead8 100%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 46%, #000 36%, rgba(0,0,0,0.65) 56%, transparent 76%);
+  mask-image: radial-gradient(ellipse at 50% 46%, #000 36%, rgba(0,0,0,0.65) 56%, transparent 76%);
+}
+.baby-react-roll .baby-bed-cover,
+.baby-react-crazy .baby-bed-cover {
+  opacity: 1;
+}
+.baby-head-cover {
+  position: absolute;
+  left: 36%;
+  top: 13%;
+  z-index: 1;
+  width: 30%;
+  height: 28%;
+  pointer-events: none;
+  opacity: 0;
+  background: #c8d7e8;
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 38%, transparent 78%);
+  mask-image: radial-gradient(circle at 50% 50%, #000 38%, transparent 78%);
+}
+.baby-react-wag .baby-head-cover,
+.baby-react-pout .baby-head-cover,
+.baby-react-hug .baby-head-cover {
+  opacity: 1;
+}
+
+.baby-hole {
+  position: absolute;
   z-index: 1;
   pointer-events: none;
   opacity: 0;
-  background:
-    radial-gradient(ellipse 26% 24% at 51.4% 30%, #d5e4f0 42%, #c4d8ea 64%, transparent 76%),
-    radial-gradient(ellipse 16% 18% at 34% 56%, #e6efe0 52%, transparent 74%),
-    radial-gradient(ellipse 14% 16% at 68% 60%, #e8f1e4 52%, transparent 74%),
-    radial-gradient(ellipse 26% 24% at 51% 58%, #e4eed8 56%, transparent 76%),
-    radial-gradient(ellipse 28% 16% at 51% 82%, #f4ead8 62%, transparent 80%);
+  background: #f3ead6;
+  -webkit-mask-image: radial-gradient(circle, #000 32%, transparent 78%);
+  mask-image: radial-gradient(circle, #000 32%, transparent 78%);
 }
-.baby-art:not([data-pose="idle"]) .baby-bed-cover {
-  opacity: 1;
-}
+.baby-hole-foot-l { left: 33%; top: 76%; width: 20%; height: 13%; }
+.baby-hole-foot-r { left: 51%; top: 76%; width: 20%; height: 13%; }
+.baby-hole-hand-l { left: 24%; top: 50%; width: 16%; height: 16%; background: #d7e6f0; }
+.baby-hole-hand-r { left: 62%; top: 54%; width: 14%; height: 14%; background: #e7f0e2; }
+.baby-react-lift[data-limb="left"] .baby-hole-foot-l,
+.baby-react-lift[data-limb="both"] .baby-hole-foot-l,
+.baby-react-roll .baby-hole-foot-l,
+.baby-react-crazy .baby-hole-foot-l { opacity: 1; }
+.baby-react-lift[data-limb="right"] .baby-hole-foot-r,
+.baby-react-lift[data-limb="both"] .baby-hole-foot-r,
+.baby-react-roll .baby-hole-foot-r,
+.baby-react-crazy .baby-hole-foot-r { opacity: 1; }
+.baby-react-wave[data-limb="left"] .baby-hole-hand-l,
+.baby-react-wave[data-limb="both"] .baby-hole-hand-l { opacity: 1; }
+.baby-react-wave[data-limb="right"] .baby-hole-hand-r,
+.baby-react-wave[data-limb="both"] .baby-hole-hand-r { opacity: 1; }
+
+.baby-part-full { transform-origin: 51% 58%; z-index: 1; }
 
 .baby-puppet {
   position: absolute;
@@ -644,6 +692,13 @@
   opacity: 0;
 }
 .baby-art:not([data-pose="idle"]) .baby-part {
+  opacity: 1;
+}
+.baby-art:not([data-pose="idle"]) .baby-part-full {
+  opacity: 0;
+}
+.baby-art.baby-react-roll .baby-part-full,
+.baby-art.baby-react-crazy .baby-part-full {
   opacity: 1;
 }
 .baby-part img {
@@ -1002,11 +1057,11 @@
 }
 @keyframes baby-roll-laugh {
   0%, 100% { transform: rotate(0) translate(0, 0); }
-  18% { transform: rotate(calc(var(--baby-amp) * -16deg)) translate(calc(var(--baby-amp) * -16px), calc(var(--baby-amp) * 8px)); }
-  36% { transform: rotate(calc(var(--baby-amp) * 18deg)) translate(calc(var(--baby-amp) * 18px), calc(var(--baby-amp) * -4px)); }
-  54% { transform: rotate(calc(var(--baby-amp) * -20deg)) translate(calc(var(--baby-amp) * -20px), calc(var(--baby-amp) * 10px)); }
-  72% { transform: rotate(calc(var(--baby-amp) * 14deg)) translate(calc(var(--baby-amp) * 14px), calc(var(--baby-amp) * -2px)); }
-  88% { transform: rotate(calc(var(--baby-amp) * -8deg)) translate(calc(var(--baby-amp) * -8px), 4px); }
+  18% { transform: rotate(calc(var(--baby-amp) * -20deg)) translate(calc(var(--baby-amp) * -20px), calc(var(--baby-amp) * 10px)); }
+  36% { transform: rotate(calc(var(--baby-amp) * 22deg)) translate(calc(var(--baby-amp) * 22px), calc(var(--baby-amp) * -6px)); }
+  54% { transform: rotate(calc(var(--baby-amp) * -24deg)) translate(calc(var(--baby-amp) * -24px), calc(var(--baby-amp) * 12px)); }
+  72% { transform: rotate(calc(var(--baby-amp) * 16deg)) translate(calc(var(--baby-amp) * 16px), calc(var(--baby-amp) * -4px)); }
+  88% { transform: rotate(calc(var(--baby-amp) * -10deg)) translate(calc(var(--baby-amp) * -10px), 6px); }
 }
 @keyframes baby-roll-laugh-wild {
   0%, 100% { transform: rotate(0) translate(0, 0) scale(1); }
@@ -1028,15 +1083,15 @@
 @keyframes baby-lift-foot-l {
   0%, 100% { transform: rotate(0) translate(0, 0) scale(1); }
   12% { transform: scale(1.08, 0.88) translateY(4px); }
-  38% { transform: rotate(calc(var(--baby-amp) * -32deg)) translate(calc(var(--baby-amp) * -12px), calc(var(--baby-amp) * -64px)) scale(0.9, 1.16); }
-  55% { transform: rotate(calc(var(--baby-amp) * -18deg)) translate(calc(var(--baby-amp) * -6px), calc(var(--baby-amp) * -36px)); }
+  38% { transform: rotate(calc(var(--baby-amp) * -36deg)) translate(calc(var(--baby-amp) * -14px), calc(var(--baby-amp) * -86px)) scale(0.9, 1.18); }
+  55% { transform: rotate(calc(var(--baby-amp) * -20deg)) translate(calc(var(--baby-amp) * -8px), calc(var(--baby-amp) * -44px)); }
   72% { transform: rotate(calc(var(--baby-amp) * 10deg)) translate(4px, 8px) scale(1.04, 0.94); }
 }
 @keyframes baby-lift-foot-r {
   0%, 100% { transform: rotate(0) translate(0, 0) scale(1); }
   12% { transform: scale(1.08, 0.88) translateY(4px); }
-  38% { transform: rotate(calc(var(--baby-amp) * 32deg)) translate(calc(var(--baby-amp) * 12px), calc(var(--baby-amp) * -64px)) scale(0.9, 1.16); }
-  55% { transform: rotate(calc(var(--baby-amp) * 18deg)) translate(calc(var(--baby-amp) * 6px), calc(var(--baby-amp) * -36px)); }
+  38% { transform: rotate(calc(var(--baby-amp) * 36deg)) translate(calc(var(--baby-amp) * 14px), calc(var(--baby-amp) * -86px)) scale(0.9, 1.18); }
+  55% { transform: rotate(calc(var(--baby-amp) * 20deg)) translate(calc(var(--baby-amp) * 8px), calc(var(--baby-amp) * -44px)); }
   72% { transform: rotate(calc(var(--baby-amp) * -10deg)) translate(-4px, 8px) scale(1.04, 0.94); }
 }
 @keyframes baby-curl-toes {
