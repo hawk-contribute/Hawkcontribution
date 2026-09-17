@@ -576,6 +576,11 @@
   top: 36%;
   animation-delay: 0.18s;
 }
+.baby-fx-laugh-c {
+  left: 60%;
+  top: 20%;
+  font-size: 0.85rem;
+}
 
 .baby-bubble {
   animation: baby-bubble-in 0.28s ease-out;
@@ -943,9 +948,20 @@
   transform-origin: center;
 }
 .baby-art[data-pose="pout"] .baby-cheek-blob.is-hot,
-.baby-art[data-pose="crazy"] .baby-cheek-blob.is-puff {
+.baby-art[data-pose="crazy"] .baby-cheek-blob.is-puff,
+.baby-cheek-blob.is-laugh {
   opacity: 0.62;
-  animation: baby-cheek-puff calc(var(--baby-tempo) * 0.65) ease-in-out 2;
+  animation: baby-cheek-puff calc(var(--baby-tempo) * 0.55) ease-in-out 4;
+}
+.baby-smile {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: baby-smile-bounce 0.42s ease-in-out 3;
+}
+.baby-face-svg.is-big-laugh .baby-laugh-mouth {
+  animation: baby-laugh-bounce 0.34s ease-in-out 5;
+  transform-box: fill-box;
+  transform-origin: center top;
 }
 .baby-happy-eyes {
   opacity: 0.95;
@@ -1102,6 +1118,10 @@
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.18, 0.88) translateY(3px); }
 }
+@keyframes baby-smile-bounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12, 0.92); }
+}
 @keyframes baby-swoosh-pulse {
   0%, 100% { opacity: 0.15; transform: scale(0.92); }
   50% { opacity: 0.95; transform: scale(1.08); }
@@ -1185,6 +1205,7 @@
   .baby-cheek-blob,
   .baby-tummy-glow,
   .baby-laugh-mouth,
+  .baby-smile,
   .baby-pupil {
     animation: none;
   }

@@ -78,26 +78,31 @@ function SpiralIcon({ className }: { className?: string }) {
   )
 }
 
-function playPoseSfx(pose: BabyPose, intensity: number) {
+function playPoseSfx(pose: BabyPose, mode: BabyMode) {
+  const intensity = sfxIntensity(mode)
+  const soft = mode === 'gentle'
+  const wild = mode === 'crazy'
   switch (pose) {
     case 'nuzzle':
     case 'cuddle':
-      gameAudio.playHum(intensity)
+      if (soft) gameAudio.playSoftGiggle(intensity)
+      else gameAudio.playBrightGiggle(intensity)
       break
     case 'pout':
       gameAudio.playPout(intensity)
       break
     case 'grab':
-      gameAudio.playGiggle(intensity)
+      gameAudio.playHihi(intensity)
       break
     case 'tickle':
-      gameAudio.playTickle(intensity)
+      if (soft) gameAudio.playSoftGiggle(intensity * 1.2)
+      else gameAudio.playBellyLaugh(wild ? intensity * 1.12 : intensity)
       break
     case 'kick':
-      gameAudio.playKick(intensity)
+      gameAudio.playSqueakGiggle(intensity)
       break
     case 'crazy':
-      gameAudio.playRaspberry(intensity)
+      gameAudio.playBellyLaugh(intensity * 1.15)
       break
     default:
       break
@@ -193,7 +198,7 @@ export function BabyTouchView({
   const runReaction = useCallback(
     (nextPose: BabyPose, side: BabyFocusSide) => {
       void gameAudio.unlock().then(() => {
-        playPoseSfx(nextPose, sfxIntensity(modeRef.current))
+        playPoseSfx(nextPose, modeRef.current)
         gameAudio.startBgm()
       })
       setPose(nextPose)

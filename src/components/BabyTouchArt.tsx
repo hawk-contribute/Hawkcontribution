@@ -73,20 +73,29 @@ function ToeCluster({ side }: { side: 'left' | 'right' }) {
 function FaceOverlay({
   pose,
   focusSide,
+  mode,
 }: {
   pose: BabyPose
   focusSide: BabyFocusSide
+  mode: BabyMode
 }) {
-  const squint = pose === 'nuzzle' || pose === 'cuddle'
-  const giggle = pose === 'grab' || pose === 'tickle'
   const crazy = pose === 'crazy'
   const pinchL = pose === 'pout' && focusSide !== 'right'
   const pinchR = pose === 'pout' && focusSide !== 'left'
-  const laugh = pose === 'tickle' || pose === 'crazy'
+  const happy =
+    pose === 'nuzzle' ||
+    pose === 'cuddle' ||
+    pose === 'grab' ||
+    pose === 'tickle' ||
+    pose === 'kick' ||
+    pose === 'crazy'
+  const bigLaugh = pose === 'tickle' || pose === 'crazy' || (pose === 'kick' && mode === 'crazy')
+  const openSmile = happy && !bigLaugh && pose !== 'cuddle'
+  const blushLaugh = happy
 
   return (
     <svg
-      className="baby-face-svg"
+      className={`baby-face-svg${happy ? ' is-happy' : ''}${bigLaugh ? ' is-big-laugh' : ''}`}
       viewBox="0 0 400 533"
       preserveAspectRatio="xMidYMid slice"
       aria-hidden
@@ -96,17 +105,14 @@ function FaceOverlay({
         <ellipse className="baby-lid baby-lid-r" cx="236" cy="200" rx="22" ry="16" fill="#f0c4a4" />
       </g>
 
-      {squint && (
-        <g stroke="#5a3a2a" strokeWidth="3.8" strokeLinecap="round" fill="none">
-          <path d="M156 204 Q176 218 196 204" />
-          <path d="M217 204 Q237 218 257 204" />
-        </g>
-      )}
+      {happy && <ellipse cx="206" cy="248" rx="22" ry="18" fill="#f0c4a4" />}
 
-      {giggle && (
-        <g stroke="#5a3a2a" strokeWidth="3.8" strokeLinecap="round" fill="none">
-          <path d="M156 202 Q176 184 196 202" />
-          <path d="M216 202 Q236 184 256 202" />
+      {happy && !crazy && (
+        <g className="baby-happy-eyes">
+          <ellipse cx="176" cy="200" rx="22" ry="15" fill="#f0c4a4" />
+          <ellipse cx="236" cy="200" rx="22" ry="15" fill="#f0c4a4" />
+          <path d="M157 200 Q176 216 195 200" stroke="#5a3a2a" strokeWidth="3.8" strokeLinecap="round" fill="none" />
+          <path d="M217 200 Q236 216 255 200" stroke="#5a3a2a" strokeWidth="3.8" strokeLinecap="round" fill="none" />
         </g>
       )}
 
@@ -114,12 +120,20 @@ function FaceOverlay({
         <path d="M194 256 Q206 246 218 256" stroke="#5a3a2a" strokeWidth="3.4" fill="none" strokeLinecap="round" />
       )}
 
-      {pose === 'grab' && (
-        <path d="M192 246 Q206 264 220 246" stroke="#5a3a2a" strokeWidth="3.4" fill="none" strokeLinecap="round" />
+      {openSmile && (
+        <path
+          className="baby-smile"
+          d="M184 246 Q206 268 228 246"
+          stroke="#5a3a2a"
+          strokeWidth="3.6"
+          fill="#4a3328"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       )}
 
-      {pose === 'kick' && (
-        <path d="M196 248 Q206 242 216 248" stroke="#5a3a2a" strokeWidth="3.2" fill="none" strokeLinecap="round" />
+      {pose === 'cuddle' && (
+        <path d="M190 250 Q206 260 222 250" stroke="#5a3a2a" strokeWidth="3.2" fill="none" strokeLinecap="round" />
       )}
 
       {crazy && (
@@ -129,15 +143,15 @@ function FaceOverlay({
         </g>
       )}
 
-      {laugh && (
+      {bigLaugh && (
         <g className="baby-laugh-mouth">
-          <ellipse cx="206" cy="254" rx="16" ry="12" fill="#4a3328" />
-          <ellipse cx="206" cy="258" rx="10" ry="6" fill="#e07080" />
+          <ellipse cx="206" cy={crazy ? 258 : 254} rx={crazy ? 20 : 17} ry={crazy ? 16 : 13} fill="#4a3328" />
+          <ellipse cx="206" cy={crazy ? 264 : 259} rx={crazy ? 12 : 10} ry={crazy ? 8 : 6.5} fill="#e07080" />
         </g>
       )}
 
       <ellipse
-        className={`baby-cheek-blob baby-cheek-blob-l${pinchL ? ' is-hot' : ''}${crazy ? ' is-puff' : ''}`}
+        className={`baby-cheek-blob baby-cheek-blob-l${pinchL ? ' is-hot' : ''}${blushLaugh ? ' is-laugh' : ''}${crazy ? ' is-puff' : ''}`}
         cx="160"
         cy="218"
         rx="18"
@@ -145,7 +159,7 @@ function FaceOverlay({
         fill="#f2a0b0"
       />
       <ellipse
-        className={`baby-cheek-blob baby-cheek-blob-r${pinchR ? ' is-hot' : ''}${crazy ? ' is-puff' : ''}`}
+        className={`baby-cheek-blob baby-cheek-blob-r${pinchR ? ' is-hot' : ''}${blushLaugh ? ' is-laugh' : ''}${crazy ? ' is-puff' : ''}`}
         cx="252"
         cy="218"
         rx="18"
@@ -159,8 +173,8 @@ function FaceOverlay({
 
       {crazy && (
         <g className="baby-tongue">
-          <ellipse cx="206" cy="268" rx="9" ry="14" fill="#f08090" />
-          <path d="M206 256 L206 278" stroke="#e06070" strokeWidth="1.3" />
+          <ellipse cx="206" cy="272" rx="10" ry="15" fill="#f08090" />
+          <path d="M206 260 L206 282" stroke="#e06070" strokeWidth="1.3" />
         </g>
       )}
     </svg>
@@ -273,15 +287,25 @@ export function NurseryScene({
             <ClippedPart src={NURSERY_SRC} className="baby-part-hair" mask={MASKS.hair} />
             <ClippedPart src={NURSERY_SRC} className="baby-part-cheek-l" mask={MASKS.cheekL} />
             <ClippedPart src={NURSERY_SRC} className="baby-part-cheek-r" mask={MASKS.cheekR} />
-            <FaceOverlay pose={pose} focusSide={focusSide} />
+            <FaceOverlay pose={pose} focusSide={focusSide} mode={mode} />
           </div>
         </div>
         <MotionSwooshes pose={pose} focusSide={focusSide} />
       </div>
 
-      {pose === 'nuzzle' && (
+      {pose === 'nuzzle' && mode !== 'gentle' && (
+        <span className="baby-fx-laugh baby-fx-laugh-c" aria-hidden>
+          呵呵
+        </span>
+      )}
+      {pose === 'nuzzle' && mode === 'gentle' && (
         <span className="baby-fx-zzz" aria-hidden>
           z z
+        </span>
+      )}
+      {(pose === 'grab' || pose === 'kick') && (
+        <span className="baby-fx-laugh baby-fx-laugh-c" aria-hidden>
+          {pose === 'grab' ? 'hihi' : '呵'}
         </span>
       )}
       {pose === 'tickle' && (

@@ -124,6 +124,39 @@ function tone(
   osc.stop(t0 + duration + 0.02)
 }
 
+function chirp(
+  from: number,
+  to: number,
+  duration: number,
+  type: OscillatorType = 'sine',
+  when = 0,
+  gain = 1,
+): void {
+  const c = ensureCtx()
+  if (!c || !sfxGain || muted) return
+  const t0 = c.currentTime + when
+  const osc = c.createOscillator()
+  const g = c.createGain()
+  osc.type = type
+  osc.frequency.setValueAtTime(from, t0)
+  osc.frequency.exponentialRampToValueAtTime(Math.max(40, to), t0 + duration)
+  g.gain.setValueAtTime(0.0001, t0)
+  g.gain.exponentialRampToValueAtTime(Math.max(0.001, 0.2 * gain), t0 + 0.012)
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + duration)
+  osc.connect(g)
+  g.connect(sfxGain)
+  osc.start(t0)
+  osc.stop(t0 + duration + 0.02)
+}
+
+/** One cute "ha" — triangle + sine, no saw/noise. */
+function haPulse(when: number, gain: number, pitch = 1): void {
+  const p = pitch
+  tone(500 * p, 0.1, 'triangle', when, 0.95 * gain)
+  tone(760 * p, 0.085, 'sine', when + 0.012, 0.72 * gain)
+  tone(320 * p, 0.08, 'sine', when, 0.38 * gain)
+}
+
 function noiseBurst(duration: number, gain = 0.2): void {
   const c = ensureCtx()
   if (!c || !sfxGain || muted) return
@@ -282,7 +315,7 @@ export const gameAudio = {
     })
   },
 
-  /** Soft bedtime hum (hair stroke). */
+  /** Soft bedtime hum (kept for other games). */
   playHum(intensity = 1): void {
     void resume().then(() => {
       const g = intensity
@@ -293,63 +326,85 @@ export const gameAudio = {
     })
   },
 
-  /** Pinch-cheek pout. */
-  playPout(intensity = 1): void {
+  /** Gentle closed-mouth giggle — 呵呵. */
+  playSoftGiggle(intensity = 1): void {
     void resume().then(() => {
-      const g = intensity
-      tone(320, 0.08, 'square', 0, 0.45 * g)
-      tone(240, 0.12, 'sawtooth', 0.06, 0.4 * g)
-      tone(190, 0.16, 'triangle', 0.12, 0.35 * g)
+      const g = Math.max(0.4, intensity)
+      ;[0.94, 1.04, 0.98, 1.08].forEach((p, i) => haPulse(i * 0.15, 0.72 * g, 0.9 * p))
     })
   },
 
-  /** Palm-grab giggle. */
-  playGiggle(intensity = 1): void {
+  /** Brighter playful giggle. */
+  playBrightGiggle(intensity = 1): void {
     void resume().then(() => {
       const g = intensity
-      const hops = [784, 880, 988, 880, 1046, 1174]
-      hops.forEach((f, i) => {
-        tone(f, 0.07, i % 2 === 0 ? 'square' : 'sine', i * 0.07, 0.55 * g)
-      })
+      ;[1, 1.12, 1.04, 1.18, 1.08].forEach((p, i) => haPulse(i * 0.09, 0.88 * g, 1.12 * p))
     })
+  },
+
+  /** Palm-grab short hi-hi. */
+  playHihi(intensity = 1): void {
+    void resume().then(() => {
+      const g = intensity
+      tone(1046, 0.055, 'sine', 0, 0.5 * g)
+      tone(1318, 0.07, 'triangle', 0.06, 0.58 * g)
+      tone(1174, 0.08, 'sine', 0.13, 0.48 * g)
+      haPulse(0.18, 0.45 * g, 1.22)
+    })
+  },
+
+  /** Rolling belly-laugh — bigger ha-ha-ha. */
+  playBellyLaugh(intensity = 1): void {
+    void resume().then(() => {
+      const g = intensity
+      const hops = [0.92, 1.06, 0.88, 1.1, 0.9, 1.14, 0.86]
+      hops.forEach((p, i) => {
+        haPulse(i * 0.105, (i % 2 ? 1 : 0.78) * g, 0.86 * p)
+      })
+      tone(392, 0.16, 'triangle', 0.72, 0.28 * g)
+    })
+  },
+
+  /** Foot poke: tiny squeak then giggle. */
+  playSqueakGiggle(intensity = 1): void {
+    void resume().then(() => {
+      const g = intensity
+      chirp(1480, 1860, 0.055, 'sine', 0, 0.42 * g)
+      chirp(1860, 1320, 0.05, 'triangle', 0.04, 0.32 * g)
+      haPulse(0.11, 0.72 * g, 1.18)
+      haPulse(0.22, 0.68 * g, 1.26)
+      haPulse(0.33, 0.55 * g, 1.12)
+    })
+  },
+
+  /** Pinch-cheek pout — cute, not harsh. */
+  playPout(intensity = 1): void {
+    void resume().then(() => {
+      const g = intensity
+      tone(360, 0.09, 'sine', 0, 0.4 * g)
+      tone(300, 0.12, 'triangle', 0.07, 0.35 * g)
+      tone(260, 0.16, 'sine', 0.14, 0.3 * g)
+    })
+  },
+
+  /** Palm-grab giggle (hihi). */
+  playGiggle(intensity = 1): void {
+    this.playHihi(intensity)
   },
 
   /** Belly tickle laugh. */
   playTickle(intensity = 1): void {
-    void resume().then(() => {
-      const g = intensity
-      noiseBurst(0.08, 0.08 * g)
-      tone(660, 0.06, 'square', 0, 0.5 * g)
-      tone(784, 0.07, 'sine', 0.06, 0.55 * g)
-      tone(880, 0.08, 'square', 0.12, 0.5 * g)
-      tone(988, 0.1, 'triangle', 0.18, 0.45 * g)
-      tone(1174, 0.12, 'sine', 0.26, 0.4 * g)
-    })
+    this.playBellyLaugh(intensity)
   },
 
-  /** Stinky-foot kick blast. */
+  /** Stinky-foot kick: squeak + giggle. */
   playKick(intensity = 1): void {
-    void resume().then(() => {
-      const g = intensity
-      noiseBurst(0.12, 0.14 * g)
-      tone(180, 0.1, 'sawtooth', 0, 0.7 * g)
-      tone(240, 0.12, 'square', 0.08, 0.55 * g)
-      tone(420, 0.16, 'triangle', 0.16, 0.5 * g)
-    })
+    this.playSqueakGiggle(intensity)
   },
 
-  /** Raspberry / tongue trill (crazy combo). */
+  /** Crazy combo: big belly-laugh, still cute. */
   playRaspberry(intensity = 1): void {
-    void resume().then(() => {
-      const g = intensity
-      noiseBurst(0.28, 0.22 * g)
-      for (let i = 0; i < 8; i++) {
-        const f = 140 + (i % 2 === 0 ? 40 : 0)
-        tone(f, 0.05, 'sawtooth', i * 0.04, 0.7 * g)
-        tone(f * 1.5, 0.04, 'square', i * 0.04 + 0.01, 0.35 * g)
-      }
-      tone(220, 0.18, 'triangle', 0.32, 0.4 * g)
-    })
+    this.playBellyLaugh(Math.max(intensity, 1.15))
   },
 
   startBgm(): void {
