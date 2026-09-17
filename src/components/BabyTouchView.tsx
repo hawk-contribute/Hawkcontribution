@@ -315,11 +315,6 @@ export function BabyTouchView({
           {t('auth.signIn')}
         </button>
       )}
-      {session && (
-        <p className="mb-2 text-center text-[11px] font-semibold uppercase tracking-wide text-[#b8860b]">
-          {t('babyTouch.badge')}
-        </p>
-      )}
 
       <p className="baby-tip">
         <span className="baby-tip-bulb" aria-hidden>
