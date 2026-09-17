@@ -92,6 +92,7 @@ function playPoseSfx(pose: BabyPose, intensity: number) {
       break
     case 'tickle':
       gameAudio.playTickle(intensity)
+      gameAudio.playGiggle(intensity * 0.55)
       break
     case 'kick':
       gameAudio.playKick(intensity)
@@ -117,6 +118,7 @@ export function BabyTouchView({
   const [focusSide, setFocusSide] = useState<BabyFocusSide>(null)
   const [poseTick, setPoseTick] = useState(0)
   const [bubble, setBubble] = useState<string | null>(null)
+  const [hit, setHit] = useState<{ x: number; y: number } | null>(null)
   const [comboHint, setComboHint] = useState<string | null>(null)
   const [sessionPts, setSessionPts] = useState(0)
   const [touches, setTouches] = useState(0)
@@ -191,11 +193,17 @@ export function BabyTouchView({
   )
 
   const runReaction = useCallback(
-    (nextPose: BabyPose, side: BabyFocusSide) => {
+    (nextPose: BabyPose, side: BabyFocusSide, zone?: BabyZone) => {
       void gameAudio.unlock().then(() => {
         playPoseSfx(nextPose, sfxIntensity(modeRef.current))
         gameAudio.startBgm()
       })
+      if (zone) {
+        const anchor =
+          ZONE_ANCHORS.find((z) => z.id === zone && (side == null || z.side == null || z.side === side)) ??
+          ZONE_ANCHORS.find((z) => z.id === zone)
+        if (anchor) setHit({ x: (anchor.x / SCENE_W) * 100, y: (anchor.y / SCENE_H) * 100 })
+      }
       setPose(nextPose)
       setFocusSide(side)
       setPoseTick((n) => n + 1)
@@ -206,6 +214,7 @@ export function BabyTouchView({
         setPose('idle')
         setFocusSide(null)
         setBubble(null)
+        setHit(null)
       }, hold)
     },
     [t],
@@ -231,12 +240,12 @@ export function BabyTouchView({
             lastCheekRef.current = null
             setComboHint(null)
             if (session) awardTouch(true)
-            runReaction('crazy', null)
+            runReaction('crazy', null, zone)
             return
           }
           setComboHint(t('babyTouch.comboProgress', { n: 1, total: 2 }))
           if (session) awardTouch(false)
-          runReaction('pout', focus)
+          runReaction('pout', focus, zone)
           return
         }
         if (session && comboProgress(cheekTaps.current, now).ready) {
@@ -252,7 +261,7 @@ export function BabyTouchView({
       if (now - last < BABY_TOUCH_COOLDOWN_MS) return
       lastZoneAt.current[zone] = now
       if (session) awardTouch(false)
-      runReaction(poseForZone(zone), focus)
+      runReaction(poseForZone(zone), focus, zone)
     },
     [session, awardTouch, runReaction, showHint, t],
   )
@@ -385,7 +394,14 @@ export function BabyTouchView({
         role="application"
         aria-label={t('babyTouch.scene')}
       >
-        <NurseryScene pose={pose} mode={mode} focusSide={focusSide} poseTick={poseTick} />
+        <NurseryScene
+          pose={pose}
+          mode={mode}
+          focusSide={focusSide}
+          poseTick={poseTick}
+          comic={pose === 'idle' ? null : bubble}
+          hit={hit}
+        />
         {ZONES.map((z) => (
           <button
             key={z.key}
