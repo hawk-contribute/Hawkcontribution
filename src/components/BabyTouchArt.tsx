@@ -88,65 +88,71 @@ function FaceOverlay({ pose, focusSide }: { pose: BabyPose; focusSide: BabyFocus
       preserveAspectRatio="xMidYMid slice"
       aria-hidden
     >
+      <defs>
+        <filter id="baby-skin-soft" x="-25%" y="-25%" width="150%" height="150%">
+          <feGaussianBlur stdDeviation="2.6" />
+        </filter>
+      </defs>
       <g className={kind === 'idle' ? 'baby-lids-idle' : 'baby-lids-hidden'}>
-        <ellipse className="baby-lid baby-lid-l" cx="176" cy="200" rx="22" ry="16" fill="#f1c4a8" />
-        <ellipse className="baby-lid baby-lid-r" cx="236" cy="200" rx="22" ry="16" fill="#f1c4a8" />
+        <ellipse className="baby-lid baby-lid-l" cx="176" cy="200" rx="22" ry="16" fill="#f0c2a4" />
+        <ellipse className="baby-lid baby-lid-r" cx="236" cy="200" rx="22" ry="16" fill="#f0c2a4" />
       </g>
 
       {coverEyes && (
-        <g className="baby-face-cover">
-          <ellipse cx="176" cy="198" rx="36" ry="30" fill="#f1c4a8" />
-          <ellipse cx="236" cy="198" rx="36" ry="30" fill="#f1c4a8" />
+        <g className="baby-face-cover" filter="url(#baby-skin-soft)">
+          <ellipse cx="206" cy="218" rx="82" ry="48" fill="#f0c2a4" />
         </g>
       )}
-      {kind !== 'idle' && <ellipse cx="206" cy="248" rx="18" ry="16" fill="#f1c4a8" />}
+      {kind !== 'idle' && (
+        <ellipse cx="206" cy="258" rx="26" ry="22" fill="#f0c2a4" filter="url(#baby-skin-soft)" />
+      )}
 
       {kind === 'sleep' && (
-        <g stroke="#4a3428" strokeWidth="4.2" strokeLinecap="round" fill="none">
-          <path d="M154 202 Q176 214 198 202" />
-          <path d="M214 202 Q236 214 258 202" />
-          <path d="M196 250 Q206 256 216 250" strokeWidth="3.2" />
+        <g stroke="#4a3428" strokeWidth="4.4" strokeLinecap="round" fill="none">
+          <path d="M148 218 Q174 232 200 218" />
+          <path d="M212 218 Q238 232 264 218" />
+          <path d="M194 262 Q206 268 218 262" strokeWidth="3.2" />
         </g>
       )}
 
       {kind === 'smile' && (
-        <g className="baby-laugh-mouth">
-          <ellipse cx="206" cy="252" rx="15" ry="12" fill="#3d2a20" />
-          <path d="M194 246 Q206 241 218 246" fill="#fff6ee" />
-          <ellipse cx="206" cy="258" rx="7" ry="4" fill="#e07080" />
+        <g>
+          <ellipse cx="206" cy="264" rx="16" ry="13" fill="#3d2a20" />
+          <path d="M192 258 Q206 252 220 258" fill="#fff6ee" />
+          <ellipse cx="206" cy="270" rx="7" ry="4" fill="#e07080" />
         </g>
       )}
 
       {(kind === 'laugh' || kind === 'crazy') && (
         <g>
-          <g stroke="#4a3428" strokeWidth="4.6" strokeLinecap="round" fill="none">
-            <path d="M152 198 Q176 216 200 198" />
-            <path d="M212 198 Q236 216 260 198" />
+          <g stroke="#4a3428" strokeWidth="5" strokeLinecap="round" fill="none">
+            <path d="M146 216 Q174 236 202 216" />
+            <path d="M210 216 Q238 236 266 216" />
           </g>
-          <g className="baby-laugh-mouth">
-            <ellipse cx="206" cy="254" rx="22" ry="16" fill="#3d2a20" />
-            <path d="M188 246 Q206 238 224 246" fill="#fff6ee" />
-            {kind === 'laugh' && <ellipse cx="206" cy="262" rx="10" ry="6" fill="#e07080" />}
+          <g>
+            <ellipse cx="206" cy="266" rx="24" ry="17" fill="#3d2a20" />
+            <path d="M186 258 Q206 248 226 258" fill="#fff6ee" />
+            {kind === 'laugh' && <ellipse cx="206" cy="274" rx="11" ry="6" fill="#e07080" />}
           </g>
         </g>
       )}
 
       {kind === 'pout' && (
-        <path d="M196 250 Q206 246 216 250" stroke="#4a3428" strokeWidth="3.2" fill="none" strokeLinecap="round" />
+        <path d="M194 262 Q206 258 218 262" stroke="#4a3428" strokeWidth="3.2" fill="none" strokeLinecap="round" />
       )}
 
       <ellipse
         className={`baby-cheek-blob baby-cheek-blob-l${pinchL ? ' is-hot' : ''}${blush ? ' is-puff' : ''}`}
-        cx="158"
-        cy="220"
+        cx="154"
+        cy="232"
         rx="20"
         ry="14"
         fill="#f2a0b0"
       />
       <ellipse
         className={`baby-cheek-blob baby-cheek-blob-r${pinchR ? ' is-hot' : ''}${blush ? ' is-puff' : ''}`}
-        cx="254"
-        cy="220"
+        cx="258"
+        cy="232"
         rx="20"
         ry="14"
         fill="#f2a0b0"
@@ -161,8 +167,8 @@ function FaceOverlay({ pose, focusSide }: { pose: BabyPose; focusSide: BabyFocus
 
       {kind === 'crazy' && (
         <g className="baby-tongue">
-          <ellipse cx="206" cy="276" rx="11" ry="16" fill="#f08090" />
-          <path d="M206 262 L206 288" stroke="#e06070" strokeWidth="1.6" />
+          <ellipse cx="206" cy="288" rx="11" ry="16" fill="#f08090" />
+          <path d="M206 274 L206 300" stroke="#e06070" strokeWidth="1.6" />
         </g>
       )}
     </svg>
