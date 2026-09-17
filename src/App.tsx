@@ -182,10 +182,14 @@ export default function App() {
   // Surface leftover auth-callback errors
   useEffect(() => {
     if (!authError) return
-    setToast(authError)
+    setToast(
+      authError === 'SUPABASE_NOT_CONFIGURED'
+        ? t('auth.misconfigured')
+        : authError,
+    )
     setAuthOpen(true)
     clearAuthError()
-  }, [authError, clearAuthError])
+  }, [authError, clearAuthError, t])
 
   // Recovery link → force set-new-password UI
   useEffect(() => {

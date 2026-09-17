@@ -1,11 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
 
-const url = import.meta.env.VITE_SUPABASE_URL
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const url = import.meta.env.VITE_SUPABASE_URL?.trim()
+const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim()
 
-if (!url || !anonKey) {
-  console.warn(
-    '[hawk-contribute] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY',
+export const isSupabaseConfigured = Boolean(url && anonKey)
+
+if (!isSupabaseConfigured) {
+  console.error(
+    '[hawk-contribute] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY. Auth cannot reach the project until these are set at build time (GitHub Actions secrets for Pages).',
   )
 }
 

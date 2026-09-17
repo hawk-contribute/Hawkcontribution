@@ -182,6 +182,8 @@ Vite `base` is `/Hawkcontribution/`. Asset paths go through `src/lib/asset.ts`.
 Current publish source: **`gh-pages` branch** (built `dist`).  
 Actions workflow is prepared at `.github/workflows/deploy-pages.yml` — pushing it requires a token with the `workflow` scope (`gh auth refresh -h github.com -s workflow`), then switch Pages to **GitHub Actions**.
 
+`npm run build` (production) requires `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in the environment (anon/public key only — never `service_role`). Do not commit live keys. Store them as **GitHub Actions secrets** (or equivalent CI env) so Pages rebuilds cannot ship an empty Auth client.
+
 ## Wallet signature login (SIWE / Web3)
 
 Supabase Auth **Sign in with Web3** (Ethereum / EIP-4361). Users connect an injected wallet (MetaMask etc.), sign a login message (`personal_sign` only — **no on-chain tx / gas**), and receive a normal Supabase session. Email + password login remains available.

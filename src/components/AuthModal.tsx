@@ -67,6 +67,7 @@ function mapAuthError(msg: string, t: (k: string) => string): string {
   }
   if (m === 'password_mismatch') return t('auth.passwordMismatch')
   if (m === 'no_session') return t('auth.noSession')
+  if (m === 'supabase_not_configured') return t('auth.misconfigured')
   return t('auth.authFailed')
 }
 
@@ -78,7 +79,8 @@ function formatError(msg: string, t: (k: string) => string): string {
     raw === 'INVALID_EMAIL' ||
     raw === 'WEAK_PASSWORD' ||
     raw === 'PASSWORD_MISMATCH' ||
-    raw === 'NO_SESSION'
+    raw === 'NO_SESSION' ||
+    raw === 'SUPABASE_NOT_CONFIGURED'
   ) {
     return mapped
   }

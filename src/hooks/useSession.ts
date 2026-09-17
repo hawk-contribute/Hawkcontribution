@@ -3,7 +3,7 @@ import type { User } from '@supabase/supabase-js'
 import type { Session } from '../types'
 import { consumeAuthCallback } from '../lib/authCallback'
 import { isValidEmail, registerMemberEmail } from '../lib/storage'
-import { authRedirectTo, supabase } from '../lib/supabase'
+import { authRedirectTo, isSupabaseConfigured, supabase } from '../lib/supabase'
 import {
   peekPendingDisplayName,
   savePendingDisplayName,
@@ -17,6 +17,10 @@ import {
   shortenAddress,
   walletAddressFromUser,
 } from '../lib/walletAuth'
+
+function requireSupabase() {
+  if (!isSupabaseConfigured) throw new Error('SUPABASE_NOT_CONFIGURED')
+}
 
 function sessionFromUser(user: User): Session {
   const walletAddress = walletAddressFromUser(user) ?? undefined
@@ -91,6 +95,12 @@ export function useSession() {
   useEffect(() => {
     let cancelled = false
 
+    if (!isSupabaseConfigured) {
+      setAuthError('SUPABASE_NOT_CONFIGURED')
+      setAuthReady(true)
+      return
+    }
+
     const applyUser = (user: User | null, shouldSync: boolean) => {
       if (!user?.id) {
         syncedUserRef.current = null
@@ -154,6 +164,7 @@ export function useSession() {
       const password = input.password.trim()
       if (!isValidEmail(email)) throw new Error('INVALID_EMAIL')
       if (password.length < 10) throw new Error('WEAK_PASSWORD')
+      requireSupabase()
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -189,6 +200,7 @@ export function useSession() {
       const password = input.password.trim()
       if (!isValidEmail(email)) throw new Error('INVALID_EMAIL')
       if (password.length < 10) throw new Error('WEAK_PASSWORD')
+      requireSupabase()
       const displayName = input.displayName?.trim()
       if (displayName) savePendingDisplayName(displayName)
 
@@ -224,6 +236,7 @@ export function useSession() {
   const requestPasswordReset = useCallback(async (emailRaw: string) => {
     const email = emailRaw.trim()
     if (!isValidEmail(email)) throw new Error('INVALID_EMAIL')
+    requireSupabase()
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: authRedirectTo(),
     })
@@ -236,6 +249,7 @@ export function useSession() {
   const updatePassword = useCallback(async (passwordRaw: string) => {
     const password = passwordRaw.trim()
     if (password.length < 10) throw new Error('WEAK_PASSWORD')
+    requireSupabase()
     const { data, error } = await supabase.auth.updateUser({ password })
     if (error) {
       console.error('[auth] updateUser password failed', error)
