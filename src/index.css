@@ -1176,13 +1176,13 @@
 }
 @keyframes baby-arm-spread-l {
   0%, 100% { transform: rotate(0deg); }
-  40% { transform: rotate(calc(var(--baby-amp) * -18deg)); }
-  70% { transform: rotate(calc(var(--baby-amp) * -10deg)); }
+  40% { transform: rotate(calc(var(--baby-amp) * -24deg)); }
+  70% { transform: rotate(calc(var(--baby-amp) * -12deg)); }
 }
 @keyframes baby-arm-spread-r {
   0%, 100% { transform: rotate(0deg); }
-  40% { transform: rotate(calc(var(--baby-amp) * 18deg)); }
-  70% { transform: rotate(calc(var(--baby-amp) * 10deg)); }
+  40% { transform: rotate(calc(var(--baby-amp) * 24deg)); }
+  70% { transform: rotate(calc(var(--baby-amp) * 12deg)); }
 }
 @keyframes baby-wrist-flex-l {
   0%, 100% { transform: rotate(0deg); }
@@ -1237,13 +1237,13 @@
 }
 @keyframes baby-kick-pair-l {
   0%, 100% { transform: rotate(0deg); }
-  42% { transform: rotate(calc(var(--baby-amp) * -26deg)); }
-  68% { transform: rotate(calc(var(--baby-amp) * -12deg)); }
+  42% { transform: rotate(calc(var(--baby-amp) * -32deg)); }
+  68% { transform: rotate(calc(var(--baby-amp) * -14deg)); }
 }
 @keyframes baby-kick-pair-r {
   0%, 100% { transform: rotate(0deg); }
-  42% { transform: rotate(calc(var(--baby-amp) * 26deg)); }
-  68% { transform: rotate(calc(var(--baby-amp) * 12deg)); }
+  42% { transform: rotate(calc(var(--baby-amp) * 32deg)); }
+  68% { transform: rotate(calc(var(--baby-amp) * 14deg)); }
 }
 @keyframes baby-ankle-flex-l {
   0%, 100% { transform: rotate(0deg); }
