@@ -150,29 +150,7 @@ export function sfxIntensity(mode: BabyMode): number {
   return 1
 }
 
-/** Distinct, interruptible CSS class per reaction (readable even on a phone). */
-export function reactClassForPose(pose: BabyPose): string {
-  switch (pose) {
-    case 'nuzzle':
-      return 'baby-react-wag'
-    case 'pout':
-      return 'baby-react-pout'
-    case 'grab':
-      return 'baby-react-wave'
-    case 'cuddle':
-      return 'baby-react-hug'
-    case 'tickle':
-      return 'baby-react-roll'
-    case 'kick':
-      return 'baby-react-lift'
-    case 'crazy':
-      return 'baby-react-crazy'
-    default:
-      return 'baby-react-idle'
-  }
-}
-
-/** Hold long enough for the named motion to finish; still interruptible via poseTick. */
+/** Hold long enough for the named keyframe to finish; still interruptible via poseTick. */
 export function reactionHoldMs(mode: BabyMode, pose: BabyPose): number {
   const gentleBonus = mode === 'gentle' ? 500 : 0
   const extra =
