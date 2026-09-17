@@ -6,7 +6,6 @@ import { gameAudio } from '../lib/gameAudio'
 import {
   BABY_BATCH_FLUSH_AT,
   BABY_COMBO_WINDOW_MS,
-  BABY_REACTION_MS,
   BABY_TOUCH_COOLDOWN_MS,
   BABY_TOUCH_SESSION_CAP,
   clampSessionAward,
@@ -15,6 +14,7 @@ import {
   poseForZone,
   pruneCheekTaps,
   reactionCopyKey,
+  reactionHoldMs,
   sfxIntensity,
   zoneLabelKey,
   type BabyMode,
@@ -78,27 +78,31 @@ function SpiralIcon({ className }: { className?: string }) {
   )
 }
 
-function playPoseSfx(pose: BabyPose, intensity: number) {
+function playPoseSfx(pose: BabyPose, mode: BabyMode) {
+  const intensity = sfxIntensity(mode)
+  const soft = mode === 'gentle'
+  const wild = mode === 'crazy'
   switch (pose) {
     case 'nuzzle':
     case 'cuddle':
-      gameAudio.playHum(intensity)
+      if (soft) gameAudio.playSoftGiggle(intensity)
+      else gameAudio.playBrightGiggle(intensity)
       break
     case 'pout':
       gameAudio.playPout(intensity)
       break
     case 'grab':
-      gameAudio.playGiggle(intensity)
+      gameAudio.playHihi(intensity)
       break
     case 'tickle':
-      gameAudio.playTickle(intensity)
-      gameAudio.playGiggle(intensity * 0.55)
+      if (soft) gameAudio.playSoftGiggle(intensity * 1.2)
+      else gameAudio.playBellyLaugh(wild ? intensity * 1.12 : intensity)
       break
     case 'kick':
-      gameAudio.playKick(intensity)
+      gameAudio.playSqueakGiggle(intensity)
       break
     case 'crazy':
-      gameAudio.playRaspberry(intensity)
+      gameAudio.playBellyLaugh(intensity * 1.15)
       break
     default:
       break
@@ -195,7 +199,7 @@ export function BabyTouchView({
   const runReaction = useCallback(
     (nextPose: BabyPose, side: BabyFocusSide, zone?: BabyZone) => {
       void gameAudio.unlock().then(() => {
-        playPoseSfx(nextPose, sfxIntensity(modeRef.current))
+        playPoseSfx(nextPose, modeRef.current)
         gameAudio.startBgm()
       })
       if (zone) {
@@ -209,7 +213,7 @@ export function BabyTouchView({
       setPoseTick((n) => n + 1)
       setBubble(t(reactionCopyKey(nextPose)))
       if (poseTimer.current != null) window.clearTimeout(poseTimer.current)
-      const hold = modeRef.current === 'gentle' ? BABY_REACTION_MS + 400 : BABY_REACTION_MS
+      const hold = reactionHoldMs(modeRef.current, nextPose)
       poseTimer.current = window.setTimeout(() => {
         setPose('idle')
         setFocusSide(null)
