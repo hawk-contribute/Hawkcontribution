@@ -4,6 +4,7 @@ import type { PointsAccount, Session } from '../types'
 import { useI18n } from '../i18n'
 import { asset } from '../lib/asset'
 import { gameAudio } from '../lib/gameAudio'
+import { GameHubLeaveButton } from './GameHubLeaveButton'
 
 const ROUND_MS = 45_000
 const GRAVITY = 0.22
@@ -444,9 +445,7 @@ export function FruitSliceView({
         >
           {t('auth.signIn')}
         </button>
-        <button type="button" onClick={onBack} className="mt-4 block w-full text-sm text-hawk-muted hover:text-hawk-cream">
-          {t('gameHub.back')}
-        </button>
+        <GameHubLeaveButton onLeave={onBack} variant="locked" />
       </section>
     )
   }
@@ -455,19 +454,14 @@ export function FruitSliceView({
 
   return (
     <section className="relative">
-      <button
-        type="button"
-        onClick={() => {
+      <GameHubLeaveButton
+        onLeave={() => {
           clearTimers()
           gameAudio.stopBgm()
           phaseRef.current = 'idle'
           onBack()
         }}
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-hawk-muted hover:text-hawk-cream"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        {t('gameHub.back')}
-      </button>
+      />
 
       <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
         <div>

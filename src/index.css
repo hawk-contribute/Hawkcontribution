@@ -472,6 +472,31 @@
   background: #fff3c2;
 }
 
+.baby-leave {
+  cursor: pointer;
+  touch-action: manipulation;
+  color: #6b4423;
+  background: #fffdf8;
+  border: 1.5px solid #d2a86e;
+  border-radius: 999px;
+  min-height: 44px;
+  padding: 0.45rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  box-shadow: 0 4px 10px rgba(140, 90, 40, 0.08);
+}
+.baby-leave:active {
+  transform: scale(0.97);
+}
+.baby-leave-wide {
+  width: 100%;
+  justify-content: center;
+  margin-top: 0.85rem;
+}
+
 .baby-scene {
   background: #f6e7c4;
 }

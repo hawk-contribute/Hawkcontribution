@@ -4,6 +4,7 @@ import type { PointsAccount, Session } from '../types'
 import { useI18n } from '../i18n'
 import { asset } from '../lib/asset'
 import { gameAudio } from '../lib/gameAudio'
+import { GameHubLeaveButton } from './GameHubLeaveButton'
 
 const COLS = 3
 const CELLS = 9
@@ -291,6 +292,7 @@ export function GameView({
         >
           {t('auth.signIn')}
         </button>
+        {onBack && <GameHubLeaveButton onLeave={onBack} variant="locked" />}
       </section>
     )
   }
@@ -298,19 +300,14 @@ export function GameView({
   return (
     <section className="relative">
       {onBack && (
-        <button
-          type="button"
-          onClick={() => {
+        <GameHubLeaveButton
+          onLeave={() => {
             clearTimers()
             gameAudio.stopBgm()
             phaseRef.current = 'idle'
             onBack()
           }}
-          className="mb-4 inline-flex items-center gap-1.5 text-sm text-hawk-muted hover:text-hawk-cream"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {t('gameHub.back')}
-        </button>
+        />
       )}
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>

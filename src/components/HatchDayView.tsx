@@ -7,7 +7,6 @@ import {
   type ReactNode,
 } from 'react'
 import {
-  ArrowLeft,
   Egg,
   Feather,
   Heart,
@@ -56,6 +55,7 @@ import {
   PapaEagle,
   SceneMountains,
 } from './HatchDayArt'
+import { GameHubLeaveButton } from './GameHubLeaveButton'
 
 interface HatchDayViewProps {
   session: Session | null
@@ -350,13 +350,7 @@ export function HatchDayView({
         >
           {t('auth.signIn')}
         </button>
-        <button
-          type="button"
-          onClick={onBack}
-          className="mt-4 block w-full text-sm text-hawk-muted hover:text-hawk-cream"
-        >
-          {t('gameHub.back')}
-        </button>
+        <GameHubLeaveButton onLeave={onBack} variant="locked" />
       </section>
     )
   }
@@ -384,17 +378,12 @@ export function HatchDayView({
 
   return (
     <section className="relative">
-      <button
-        type="button"
-        onClick={() => {
+      <GameHubLeaveButton
+        onLeave={() => {
           gameAudio.stopBgm()
           onBack()
         }}
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-hawk-muted hover:text-hawk-cream"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        {t('gameHub.back')}
-      </button>
+      />
 
       <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
         <div>

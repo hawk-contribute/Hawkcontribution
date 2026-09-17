@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { ArrowLeft, Heart, Lock, Smile, Star, Volume2, VolumeX } from 'lucide-react'
+import { Heart, Lock, Smile, Star, Volume2, VolumeX } from 'lucide-react'
 import type { PointsAccount, Session } from '../types'
 import { useI18n } from '../i18n'
 import { gameAudio } from '../lib/gameAudio'
@@ -23,6 +23,7 @@ import {
   type CheekTap,
 } from '../lib/babyTouch'
 import { BabySpeechBubble, NurseryScene, type BabyFocusSide } from './BabyTouchArt'
+import { GameHubLeaveButton } from './GameHubLeaveButton'
 
 interface BabyTouchViewProps {
   session: Session | null
@@ -305,20 +306,15 @@ export function BabyTouchView({
 
   const poster = (inner: ReactNode) => (
     <section className="relative mx-auto w-full max-w-lg">
-      <button
-        type="button"
-        onClick={leaveToHub}
-        className="mb-4 inline-flex items-center gap-1.5 text-sm text-hawk-muted hover:text-hawk-cream"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        {t('gameHub.back')}
-      </button>
       <div className="baby-poster">{inner}</div>
     </section>
   )
 
   return poster(
     <>
+      <div className="mb-3 flex justify-start">
+        <GameHubLeaveButton onLeave={leaveToHub} variant="light" />
+      </div>
       <CloudTitle title={t('babyTouch.posterTitle')} />
       {!session && (
         <button type="button" onClick={onRequireAuth} className="baby-sign-in mb-3">
@@ -431,6 +427,7 @@ export function BabyTouchView({
 
       {capped && <p className="mt-3 text-center text-xs text-[#b8860b]">{t('babyTouch.sessionCap')}</p>}
       <p className="mt-2 text-center text-[11px] text-[#a08060]">{t('babyTouch.rewardHint')}</p>
+      <GameHubLeaveButton onLeave={leaveToHub} variant="wide" />
     </>,
   )
 }

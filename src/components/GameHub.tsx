@@ -1,8 +1,9 @@
-import { useState } from 'react'
-import { Baby, Bird, CloudSun, Egg, Feather, Gamepad2, Grid2x2, Lock, Swords, Target, Wind } from 'lucide-react'
+import { useCallback, useState } from 'react'
+import { Baby, Bird, CloudSun, Egg, Feather, Gamepad2, Grid2x2, Swords, Target, Wind } from 'lucide-react'
 import type { MiniGameId, PointsAccount, Session } from '../types'
 import { useI18n } from '../i18n'
 import { asset } from '../lib/asset'
+import { clearPlayQuery } from '../lib/gameHubNav'
 import { GameView } from './GameView'
 import { FruitSliceView } from './FruitSliceView'
 import { EagleCatchView } from './EagleCatchView'
@@ -44,6 +45,12 @@ export function GameHub({
     setGame(id)
   }
 
+  const goHub = useCallback(() => {
+    clearPlayQuery()
+    window.scrollTo(0, 0)
+    setGame('hub')
+  }, [])
+
   if (game === 'whack') {
     return (
       <GameView
@@ -51,7 +58,7 @@ export function GameHub({
         account={account}
         onRequireAuth={onRequireAuth}
         onRoundComplete={(score, hits) => onRoundComplete(score, hits, 'whack')}
-        onBack={() => setGame('hub')}
+        onBack={goHub}
       />
     )
   }
@@ -63,7 +70,7 @@ export function GameHub({
         account={account}
         onRequireAuth={onRequireAuth}
         onRoundComplete={(score, hits) => onRoundComplete(score, hits, 'fruit')}
-        onBack={() => setGame('hub')}
+        onBack={goHub}
       />
     )
   }
@@ -75,7 +82,7 @@ export function GameHub({
         account={account}
         onRequireAuth={onRequireAuth}
         onRoundComplete={(score, hits) => onRoundComplete(score, hits, 'catch')}
-        onBack={() => setGame('hub')}
+        onBack={goHub}
       />
     )
   }
@@ -87,7 +94,7 @@ export function GameHub({
         account={account}
         onRequireAuth={onRequireAuth}
         onRoundComplete={(score, hits) => onRoundComplete(score, hits, 'flappy')}
-        onBack={() => setGame('hub')}
+        onBack={goHub}
       />
     )
   }
@@ -99,7 +106,7 @@ export function GameHub({
         account={account}
         onRequireAuth={onRequireAuth}
         onRoundComplete={(score, hits) => onRoundComplete(score, hits, 'memory')}
-        onBack={() => setGame('hub')}
+        onBack={goHub}
       />
     )
   }
@@ -112,7 +119,7 @@ export function GameHub({
         account={account}
         onRequireAuth={onRequireAuth}
         onRoundComplete={(score, hits) => onRoundComplete(score, hits, 'wingSoar')}
-        onBack={() => setGame('hub')}
+        onBack={goHub}
       />
     )
   }
@@ -124,7 +131,7 @@ export function GameHub({
         account={account}
         onRequireAuth={onRequireAuth}
         onRoundComplete={(score, hits) => onRoundComplete(score, hits, 'hatchDay')}
-        onBack={() => setGame('hub')}
+        onBack={goHub}
       />
     )
   }
@@ -136,7 +143,7 @@ export function GameHub({
         account={account}
         onRequireAuth={onRequireAuth}
         onRoundComplete={(score, hits) => onRoundComplete(score, hits, 'fluffySoar')}
-        onBack={() => setGame('hub')}
+        onBack={goHub}
       />
     )
   }
@@ -148,25 +155,8 @@ export function GameHub({
         account={account}
         onRequireAuth={onRequireAuth}
         onRoundComplete={(score, hits) => onRoundComplete(score, hits, 'babyTouch')}
-        onBack={() => setGame('hub')}
+        onBack={goHub}
       />
-    )
-  }
-
-  if (!session) {
-    return (
-      <section className="hawk-card mx-auto max-w-lg px-6 py-14 text-center">
-        <Lock className="mx-auto mb-3 h-10 w-10 text-hawk-gold" />
-        <h1 className="text-2xl font-bold text-hawk-cream">{t('gameHub.title')}</h1>
-        <p className="mt-2 text-sm text-hawk-muted">{t('game.locked')}</p>
-        <button
-          type="button"
-          onClick={onRequireAuth}
-          className="hawk-btn hawk-btn-primary mt-6 px-5 py-2.5 text-sm"
-        >
-          {t('auth.signIn')}
-        </button>
-      </section>
     )
   }
 
