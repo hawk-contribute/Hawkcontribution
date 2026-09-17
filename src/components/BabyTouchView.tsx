@@ -6,7 +6,6 @@ import { gameAudio } from '../lib/gameAudio'
 import {
   BABY_BATCH_FLUSH_AT,
   BABY_COMBO_WINDOW_MS,
-  BABY_REACTION_MS,
   BABY_TOUCH_COOLDOWN_MS,
   BABY_TOUCH_SESSION_CAP,
   clampSessionAward,
@@ -15,6 +14,7 @@ import {
   poseForZone,
   pruneCheekTaps,
   reactionCopyKey,
+  reactionHoldMs,
   sfxIntensity,
   zoneLabelKey,
   type BabyMode,
@@ -201,7 +201,7 @@ export function BabyTouchView({
       setPoseTick((n) => n + 1)
       setBubble(t(reactionCopyKey(nextPose)))
       if (poseTimer.current != null) window.clearTimeout(poseTimer.current)
-      const hold = modeRef.current === 'gentle' ? BABY_REACTION_MS + 400 : BABY_REACTION_MS
+      const hold = reactionHoldMs(modeRef.current, nextPose)
       poseTimer.current = window.setTimeout(() => {
         setPose('idle')
         setFocusSide(null)
