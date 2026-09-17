@@ -306,6 +306,7 @@ export function BabyTouchView({
 
   const poster = (inner: ReactNode) => (
     <section className="relative mx-auto w-full max-w-lg">
+      <GameHubLeaveButton onLeave={leaveToHub} />
       <div className="baby-poster">{inner}</div>
     </section>
   )

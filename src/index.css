@@ -487,6 +487,7 @@
   align-items: center;
   gap: 0.35rem;
   box-shadow: 0 4px 10px rgba(140, 90, 40, 0.08);
+  scroll-margin-top: 6.5rem;
 }
 .baby-leave:active {
   transform: scale(0.97);
