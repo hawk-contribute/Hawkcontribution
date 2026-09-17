@@ -155,9 +155,9 @@ export function reactionHoldMs(mode: BabyMode, pose: BabyPose): number {
   const gentleBonus = mode === 'gentle' ? 500 : 0
   const extra =
     pose === 'tickle' || pose === 'crazy'
-      ? 520
-      : pose === 'kick' || pose === 'grab' || pose === 'nuzzle'
-        ? 320
-        : 80
+      ? 640
+      : pose === 'kick' || pose === 'grab' || pose === 'nuzzle' || pose === 'pout'
+        ? 400
+        : 160
   return BABY_REACTION_MS + gentleBonus + extra
 }

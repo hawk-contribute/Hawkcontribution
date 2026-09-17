@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { BabyMode, BabyPose } from '../lib/babyTouch'
 import { asset } from '../lib/asset'
 
@@ -11,7 +11,7 @@ const POSE_NUZZLE = asset('game/baby-touch/pose-nuzzle.png')
 const POSE_LAUGH = asset('game/baby-touch/pose-laugh-sit.png')
 
 if (typeof window !== 'undefined') {
-  ;[POSE_TICKLE_SIT, POSE_TICKLE_ROLL, POSE_KICK, POSE_NUZZLE, POSE_LAUGH].forEach((src) => {
+  ;[NURSERY_SRC, POSE_TICKLE_SIT, POSE_TICKLE_ROLL, POSE_KICK, POSE_NUZZLE, POSE_LAUGH].forEach((src) => {
     const img = new Image()
     img.src = src
   })
@@ -31,22 +31,92 @@ export function BabyTouchCover() {
   )
 }
 
-function artForPose(pose: BabyPose, tickleBeat: 'sit' | 'roll'): string {
+function tempoScale(mode: BabyMode): number {
+  if (mode === 'gentle') return 1.22
+  if (mode === 'crazy') return 0.62
+  return 0.88
+}
+
+function tempoClass(mode: BabyMode): string {
+  if (mode === 'gentle') return 'baby-tempo-gentle'
+  if (mode === 'crazy') return 'baby-tempo-crazy'
+  return 'baby-tempo-funny'
+}
+
+/** 2–3 painted frames per tap. Times are delays from tap start (ms). */
+function clipFor(pose: BabyPose, mode: BabyMode): { srcs: string[]; at: number[]; motion: string } {
+  const t = tempoScale(mode)
   switch (pose) {
     case 'tickle':
     case 'crazy':
-      return tickleBeat === 'roll' ? POSE_TICKLE_ROLL : POSE_TICKLE_SIT
+      return {
+        srcs: [NURSERY_SRC, POSE_TICKLE_SIT, POSE_TICKLE_ROLL],
+        at: [0, Math.round(120 * t), Math.round(420 * t)],
+        motion: 'baby-reel-pop',
+      }
     case 'kick':
-      return POSE_KICK
+      return {
+        srcs: [NURSERY_SRC, POSE_LAUGH, POSE_KICK],
+        at: [0, Math.round(110 * t), Math.round(380 * t)],
+        motion: 'baby-reel-bounce',
+      }
     case 'nuzzle':
     case 'pout':
-      return POSE_NUZZLE
+      return {
+        srcs: [NURSERY_SRC, POSE_LAUGH, POSE_NUZZLE],
+        at: [0, Math.round(90 * t), Math.round(320 * t)],
+        motion: 'baby-reel-wag',
+      }
     case 'grab':
+      return {
+        srcs: [NURSERY_SRC, POSE_LAUGH],
+        at: [0, Math.round(90 * t)],
+        motion: 'baby-reel-bounce',
+      }
     case 'cuddle':
-      return POSE_LAUGH
+      return {
+        srcs: [NURSERY_SRC, POSE_LAUGH],
+        at: [0, Math.round(140 * t)],
+        motion: 'baby-reel-pop',
+      }
     default:
-      return NURSERY_SRC
+      return { srcs: [NURSERY_SRC], at: [0], motion: '' }
   }
+}
+
+function PoseReel({
+  pose,
+  mode,
+  poseTick,
+}: {
+  pose: BabyPose
+  mode: BabyMode
+  poseTick: number
+}) {
+  const clip = useMemo(() => clipFor(pose, mode), [pose, mode])
+  const [index, setIndex] = useState(0)
+
+  useEffect(() => {
+    const timers = clip.at.slice(1).map((delay, i) => window.setTimeout(() => setIndex(i + 1), delay))
+    return () => {
+      for (const id of timers) window.clearTimeout(id)
+    }
+  }, [clip, poseTick])
+
+  return (
+    <div className={`baby-reel ${clip.motion}`.trim()} data-frame={index}>
+      {clip.srcs.map((src, i) => (
+        <img
+          key={`${src}-${i}`}
+          src={src}
+          alt=""
+          draggable={false}
+          className={`baby-reel-frame${i <= index ? ' is-on' : ''}`}
+          style={{ zIndex: i + 1 }}
+        />
+      ))}
+    </div>
+  )
 }
 
 export function NurseryScene({
@@ -64,31 +134,17 @@ export function NurseryScene({
   comic?: string | null
   hit?: { x: number; y: number } | null
 }) {
-  const [tickleBeat, setTickleBeat] = useState<'sit' | 'roll'>('sit')
-  const src = artForPose(pose, tickleBeat)
   const comicSide = pose === 'kick' ? 'is-left' : 'is-right'
-
-  useEffect(() => {
-    if (pose !== 'tickle' && pose !== 'crazy') return
-    const id = window.setTimeout(() => setTickleBeat('roll'), 720)
-    return () => window.clearTimeout(id)
-  }, [pose, poseTick])
 
   return (
     <div
       key={poseTick}
-      className="baby-art absolute inset-0"
+      className={`baby-art absolute inset-0 ${tempoClass(mode)}`}
       data-pose={pose}
       data-limb={focusSide ?? 'both'}
       data-mode={mode}
-      data-beat={tickleBeat}
     >
-      <img
-        src={src}
-        alt=""
-        className="baby-bg h-full w-full object-cover object-center"
-        draggable={false}
-      />
+      <PoseReel pose={pose} mode={mode} poseTick={poseTick} />
 
       {pose === 'nuzzle' && mode !== 'gentle' && (
         <span className="baby-fx-laugh baby-fx-laugh-c" aria-hidden>
