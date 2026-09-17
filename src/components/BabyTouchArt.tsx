@@ -19,22 +19,21 @@ export function BabyTouchCover() {
 }
 
 function partMask(ellipse: string): { WebkitMaskImage: string; maskImage: string } {
-  const mask = `radial-gradient(${ellipse}, #000 66%, rgba(0,0,0,0.55) 78%, transparent 100%)`
+  const mask = `radial-gradient(${ellipse}, #000 58%, rgba(0,0,0,0.72) 72%, transparent 100%)`
   return { WebkitMaskImage: mask, maskImage: mask }
 }
 
-/** Clip-path regions in the 400×533 nursery painting (head, limbs, rattle). */
+/** Clip regions in the 400×533 nursery painting. Kept snug so idle pixels match. */
 const MASKS = {
-  head: partMask('ellipse 23% 24% at 51.2% 29.2%'),
-  hair: partMask('ellipse 16% 11% at 51.4% 16.4%'),
-  cheekL: partMask('ellipse 8.5% 7% at 40.6% 40.2%'),
-  cheekR: partMask('ellipse 8.5% 7% at 62.4% 40.2%'),
-  torso: partMask('ellipse 20% 16% at 51.4% 58.5%'),
-  handL: partMask('ellipse 11% 9% at 33.8% 58.4%'),
-  handR: partMask('ellipse 8.5% 8% at 68.2% 61.2%'),
-  rattle: partMask('ellipse 10% 12% at 27.6% 49.6%'),
-  footL: partMask('ellipse 11% 8.5% at 42.4% 82.4%'),
-  footR: partMask('ellipse 11% 8.5% at 60.2% 82.2%'),
+  hair: partMask('ellipse 15% 10% at 51.4% 16.2%'),
+  cheekL: partMask('ellipse 7.2% 6% at 40.4% 40.4%'),
+  cheekR: partMask('ellipse 7.2% 6% at 62.6% 40.4%'),
+  torso: partMask('ellipse 16% 13% at 51.4% 61%'),
+  handL: partMask('ellipse 9.5% 8% at 34% 58.2%'),
+  handR: partMask('ellipse 7.2% 7% at 68.4% 61.4%'),
+  rattle: partMask('ellipse 9% 11% at 27.4% 49.2%'),
+  footL: partMask('ellipse 10% 7.5% at 42.2% 82.6%'),
+  footR: partMask('ellipse 10% 7.5% at 60.4% 82.4%'),
 } as const
 
 function ClippedPart({
@@ -55,7 +54,6 @@ function ClippedPart({
 
 function FaceOverlay({ pose, focusSide }: { pose: BabyPose; focusSide: BabyFocusSide }) {
   const squint = pose === 'nuzzle' || pose === 'cuddle'
-  const wide = pose === 'pout' || pose === 'kick'
   const giggle = pose === 'grab' || pose === 'tickle'
   const crazy = pose === 'crazy'
   const pinchL = pose === 'pout' && focusSide !== 'right'
@@ -68,73 +66,57 @@ function FaceOverlay({ pose, focusSide }: { pose: BabyPose; focusSide: BabyFocus
       preserveAspectRatio="xMidYMid slice"
       aria-hidden
     >
-      {/* Eyelids — hidden until blink / squint */}
-      <g
-        className={
-          crazy
-            ? 'baby-lids-crazy'
-            : squint
-              ? 'baby-lids-squint'
-              : wide
-                ? 'baby-lids-wide'
-                : giggle
-                  ? 'baby-lids-happy'
-                  : 'baby-lids-idle'
-        }
-      >
-        <ellipse className="baby-lid baby-lid-l" cx="176" cy="196" rx="22" ry="16" fill="#f0c4a4" />
-        <ellipse className="baby-lid baby-lid-r" cx="234" cy="196" rx="22" ry="16" fill="#f0c4a4" />
+      <g className={pose === 'idle' ? 'baby-lids-idle' : 'baby-lids-hidden'}>
+        <ellipse className="baby-lid baby-lid-l" cx="176" cy="200" rx="22" ry="16" fill="#f0c4a4" />
+        <ellipse className="baby-lid baby-lid-r" cx="236" cy="200" rx="22" ry="16" fill="#f0c4a4" />
       </g>
 
-      {crazy && (
-        <g className="baby-crazy-eyes" stroke="#4a3428" strokeWidth="3.2" strokeLinecap="round" fill="none">
-          <path d="M162 186 L190 206 M162 206 L190 186" />
-          <path d="M220 186 L248 206 M220 206 L248 186" />
+      {squint && (
+        <g stroke="#5a3a2a" strokeWidth="3.4" strokeLinecap="round" fill="none">
+          <path d="M158 204 Q176 214 194 204" />
+          <path d="M219 204 Q237 214 255 204" />
         </g>
       )}
 
       {giggle && (
-        <g className="baby-happy-eyes" stroke="#4a3428" strokeWidth="3" strokeLinecap="round" fill="none">
-          <path d="M160 198 Q176 186 192 198" />
-          <path d="M218 198 Q234 186 250 198" />
+        <g stroke="#5a3a2a" strokeWidth="3.2" strokeLinecap="round" fill="none" opacity="0.9">
+          <path d="M158 200 Q176 188 194 200" />
+          <path d="M218 200 Q236 188 254 200" />
         </g>
       )}
 
-      {/* Cheek squash blobs */}
+      {crazy && (
+        <g stroke="#4a3428" strokeWidth="3.4" strokeLinecap="round" fill="none">
+          <path d="M160 188 L192 210 M160 210 L192 188" />
+          <path d="M220 188 L252 210 M220 210 L252 188" />
+        </g>
+      )}
+
       <ellipse
-        className={`baby-cheek-blob baby-cheek-blob-l${pinchL ? ' is-hot' : ''}${pose === 'crazy' ? ' is-puff' : ''}`}
-        cx="163"
-        cy="216"
-        rx="20"
-        ry="14"
+        className={`baby-cheek-blob baby-cheek-blob-l${pinchL ? ' is-hot' : ''}${crazy ? ' is-puff' : ''}`}
+        cx="160"
+        cy="218"
+        rx="18"
+        ry="13"
         fill="#f2a0b0"
       />
       <ellipse
-        className={`baby-cheek-blob baby-cheek-blob-r${pinchR ? ' is-hot' : ''}${pose === 'crazy' ? ' is-puff' : ''}`}
-        cx="249"
-        cy="216"
-        rx="20"
-        ry="14"
+        className={`baby-cheek-blob baby-cheek-blob-r${pinchR ? ' is-hot' : ''}${crazy ? ' is-puff' : ''}`}
+        cx="252"
+        cy="218"
+        rx="18"
+        ry="13"
         fill="#f2a0b0"
       />
 
-      {/* Cover the painted O-mouth during expressions, then draw a new one */}
-      {pose !== 'idle' && <ellipse cx="205" cy="228" rx="16" ry="12" fill="#f3cbb0" />}
-      {pose === 'nuzzle' && (
-        <path d="M196 226 Q205 232 214 226" stroke="#d08090" strokeWidth="2.4" fill="none" strokeLinecap="round" />
+      {pose === 'tickle' && (
+        <ellipse className="baby-tummy-glow" cx="206" cy="358" rx="26" ry="20" fill="#f3c2b4" />
       )}
-      {pose === 'pout' && (
-        <path d="M194 232 Q205 224 216 232" stroke="#c45a7a" strokeWidth="2.6" fill="none" strokeLinecap="round" />
-      )}
-      {giggle && <ellipse cx="205" cy="230" rx="7" ry="6" fill="#c45a7a" />}
-      {pose === 'cuddle' && (
-        <path d="M196 228 Q205 236 214 228" stroke="#d08090" strokeWidth="2.6" fill="none" strokeLinecap="round" />
-      )}
-      {pose === 'kick' && <ellipse cx="205" cy="230" rx="5" ry="7" fill="#c45a7a" />}
+
       {crazy && (
         <g className="baby-tongue">
-          <ellipse cx="205" cy="242" rx="9" ry="13" fill="#f08090" />
-          <path d="M205 232 L205 250" stroke="#e06070" strokeWidth="1.3" />
+          <ellipse cx="206" cy="252" rx="8" ry="12" fill="#f08090" />
+          <path d="M206 242 L206 260" stroke="#e06070" strokeWidth="1.3" />
         </g>
       )}
     </svg>
@@ -172,15 +154,6 @@ export function NurseryScene({
         draggable={false}
       />
 
-      {/* Rest-position patches so moving clips do not leave a duplicate painted limb */}
-      <span className="baby-fill baby-fill-head" />
-      <span className="baby-fill baby-fill-torso" />
-      <span className="baby-fill baby-fill-hand-l" />
-      <span className="baby-fill baby-fill-hand-r" />
-      <span className="baby-fill baby-fill-rattle" />
-      <span className="baby-fill baby-fill-foot-l" />
-      <span className="baby-fill baby-fill-foot-r" />
-
       <div className="baby-puppet">
         <ClippedPart src={NURSERY_SRC} className="baby-part-torso" mask={MASKS.torso} />
         <ClippedPart src={NURSERY_SRC} className="baby-part-hand-l" mask={MASKS.handL} />
@@ -196,13 +169,10 @@ export function NurseryScene({
           className={`baby-part-foot-r${kickR ? ' is-kick' : ''}`}
           mask={MASKS.footR}
         />
-        <div className="baby-part-head-wrap">
-          <ClippedPart src={NURSERY_SRC} className="baby-part-head" mask={MASKS.head} />
-          <ClippedPart src={NURSERY_SRC} className="baby-part-hair" mask={MASKS.hair} />
-          <ClippedPart src={NURSERY_SRC} className="baby-part-cheek-l" mask={MASKS.cheekL} />
-          <ClippedPart src={NURSERY_SRC} className="baby-part-cheek-r" mask={MASKS.cheekR} />
-          <FaceOverlay pose={pose} focusSide={focusSide} />
-        </div>
+        <ClippedPart src={NURSERY_SRC} className="baby-part-hair" mask={MASKS.hair} />
+        <ClippedPart src={NURSERY_SRC} className="baby-part-cheek-l" mask={MASKS.cheekL} />
+        <ClippedPart src={NURSERY_SRC} className="baby-part-cheek-r" mask={MASKS.cheekR} />
+        <FaceOverlay pose={pose} focusSide={focusSide} />
       </div>
 
       {pose === 'nuzzle' && (

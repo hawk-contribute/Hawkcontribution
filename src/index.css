@@ -572,13 +572,10 @@
   z-index: 2;
   pointer-events: none;
 }
-.baby-part,
-.baby-part-head-wrap {
+.baby-part {
   position: absolute;
   inset: 0;
   pointer-events: none;
-}
-.baby-part {
   opacity: 0;
 }
 .baby-art:not([data-pose="idle"]) .baby-part {
@@ -601,124 +598,20 @@
   overflow: visible;
 }
 
-.baby-part-torso { transform-origin: 51% 52%; z-index: 2; }
+.baby-part-torso { transform-origin: 51% 58%; z-index: 2; }
 .baby-part-hand-l { transform-origin: 38% 54%; z-index: 4; }
 .baby-part-hand-r { transform-origin: 66% 56%; z-index: 4; }
 .baby-part-rattle { transform-origin: 32% 58%; z-index: 5; }
 .baby-part-foot-l { transform-origin: 43% 76%; z-index: 3; }
 .baby-part-foot-r { transform-origin: 59% 76%; z-index: 3; }
-.baby-part-head-wrap { transform-origin: 51% 42%; z-index: 6; }
-.baby-part-head { transform-origin: 51% 42%; }
 .baby-part-hair { transform-origin: 52% 14%; z-index: 7; }
 .baby-part-cheek-l { transform-origin: 41% 40%; z-index: 7; }
 .baby-part-cheek-r { transform-origin: 62% 40%; z-index: 7; }
 
-.baby-fill {
-  position: absolute;
-  z-index: 1;
-  border-radius: 50%;
-  opacity: 0;
-  pointer-events: none;
-}
-.baby-fill-head {
-  left: 32%;
-  top: 11%;
-  width: 38%;
-  height: 36%;
-  background: radial-gradient(ellipse at 50% 70%, #a8c0cc 0%, #8eacc0 62%, #d8e0d0 100%);
-}
-.baby-fill-torso {
-  left: 36%;
-  top: 46%;
-  width: 30%;
-  height: 26%;
-  background: radial-gradient(ellipse at 50% 40%, #efe6d0 0%, #e4d6b8 100%);
-}
-.baby-fill-hand-l {
-  left: 24%;
-  top: 51%;
-  width: 20%;
-  height: 16%;
-  background: #efe6d0;
-}
-.baby-fill-hand-r {
-  left: 60%;
-  top: 54%;
-  width: 16%;
-  height: 14%;
-  background: #efe6d0;
-}
-.baby-fill-rattle {
-  left: 18%;
-  top: 40%;
-  width: 20%;
-  height: 22%;
-  background: radial-gradient(ellipse at 50% 50%, #d5e4c8 0%, #efe6d0 70%);
-}
-.baby-fill-foot-l {
-  left: 32%;
-  top: 75%;
-  width: 20%;
-  height: 16%;
-  background: #efe6d0;
-}
-.baby-fill-foot-r {
-  left: 50%;
-  top: 75%;
-  width: 20%;
-  height: 16%;
-  background: #efe6d0;
-}
-
-.baby-art[data-pose="nuzzle"] .baby-fill-head,
-.baby-art[data-pose="crazy"] .baby-fill-head,
-.baby-art[data-pose="cuddle"] .baby-fill-head,
-.baby-art[data-pose="pout"] .baby-fill-head,
-.baby-art[data-pose="grab"] .baby-fill-head,
-.baby-art[data-pose="tickle"] .baby-fill-head,
-.baby-art[data-pose="kick"] .baby-fill-head,
-.baby-art[data-pose="tickle"] .baby-fill-torso,
-.baby-art[data-pose="cuddle"] .baby-fill-torso,
-.baby-art[data-pose="grab"] .baby-fill-torso,
-.baby-art[data-pose="grab"] .baby-fill-hand-l,
-.baby-art[data-pose="grab"] .baby-fill-rattle,
-.baby-art[data-pose="pout"] .baby-fill-hand-l,
-.baby-art[data-pose="pout"] .baby-fill-hand-r,
-.baby-art[data-pose="crazy"] .baby-fill-hand-l,
-.baby-art[data-pose="crazy"] .baby-fill-hand-r,
-.baby-art[data-pose="tickle"] .baby-fill-foot-l,
-.baby-art[data-pose="tickle"] .baby-fill-foot-r,
-.baby-art[data-pose="kick"] .baby-fill-foot-l,
-.baby-art[data-pose="kick"] .baby-fill-foot-r,
-.baby-art[data-pose="kick"] .baby-fill-hand-l,
-.baby-art[data-pose="kick"] .baby-fill-hand-r {
-  opacity: 1;
-}
-.baby-art[data-pose="grab"][data-limb="right"] .baby-fill-hand-l,
-.baby-art[data-pose="grab"][data-limb="right"] .baby-fill-rattle {
-  opacity: 0;
-}
-.baby-art[data-pose="grab"][data-limb="right"] .baby-fill-hand-r {
-  opacity: 1;
-}
-.baby-art[data-pose="kick"][data-limb="left"] .baby-fill-foot-r {
-  opacity: 0;
-}
-.baby-art[data-pose="kick"][data-limb="right"] .baby-fill-foot-l {
-  opacity: 0;
-}
-
 /* Idle motion lives on the face overlay only — the crib painting stays still. */
 
-.baby-art[data-pose="nuzzle"] .baby-part-head-wrap {
-  animation: baby-head-nuzzle var(--baby-tempo) ease-in-out 2;
-}
 .baby-art[data-pose="nuzzle"] .baby-part-hair {
   animation: baby-hair-bob calc(var(--baby-tempo) * 0.85) ease-in-out 2;
-}
-
-.baby-art[data-pose="pout"] .baby-part-head-wrap {
-  animation: baby-head-pout calc(var(--baby-tempo) * 0.85) ease-in-out 2;
 }
 .baby-art[data-pose="pout"] .baby-part-cheek-l {
   animation: baby-cheek-squash-l calc(var(--baby-tempo) * 0.7) ease-in-out 2;
@@ -764,15 +657,15 @@
 .baby-art[data-pose="grab"][data-limb="right"] .baby-part-rattle {
   animation: none;
 }
-.baby-art[data-pose="grab"] .baby-part-head-wrap {
-  animation: baby-head-giggle calc(var(--baby-tempo) * 0.8) ease-in-out 2;
+.baby-art[data-pose="grab"] .baby-part-hair {
+  animation: baby-hair-bob calc(var(--baby-tempo) * 0.8) ease-in-out 2;
 }
 
 .baby-art[data-pose="cuddle"] .baby-part-torso {
   animation: baby-torso-cuddle var(--baby-tempo) ease-in-out 2;
 }
-.baby-art[data-pose="cuddle"] .baby-part-head-wrap {
-  animation: baby-head-cuddle var(--baby-tempo) ease-in-out 2;
+.baby-art[data-pose="cuddle"] .baby-part-hair {
+  animation: baby-hair-bob var(--baby-tempo) ease-in-out 2;
 }
 .baby-art[data-pose="cuddle"] .baby-part-hand-l {
   animation: baby-hug-l 0.55s ease-in-out 3;
@@ -784,8 +677,8 @@
 .baby-art[data-pose="tickle"] .baby-part-torso {
   animation: baby-tummy-jiggle calc(var(--baby-tempo) * 0.55) ease-in-out 4;
 }
-.baby-art[data-pose="tickle"] .baby-part-head-wrap {
-  animation: baby-head-giggle calc(var(--baby-tempo) * 0.7) ease-in-out 3;
+.baby-art[data-pose="tickle"] .baby-tummy-glow {
+  animation: baby-tummy-glow calc(var(--baby-tempo) * 0.55) ease-in-out 4;
 }
 .baby-art[data-pose="tickle"] .baby-part-foot-l,
 .baby-art[data-pose="tickle"] .baby-part-foot-r {
@@ -808,12 +701,12 @@
 .baby-art[data-pose="kick"] .baby-part-hand-r {
   animation: baby-reach-foot-r 0.55s ease-in-out 2;
 }
-.baby-art[data-pose="kick"] .baby-part-head-wrap {
-  animation: baby-head-watch-kick calc(var(--baby-tempo) * 0.9) ease-in-out 2;
+.baby-art[data-pose="kick"] .baby-part-hair {
+  animation: baby-hair-bob calc(var(--baby-tempo) * 0.9) ease-in-out 2;
 }
 
-.baby-art[data-pose="crazy"] .baby-part-head-wrap {
-  animation: baby-head-roll 1.05s ease-in-out 2;
+.baby-art[data-pose="crazy"] .baby-part-hair {
+  animation: baby-hair-bob 0.45s ease-in-out 4;
 }
 .baby-art[data-pose="crazy"] .baby-part-torso {
   animation: baby-torso-counter-roll 1.05s ease-in-out 2;
@@ -840,20 +733,8 @@
 .baby-lids-idle .baby-lid {
   animation: baby-blink 4.2s ease-in-out infinite;
 }
-.baby-lids-squint .baby-lid {
-  opacity: 0.92;
-  transform: scaleY(0.72) translateY(2px);
-}
-.baby-lids-wide .baby-lid {
+.baby-lids-hidden .baby-lid {
   opacity: 0;
-  transform: scaleY(0.08);
-}
-.baby-lids-happy .baby-lid {
-  opacity: 0.88;
-  transform: scaleY(0.82) translateY(2px);
-}
-.baby-lids-crazy .baby-lid {
-  opacity: 0.2;
 }
 
 .baby-cheek-blob {
@@ -861,9 +742,15 @@
   transform-box: fill-box;
   transform-origin: center;
 }
+.baby-tummy-glow {
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+  transform-box: fill-box;
+  transform-origin: center;
+}
 .baby-art[data-pose="pout"] .baby-cheek-blob.is-hot,
 .baby-art[data-pose="crazy"] .baby-cheek-blob.is-puff {
-  opacity: 0.55;
+  opacity: 0.62;
   animation: baby-cheek-puff calc(var(--baby-tempo) * 0.65) ease-in-out 2;
 }
 .baby-happy-eyes {
@@ -946,6 +833,10 @@
   0%, 100% { transform: rotate(0); }
   45% { transform: rotate(calc(var(--baby-amp) * 6deg)) translateY(calc(var(--baby-amp) * 2px)); }
 }
+@keyframes baby-tummy-glow {
+  0%, 100% { transform: scale(1); opacity: 0.22; }
+  50% { transform: scale(1.18); opacity: 0.5; }
+}
 @keyframes baby-tummy-jiggle {
   0%, 100% { transform: scale(1) rotate(0); }
   25% { transform: scale(1.06, 0.94) rotate(calc(var(--baby-amp) * -3deg)); }
@@ -959,13 +850,13 @@
 @keyframes baby-kick-l {
   0%, 100% { transform: rotate(0) translate(0, 0) scale(1); }
   14% { transform: scale(1.06, 0.9); }
-  42% { transform: rotate(calc(var(--baby-amp) * -16deg)) translate(calc(var(--baby-amp) * -6px), calc(var(--baby-amp) * -16px)); }
+  42% { transform: rotate(calc(var(--baby-amp) * -18deg)) translate(calc(var(--baby-amp) * -8px), calc(var(--baby-amp) * -22px)); }
   68% { transform: rotate(calc(var(--baby-amp) * 8deg)) translate(2px, 4px); }
 }
 @keyframes baby-kick-r {
   0%, 100% { transform: rotate(0) translate(0, 0) scale(1); }
   14% { transform: scale(1.06, 0.9); }
-  42% { transform: rotate(calc(var(--baby-amp) * 16deg)) translate(calc(var(--baby-amp) * 6px), calc(var(--baby-amp) * -16px)); }
+  42% { transform: rotate(calc(var(--baby-amp) * 18deg)) translate(calc(var(--baby-amp) * 8px), calc(var(--baby-amp) * -22px)); }
   68% { transform: rotate(calc(var(--baby-amp) * -8deg)) translate(-2px, 4px); }
 }
 @keyframes baby-reach-foot-l {
@@ -1037,7 +928,6 @@
   .fluffy-pengpeng,
   .fluffy-jelly,
   .baby-part,
-  .baby-part-head-wrap,
   .baby-lid,
   .baby-tongue,
   .baby-twinkle,
@@ -1045,7 +935,8 @@
   .baby-fx-spark,
   .baby-fx-heart,
   .baby-bubble,
-  .baby-cheek-blob {
+  .baby-cheek-blob,
+  .baby-tummy-glow {
     animation: none;
   }
 }
