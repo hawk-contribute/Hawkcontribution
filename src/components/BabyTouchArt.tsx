@@ -25,9 +25,10 @@ function partMask(ellipse: string): { WebkitMaskImage: string; maskImage: string
 
 /** Clip regions in the 400×533 nursery painting. Kept snug so idle pixels match. */
 const MASKS = {
-  hair: partMask('ellipse 15% 10% at 51.4% 16.2%'),
-  cheekL: partMask('ellipse 7.2% 6% at 40.4% 40.4%'),
-  cheekR: partMask('ellipse 7.2% 6% at 62.6% 40.4%'),
+  /** Hair + upper crown — nods from the atlas, not the curl. */
+  hair: partMask('ellipse 15.5% 12% at 51.4% 17.8%'),
+  cheekL: partMask('ellipse 6.4% 5.2% at 40.4% 40.6%'),
+  cheekR: partMask('ellipse 6.4% 5.2% at 62.6% 40.6%'),
   torso: partMask('ellipse 16% 13% at 51.4% 61%'),
   handL: partMask('ellipse 9.5% 8% at 34% 58.2%'),
   handR: partMask('ellipse 7.2% 7% at 68.4% 61.4%'),
@@ -169,7 +170,10 @@ export function NurseryScene({
           className={`baby-part-foot-r${kickR ? ' is-kick' : ''}`}
           mask={MASKS.footR}
         />
-        <ClippedPart src={NURSERY_SRC} className="baby-part-hair" mask={MASKS.hair} />
+        <div className="baby-head">
+          {/* Head group pivots at the atlas so hair nods instead of spinning in place. */}
+          <ClippedPart src={NURSERY_SRC} className="baby-part-hair" mask={MASKS.hair} />
+        </div>
         <ClippedPart src={NURSERY_SRC} className="baby-part-cheek-l" mask={MASKS.cheekL} />
         <ClippedPart src={NURSERY_SRC} className="baby-part-cheek-r" mask={MASKS.cheekR} />
         <FaceOverlay pose={pose} focusSide={focusSide} />
