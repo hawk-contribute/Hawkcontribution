@@ -78,7 +78,7 @@ function clipFor(pose: BabyPose, mode: BabyMode): { srcs: string[]; at: number[]
     case 'tickle':
       return {
         srcs: [NURSERY_SRC, POSE_TICKLE_LOOK, POSE_TICKLE_SIT, POSE_TICKLE_MID, POSE_TICKLE_ROLL],
-        at: beats(mode, [0, 140, 340, 620, 980]),
+        at: beats(mode, [0, 140, 340, 600, 940]),
       }
     case 'crazy':
       return {
@@ -87,8 +87,8 @@ function clipFor(pose: BabyPose, mode: BabyMode): { srcs: string[]; at: number[]
       }
     case 'kick':
       return {
-        srcs: [NURSERY_SRC, POSE_LAUGH, POSE_KICK_LIFT, POSE_KICK, POSE_LAUGH],
-        at: beats(mode, [0, 130, 360, 640, 1000]),
+        srcs: [NURSERY_SRC, POSE_LAUGH, POSE_KICK_LIFT, POSE_KICK],
+        at: beats(mode, [0, 130, 360, 700]),
       }
     case 'nuzzle':
       return {
@@ -102,13 +102,13 @@ function clipFor(pose: BabyPose, mode: BabyMode): { srcs: string[]; at: number[]
       }
     case 'grab':
       return {
-        srcs: [NURSERY_SRC, POSE_LAUGH, POSE_GRAB_REACH, POSE_LAUGH],
-        at: beats(mode, [0, 140, 400, 820]),
+        srcs: [NURSERY_SRC, POSE_LAUGH, POSE_GRAB_REACH],
+        at: beats(mode, [0, 150, 520]),
       }
     case 'cuddle':
       return {
-        srcs: [NURSERY_SRC, POSE_LAUGH, POSE_CUDDLE, POSE_LAUGH],
-        at: beats(mode, [0, 150, 420, 860]),
+        srcs: [NURSERY_SRC, POSE_LAUGH, POSE_CUDDLE],
+        at: beats(mode, [0, 160, 540]),
       }
     default:
       return { srcs: [NURSERY_SRC], at: [0] }
