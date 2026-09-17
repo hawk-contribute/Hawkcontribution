@@ -95,11 +95,9 @@ function playPoseSfx(pose: BabyPose, mode: BabyMode) {
       gameAudio.playHihi(intensity)
       break
     case 'tickle':
+    case 'kick':
       if (soft) gameAudio.playSoftGiggle(intensity * 1.2)
       else gameAudio.playBellyLaugh(wild ? intensity * 1.12 : intensity)
-      break
-    case 'kick':
-      gameAudio.playSqueakGiggle(intensity)
       break
     case 'crazy':
       gameAudio.playBellyLaugh(intensity * 1.15)

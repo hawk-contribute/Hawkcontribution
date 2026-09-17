@@ -82,20 +82,22 @@ function FaceOverlay({
   const crazy = pose === 'crazy'
   const pinchL = pose === 'pout' && focusSide !== 'right'
   const pinchR = pose === 'pout' && focusSide !== 'left'
+  const laughFace = pose === 'tickle' || pose === 'kick' || crazy
+  const playfulFace = pose === 'nuzzle' || pose === 'pout'
   const happy =
-    pose === 'nuzzle' ||
+    laughFace ||
+    playfulFace ||
     pose === 'cuddle' ||
-    pose === 'grab' ||
-    pose === 'tickle' ||
-    pose === 'kick' ||
-    pose === 'crazy'
-  const bigLaugh = pose === 'tickle' || pose === 'crazy' || (pose === 'kick' && mode === 'crazy')
-  const openSmile = happy && !bigLaugh && pose !== 'cuddle'
+    pose === 'grab'
+  const bigLaugh = laughFace
+  const openSmile = happy && !bigLaugh && !playfulFace && pose !== 'cuddle'
+  const tongueOut = playfulFace || crazy
   const blushLaugh = happy
+  const idleSmile = pose === 'idle'
 
   return (
     <svg
-      className={`baby-face-svg${happy ? ' is-happy' : ''}${bigLaugh ? ' is-big-laugh' : ''}`}
+      className={`baby-face-svg${happy ? ' is-happy' : ''}${bigLaugh ? ' is-big-laugh' : ''} is-mode-${mode}`}
       viewBox="0 0 400 533"
       preserveAspectRatio="xMidYMid slice"
       aria-hidden
@@ -124,8 +126,17 @@ function FaceOverlay({
         </g>
       )}
 
-      {pose === 'pout' && (
-        <path d="M194 262 Q206 258 218 262" stroke="#4a3428" strokeWidth="3.2" fill="none" strokeLinecap="round" />
+      {idleSmile && (
+        <g className="baby-idle-smile">
+          <ellipse cx="206" cy="266" rx="20" ry="14" fill="#f0c2a4" />
+          <path
+            d="M192 262 Q206 273 220 262"
+            stroke="#4a3428"
+            strokeWidth="3.2"
+            fill="none"
+            strokeLinecap="round"
+          />
+        </g>
       )}
 
       {openSmile && (
@@ -140,11 +151,24 @@ function FaceOverlay({
       )}
 
       {bigLaugh && (
-        <g>
-          <ellipse cx="206" cy="266" rx="24" ry="17" fill="#3d2a20" />
-          <path d="M186 258 Q206 248 226 258" fill="#fff6ee" />
-          <ellipse cx="206" cy="274" rx="11" ry="6" fill="#e07080" />
+        <g className="baby-laugh-mouth">
+          <path
+            d="M182 252 Q206 244 230 252 L232 262 Q206 288 180 262 Z"
+            fill="#3d2a20"
+          />
+          <path d="M186 254 Q206 248 226 254 Q206 262 186 254 Z" fill="#fff6ee" />
+          <ellipse cx="206" cy="274" rx="11" ry="5.5" fill="#e07080" />
         </g>
+      )}
+
+      {playfulFace && (
+        <path
+          d="M194 262 Q206 268 218 262"
+          stroke="#4a3428"
+          strokeWidth="3.2"
+          fill="none"
+          strokeLinecap="round"
+        />
       )}
 
       <ellipse
@@ -171,10 +195,10 @@ function FaceOverlay({
         </g>
       )}
 
-      {crazy && (
+      {tongueOut && (
         <g className="baby-tongue">
-          <ellipse cx="206" cy="288" rx="11" ry="16" fill="#f08090" />
-          <path d="M206 274 L206 300" stroke="#e06070" strokeWidth="1.6" />
+          <ellipse cx="206" cy={crazy ? 288 : 280} rx="11" ry={crazy ? 16 : 13} fill="#f08090" />
+          <path d={`M206 ${crazy ? 274 : 270} L206 ${crazy ? 300 : 292}`} stroke="#e06070" strokeWidth="1.6" />
         </g>
       )}
     </svg>
@@ -203,7 +227,7 @@ function MotionSwooshes({ pose, focusSide }: { pose: BabyPose; focusSide: BabyFo
           {(focusSide !== 'left') && <path d="M274 390 Q296 350 266 310" />}
         </g>
       )}
-      {(pose === 'tickle' || pose === 'crazy') && (
+      {(pose === 'tickle' || pose === 'kick' || pose === 'crazy') && (
         <g className="baby-swoosh baby-swoosh-roll" fill="none" stroke="#f0c45a" strokeWidth="3.2" strokeLinecap="round">
           <path d="M96 300 Q70 360 110 420" />
           <path d="M310 300 Q338 360 296 420" />
@@ -235,9 +259,8 @@ export function NurseryScene({
   hit?: { x: number; y: number } | null
 }) {
   const tempo = mode === 'gentle' ? 'baby-tempo-gentle' : mode === 'crazy' ? 'baby-tempo-crazy' : 'baby-tempo-funny'
-  const bothFeet = pose === 'kick' && focusSide == null
-  const kickL = pose === 'kick' && (focusSide === 'left' || bothFeet)
-  const kickR = pose === 'kick' && (focusSide === 'right' || bothFeet)
+  const kickL = pose === 'kick' || pose === 'tickle' || pose === 'crazy'
+  const kickR = pose === 'kick' || pose === 'tickle' || pose === 'crazy'
   const waveL = pose === 'grab' && focusSide !== 'right'
   const waveR = pose === 'grab' && focusSide !== 'left'
   const react = reactClassForPose(pose)
@@ -271,20 +294,28 @@ export function NurseryScene({
           <ClippedPart src={NURSERY_SRC} className="baby-part-torso" mask={MASKS.torso} />
 
           <div className={`baby-limb baby-hand-l-wrap${waveL ? ' is-wave' : ''}`}>
-            <ClippedPart src={NURSERY_SRC} className="baby-part-hand-l" mask={MASKS.handL} />
-            <ClippedPart src={NURSERY_SRC} className="baby-part-rattle" mask={MASKS.rattle} />
+            <div className="baby-joint baby-wrist-l">
+              <ClippedPart src={NURSERY_SRC} className="baby-part-hand-l" mask={MASKS.handL} />
+              <ClippedPart src={NURSERY_SRC} className="baby-part-rattle" mask={MASKS.rattle} />
+            </div>
           </div>
           <div className={`baby-limb baby-hand-r-wrap${waveR ? ' is-wave' : ''}`}>
-            <ClippedPart src={NURSERY_SRC} className="baby-part-hand-r" mask={MASKS.handR} />
+            <div className="baby-joint baby-wrist-r">
+              <ClippedPart src={NURSERY_SRC} className="baby-part-hand-r" mask={MASKS.handR} />
+            </div>
           </div>
 
           <div className={`baby-limb baby-foot-l-wrap${kickL ? ' is-kick' : ''}`}>
-            <ClippedPart src={NURSERY_SRC} className="baby-part-foot-l" mask={MASKS.footL} />
-            {(kickL || pose === 'tickle' || pose === 'crazy') && <ToeCluster side="left" />}
+            <div className="baby-joint baby-ankle-l">
+              <ClippedPart src={NURSERY_SRC} className="baby-part-foot-l" mask={MASKS.footL} />
+              {kickL && <ToeCluster side="left" />}
+            </div>
           </div>
           <div className={`baby-limb baby-foot-r-wrap${kickR ? ' is-kick' : ''}`}>
-            <ClippedPart src={NURSERY_SRC} className="baby-part-foot-r" mask={MASKS.footR} />
-            {(kickR || pose === 'tickle' || pose === 'crazy') && <ToeCluster side="right" />}
+            <div className="baby-joint baby-ankle-r">
+              <ClippedPart src={NURSERY_SRC} className="baby-part-foot-r" mask={MASKS.footR} />
+              {kickR && <ToeCluster side="right" />}
+            </div>
           </div>
 
           <div className="baby-head-group">
@@ -308,12 +339,12 @@ export function NurseryScene({
           z z
         </span>
       )}
-      {(pose === 'grab' || pose === 'kick') && (
+      {pose === 'grab' && (
         <span className="baby-fx-laugh baby-fx-laugh-c" aria-hidden>
-          {pose === 'grab' ? 'hihi' : '呵'}
+          hihi
         </span>
       )}
-      {pose === 'tickle' && (
+      {(pose === 'tickle' || pose === 'kick') && (
         <>
           <span className="baby-fx-spark" aria-hidden>
             ✦
