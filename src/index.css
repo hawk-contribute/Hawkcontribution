@@ -279,27 +279,198 @@
   transform-origin: center;
 }
 
-/* Super Dad / Baby Touch — cozy bedroom */
-.baby-scene {
-  background: #3a2a48;
+/* Super Dad / Baby Touch — kawaii pastel nursery */
+.baby-poster {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.75rem;
+  border: 1px solid rgba(210, 168, 110, 0.45);
+  padding: 1.15rem 0.9rem 1.25rem;
+  background:
+    linear-gradient(125deg, rgba(255, 252, 240, 0.72) 0%, transparent 38%),
+    repeating-linear-gradient(
+      118deg,
+      rgba(255, 248, 220, 0.35) 0 18px,
+      transparent 18px 36px
+    ),
+    linear-gradient(180deg, #fff8e6 0%, #f7e6c4 48%, #f3dcb0 100%);
+  box-shadow: 0 18px 40px rgba(90, 55, 20, 0.22);
+  color: #6b4a32;
 }
 
-.baby-sky {
+.baby-poster::before {
+  content: "";
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(ellipse 50% 40% at 78% 12%, rgba(255, 228, 170, 0.35), transparent 55%),
-    radial-gradient(ellipse 40% 35% at 14% 18%, rgba(255, 200, 140, 0.28), transparent 50%),
-    linear-gradient(180deg, #2a2040 0%, #4a3558 42%, #6a4a58 100%);
   pointer-events: none;
+  background:
+    radial-gradient(ellipse 55% 32% at 8% -4%, rgba(255, 244, 200, 0.9), transparent 70%),
+    linear-gradient(115deg, rgba(255, 250, 230, 0.35) 0 8%, transparent 8% 16%, rgba(255, 250, 230, 0.22) 16% 24%, transparent 24%);
 }
 
-.baby-mode-gentle .baby-sky {
-  filter: saturate(0.85) brightness(0.88);
+.baby-poster > * {
+  position: relative;
+  z-index: 1;
 }
 
-.baby-mode-crazy .baby-sky {
-  filter: saturate(1.25) brightness(1.08);
+.baby-cloud-banner {
+  position: relative;
+  margin: 0.1rem auto 0.9rem;
+  width: min(22rem, 94%);
+  text-align: center;
+  padding: 1.1rem 1.6rem 1.2rem;
+  background: #fffdf8;
+  border: 2.5px dashed #e8c9a0;
+  border-radius: 48% / 68%;
+  box-shadow: 0 10px 22px rgba(180, 130, 70, 0.12);
+}
+
+.baby-cloud-banner h1 {
+  margin: 0;
+  font-family: "Nunito", "Noto Sans TC", var(--font-sans);
+  font-size: clamp(1.55rem, 6vw, 2.05rem);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  color: #6b4423;
+  line-height: 1.15;
+}
+
+.baby-deco {
+  position: absolute;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+.baby-deco-star-l {
+  left: 1.05rem;
+  top: 0.85rem;
+  color: #f0c45a;
+}
+.baby-deco-star-r {
+  right: 1.15rem;
+  bottom: 0.85rem;
+  color: #f0c45a;
+  font-size: 0.7rem;
+}
+.baby-deco-heart {
+  right: 1.05rem;
+  top: 0.8rem;
+  color: #f2a0b4;
+}
+
+.baby-tip {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 auto 0.85rem;
+  max-width: 28rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: 999px;
+  background: #fff3c2;
+  border: 1px solid #f0d98a;
+  color: #6b5340;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.baby-tip-bulb {
+  flex-shrink: 0;
+  font-size: 0.95rem;
+}
+
+.baby-mode-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.32rem;
+  margin-bottom: 0.7rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.baby-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1.5px solid transparent;
+  padding: 0.28rem 0.58rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s, filter 0.12s;
+}
+.baby-pill:active {
+  transform: scale(0.97);
+}
+.baby-pill-select {
+  background: #fffaf0;
+  border-color: #e8d5b0;
+  color: #8a6a40;
+  cursor: default;
+}
+.baby-pill-gentle {
+  background: #ffd6e4;
+  color: #c45a7a;
+}
+.baby-pill-funny {
+  background: #ffe9a0;
+  color: #b07a10;
+}
+.baby-pill-crazy {
+  background: #e4d4ff;
+  color: #7a4ec8;
+}
+.baby-pill.is-on {
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px currentColor;
+  filter: brightness(1.04);
+}
+
+.baby-sign-in {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin: 0.5rem auto 0;
+  padding: 0.65rem 1.2rem;
+  border-radius: 999px;
+  background: #ffd6e4;
+  color: #c45a7a;
+  font-weight: 800;
+  border: 0;
+}
+
+.baby-chip {
+  min-height: 2.5rem;
+  border-radius: 999px;
+  border: 1px solid #e8d5b0;
+  background: #fffaf0;
+  color: #6b4a32;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.35rem 0.25rem;
+  cursor: pointer;
+}
+.baby-chip:hover {
+  background: #fff3c2;
+}
+
+.baby-scene {
+  background: #f6e7c4;
+}
+
+.baby-art {
+  transform-origin: 50% 62%;
+  will-change: transform;
+}
+
+.baby-mode-gentle .baby-art img {
+  filter: saturate(0.92) brightness(0.98);
+}
+.baby-mode-crazy .baby-art img {
+  filter: saturate(1.12) brightness(1.04);
 }
 
 .baby-hotspot {
@@ -309,11 +480,11 @@
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: rgba(255, 248, 238, 0.06);
-  box-shadow: inset 0 0 0 2px rgba(255, 248, 238, 0.28);
+  background: rgba(255, 248, 220, 0.05);
+  box-shadow: inset 0 0 0 1.5px rgba(232, 176, 80, 0.22);
   border: 0;
-  min-width: 52px;
-  min-height: 52px;
+  min-width: 44px;
+  min-height: 44px;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   cursor: pointer;
@@ -321,13 +492,67 @@
 }
 
 .baby-hotspot:focus-visible {
-  outline: 2px solid rgba(254, 186, 69, 0.85);
+  outline: 2px solid rgba(196, 90, 122, 0.85);
   outline-offset: 2px;
-  background: rgba(254, 186, 69, 0.18);
+  background: rgba(255, 214, 228, 0.35);
 }
 
-.baby-hotspot:hover {
-  background: rgba(255, 248, 238, 0.12);
+.baby-hotspot:hover,
+.baby-hotspot:active {
+  background: rgba(255, 220, 120, 0.22);
+}
+
+.baby-fx-blush {
+  position: absolute;
+  width: 11%;
+  height: 7.5%;
+  border-radius: 50%;
+  background: rgba(240, 130, 140, 0.28);
+  pointer-events: none;
+}
+.baby-fx-blush-l {
+  left: 33%;
+  top: 38%;
+}
+.baby-fx-blush-r {
+  left: 56%;
+  top: 38%;
+}
+.baby-fx-blush.is-hot {
+  background: rgba(232, 90, 110, 0.42);
+  transform: scale(1.15);
+}
+.baby-fx-tongue {
+  position: absolute;
+  left: 51%;
+  top: 41.5%;
+  width: 7%;
+  height: 7.5%;
+  border-radius: 40% 40% 55% 55%;
+  background: #f08090;
+  transform: translateX(-50%);
+  pointer-events: none;
+  animation: baby-tongue 0.18s linear infinite;
+}
+.baby-fx-zzz {
+  position: absolute;
+  left: 62%;
+  top: 16%;
+  color: #c4a070;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  pointer-events: none;
+  animation: baby-twinkle 1.4s ease-in-out infinite;
+}
+.baby-fx-spark {
+  position: absolute;
+  left: 58%;
+  top: 58%;
+  color: #f0c45a;
+  font-size: 1.1rem;
+  pointer-events: none;
+  animation: baby-twinkle 0.6s ease-in-out infinite;
 }
 
 .baby-bubble {
@@ -378,6 +603,11 @@
   animation: baby-wiggle var(--baby-tempo, 0.9s) ease-in-out;
   transform-box: fill-box;
   transform-origin: center 55%;
+}
+
+.baby-cuddle {
+  animation: baby-cuddle var(--baby-tempo, 0.9s) ease-in-out;
+  transform-origin: 50% 55%;
 }
 
 .baby-kick {
@@ -469,6 +699,11 @@
   0%, 100% { transform: rotate(-4deg) scale(1); }
   50% { transform: rotate(5deg) scale(1.04); }
 }
+@keyframes baby-cuddle {
+  0%, 100% { transform: rotate(0) scale(1); }
+  40% { transform: rotate(-5deg) scale(1.03) translateY(2px); }
+  70% { transform: rotate(4deg) scale(1.02); }
+}
 @keyframes baby-kick {
   0% { transform: translateY(0) rotate(0); }
   35% { transform: translateY(-10px) rotate(-6deg); }
@@ -539,6 +774,7 @@
   .baby-head-nuzzle,
   .baby-pout,
   .baby-grab,
+  .baby-cuddle,
   .baby-tickle,
   .baby-kick,
   .baby-crazy,
