@@ -22,7 +22,7 @@ import {
   type BabyZone,
   type CheekTap,
 } from '../lib/babyTouch'
-import { BabySpeechBubble, NurseryScene } from './BabyTouchArt'
+import { BabySpeechBubble, NurseryScene, type BabyFocusSide } from './BabyTouchArt'
 
 interface BabyTouchViewProps {
   session: Session | null
@@ -36,22 +36,25 @@ interface BabyTouchViewProps {
 const SCENE_W = 400
 const SCENE_H = 533
 
-const ZONE_ANCHORS: { id: BabyZone; key: string; x: number; y: number; r: number }[] = [
+const ZONE_ANCHORS: { id: BabyZone; key: string; x: number; y: number; r: number; side?: BabyFocusSide }[] = [
   { id: 'hair', key: 'hair', x: 205, y: 118, r: 36 },
-  { id: 'cheekL', key: 'cheekL', x: 162, y: 215, r: 34 },
-  { id: 'cheekR', key: 'cheekR', x: 250, y: 215, r: 34 },
-  { id: 'palm', key: 'palm', x: 138, y: 310, r: 38 },
-  { id: 'shoulder', key: 'shoulderL', x: 170, y: 272, r: 28 },
-  { id: 'shoulder', key: 'shoulderR', x: 258, y: 282, r: 34 },
+  { id: 'cheekL', key: 'cheekL', x: 162, y: 215, r: 34, side: 'left' },
+  { id: 'cheekR', key: 'cheekR', x: 250, y: 215, r: 34, side: 'right' },
+  { id: 'palm', key: 'palmL', x: 138, y: 310, r: 38, side: 'left' },
+  { id: 'palm', key: 'palmR', x: 278, y: 328, r: 32, side: 'right' },
+  { id: 'shoulder', key: 'shoulderL', x: 170, y: 272, r: 28, side: 'left' },
+  { id: 'shoulder', key: 'shoulderR', x: 258, y: 282, r: 34, side: 'right' },
   { id: 'belly', key: 'belly', x: 205, y: 342, r: 36 },
-  { id: 'feet', key: 'feet', x: 205, y: 438, r: 48 },
+  { id: 'feet', key: 'footL', x: 168, y: 440, r: 36, side: 'left' },
+  { id: 'feet', key: 'footR', x: 242, y: 440, r: 36, side: 'right' },
 ]
 
 const CHIP_ZONES: BabyZone[] = ['hair', 'palm', 'shoulder', 'belly', 'feet', 'cheekL', 'cheekR']
 
-const ZONES: { id: BabyZone; key: string; style: CSSProperties }[] = ZONE_ANCHORS.map((z) => ({
+const ZONES: { id: BabyZone; key: string; side?: BabyFocusSide; style: CSSProperties }[] = ZONE_ANCHORS.map((z) => ({
   id: z.id,
   key: z.key,
+  side: z.side,
   style: {
     left: `${(z.x / SCENE_W) * 100}%`,
     top: `${(z.y / SCENE_H) * 100}%`,
@@ -111,7 +114,8 @@ export function BabyTouchView({
   const { t } = useI18n()
   const [mode, setMode] = useState<BabyMode>('gentle')
   const [pose, setPose] = useState<BabyPose>('idle')
-  const [pinchSide, setPinchSide] = useState<'left' | 'right' | null>(null)
+  const [focusSide, setFocusSide] = useState<BabyFocusSide>(null)
+  const [poseTick, setPoseTick] = useState(0)
   const [bubble, setBubble] = useState<string | null>(null)
   const [comboHint, setComboHint] = useState<string | null>(null)
   const [sessionPts, setSessionPts] = useState(0)
@@ -187,19 +191,20 @@ export function BabyTouchView({
   )
 
   const runReaction = useCallback(
-    (nextPose: BabyPose, side: 'left' | 'right' | null) => {
+    (nextPose: BabyPose, side: BabyFocusSide) => {
       void gameAudio.unlock().then(() => {
         playPoseSfx(nextPose, sfxIntensity(modeRef.current))
         gameAudio.startBgm()
       })
       setPose(nextPose)
-      setPinchSide(side)
+      setFocusSide(side)
+      setPoseTick((n) => n + 1)
       setBubble(t(reactionCopyKey(nextPose)))
       if (poseTimer.current != null) window.clearTimeout(poseTimer.current)
       const hold = modeRef.current === 'gentle' ? BABY_REACTION_MS + 400 : BABY_REACTION_MS
       poseTimer.current = window.setTimeout(() => {
         setPose('idle')
-        setPinchSide(null)
+        setFocusSide(null)
         setBubble(null)
       }, hold)
     },
@@ -207,38 +212,34 @@ export function BabyTouchView({
   )
 
   const onZone = useCallback(
-    (zone: BabyZone) => {
-      if (!session) {
-        onRequireAuth()
-        return
-      }
+    (zone: BabyZone, side: BabyFocusSide = null) => {
       const now = Date.now()
       const isCheek = zone === 'cheekL' || zone === 'cheekR'
+      const focus: BabyFocusSide = isCheek ? (zone === 'cheekL' ? 'left' : 'right') : side
 
       if (isCheek) {
-        const side: 'left' | 'right' = zone === 'cheekL' ? 'left' : 'right'
+        const cheek: 'left' | 'right' = zone === 'cheekL' ? 'left' : 'right'
         const prev = lastCheekRef.current
-        lastCheekRef.current = { side, at: now }
-        cheekTaps.current = pruneCheekTaps([...cheekTaps.current, { side, at: now }], now)
+        lastCheekRef.current = { side: cheek, at: now }
+        cheekTaps.current = pruneCheekTaps([...cheekTaps.current, { side: cheek, at: now }], now)
 
         if (modeRef.current === 'crazy') {
-          const pair = !!prev && prev.side !== side && now - prev.at <= BABY_COMBO_WINDOW_MS
+          const pair = !!prev && prev.side !== cheek && now - prev.at <= BABY_COMBO_WINDOW_MS
           const prog = comboProgress(cheekTaps.current, now)
           if (pair || prog.ready) {
             cheekTaps.current = []
             lastCheekRef.current = null
             setComboHint(null)
-            awardTouch(true)
+            if (session) awardTouch(true)
             runReaction('crazy', null)
             return
           }
           setComboHint(t('babyTouch.comboProgress', { n: 1, total: 2 }))
-          awardTouch(false)
-          setBubble(t('babyTouch.reactCheek'))
-          void gameAudio.unlock().then(() => gameAudio.playPout(sfxIntensity('crazy')))
+          if (session) awardTouch(false)
+          runReaction('pout', focus)
           return
         }
-        if (comboProgress(cheekTaps.current, now).ready) {
+        if (session && comboProgress(cheekTaps.current, now).ready) {
           cheekTaps.current = []
           lastCheekRef.current = null
           showHint('babyTouch.lockedCrazy')
@@ -250,11 +251,10 @@ export function BabyTouchView({
       const last = lastZoneAt.current[zone] ?? 0
       if (now - last < BABY_TOUCH_COOLDOWN_MS) return
       lastZoneAt.current[zone] = now
-      awardTouch(false)
-      const side = zone === 'cheekL' ? 'left' : zone === 'cheekR' ? 'right' : null
-      runReaction(poseForZone(zone), side)
+      if (session) awardTouch(false)
+      runReaction(poseForZone(zone), focus)
     },
-    [session, onRequireAuth, awardTouch, runReaction, showHint, t],
+    [session, awardTouch, runReaction, showHint, t],
   )
 
   useEffect(
@@ -385,7 +385,7 @@ export function BabyTouchView({
         role="application"
         aria-label={t('babyTouch.scene')}
       >
-        <NurseryScene pose={pose} mode={mode} pinchSide={pinchSide} />
+        <NurseryScene pose={pose} mode={mode} focusSide={focusSide} poseTick={poseTick} />
         {ZONES.map((z) => (
           <button
             key={z.key}
@@ -393,14 +393,19 @@ export function BabyTouchView({
             className="baby-hotspot"
             style={z.style}
             aria-label={t(zoneLabelKey(z.id))}
-            onClick={() => onZone(z.id)}
+            onClick={() => onZone(z.id, z.side ?? null)}
           />
         ))}
       </div>
 
       <div className="mx-auto mt-3 grid w-full grid-cols-4 gap-1.5 sm:grid-cols-7">
         {CHIP_ZONES.map((id) => (
-          <button key={`chip-${id}`} type="button" className="baby-chip" onClick={() => onZone(id)}>
+          <button
+            key={`chip-${id}`}
+            type="button"
+            className="baby-chip"
+            onClick={() => onZone(id, id === 'cheekL' ? 'left' : id === 'cheekR' ? 'right' : null)}
+          >
             {t(zoneLabelKey(id))}
           </button>
         ))}
