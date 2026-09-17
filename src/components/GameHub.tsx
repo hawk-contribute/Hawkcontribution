@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Bird, CloudSun, Egg, Feather, Gamepad2, Grid2x2, Lock, Swords, Target, Wind } from 'lucide-react'
+import { Baby, Bird, CloudSun, Egg, Feather, Gamepad2, Grid2x2, Lock, Swords, Target, Wind } from 'lucide-react'
 import type { MiniGameId, PointsAccount, Session } from '../types'
 import { useI18n } from '../i18n'
 import { asset } from '../lib/asset'
@@ -13,6 +13,8 @@ import { HatchDayView } from './HatchDayView'
 import { HatchDayCover } from './HatchDayArt'
 import { FluffySoarView } from './FluffySoarView'
 import { FluffySoarCover } from './FluffySoarArt'
+import { BabyTouchView } from './BabyTouchView'
+import { BabyTouchCover } from './BabyTouchArt'
 
 type GameId = 'hub' | MiniGameId
 
@@ -124,6 +126,18 @@ export function GameHub({
         account={account}
         onRequireAuth={onRequireAuth}
         onRoundComplete={(score, hits) => onRoundComplete(score, hits, 'fluffySoar')}
+        onBack={() => setGame('hub')}
+      />
+    )
+  }
+
+  if (game === 'babyTouch') {
+    return (
+      <BabyTouchView
+        session={session}
+        account={account}
+        onRequireAuth={onRequireAuth}
+        onRoundComplete={(score, hits) => onRoundComplete(score, hits, 'babyTouch')}
         onBack={() => setGame('hub')}
       />
     )
@@ -333,6 +347,24 @@ export function GameHub({
           <div className="p-5">
             <h2 className="text-lg font-bold text-hawk-cream">{t('fluffySoar.title')}</h2>
             <p className="mt-1.5 text-sm text-hawk-muted">{t('gameHub.fluffySoarBlurb')}</p>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setGame('babyTouch')}
+          className="hawk-card group flex flex-col overflow-hidden p-0 text-left transition hover:border-hawk-gold/50"
+        >
+          <div className="relative h-40 overflow-hidden bg-hawk-navy/80 sm:h-44">
+            <BabyTouchCover />
+            <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-xs font-medium text-hawk-gold">
+              <Baby className="h-3.5 w-3.5" />
+              {t('gameHub.babyTouchTag')}
+            </span>
+          </div>
+          <div className="p-5">
+            <h2 className="text-lg font-bold text-hawk-cream">{t('babyTouch.title')}</h2>
+            <p className="mt-1.5 text-sm text-hawk-muted">{t('gameHub.babyTouchBlurb')}</p>
           </div>
         </button>
 
