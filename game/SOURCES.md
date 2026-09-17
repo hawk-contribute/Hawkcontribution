@@ -2,6 +2,8 @@
 
 Baby Touch nursery art (`game/baby-touch/nursery.png`, `cover.png`) is a kawaii crib painting generated to match the Super Dad poster mockup (chubby toddler in a mint onesie, wooden crib, teddy, star rattle). UI chrome (cloud title, tip bar, mode pills) is HTML/CSS so it can be localized.
 
+The in-game doll is a **layered puppet** over that painting: masked copies of `nursery.png` (head/hair, cheeks, torso, hands, rattle, feet) plus an SVG face overlay (lids, blush, mouth, tongue). Touch reactions move only those parts — the crib and room stay still.
+
 | File | Role |
 |------|------|
 | eagle-mascot.jpg | Positive target (+10) |
