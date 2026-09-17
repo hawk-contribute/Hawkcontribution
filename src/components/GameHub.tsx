@@ -18,6 +18,11 @@ import { BabyTouchCover } from './BabyTouchArt'
 
 type GameId = 'hub' | MiniGameId
 
+function initialGame(): GameId {
+  if (typeof window === 'undefined') return 'hub'
+  return new URLSearchParams(window.location.search).get('play') === 'babyTouch' ? 'babyTouch' : 'hub'
+}
+
 interface GameHubProps {
   session: Session | null
   account: PointsAccount
@@ -32,7 +37,7 @@ export function GameHub({
   onRoundComplete,
 }: GameHubProps) {
   const { t } = useI18n()
-  const [game, setGame] = useState<GameId>('hub')
+  const [game, setGame] = useState<GameId>(initialGame)
 
   const openGame = (id: MiniGameId) => {
     window.scrollTo(0, 0)

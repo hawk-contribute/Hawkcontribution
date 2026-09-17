@@ -37,9 +37,15 @@ import { UploadModal } from './components/UploadModal'
 
 type Tab = 'game' | 'browse' | 'feed' | 'ledger' | 'rewards' | 'stats' | 'news' | 'audit'
 
+function initialTab(): Tab {
+  if (typeof window === 'undefined') return 'browse'
+  const play = new URLSearchParams(window.location.search).get('play')
+  return play === 'babyTouch' ? 'game' : 'browse'
+}
+
 export default function App() {
   const { t } = useI18n()
-  const [tab, setTab] = useState<Tab>('browse')
+  const [tab, setTab] = useState<Tab>(initialTab)
   const [authOpen, setAuthOpen] = useState(false)
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
   const [uploadOpen, setUploadOpen] = useState(false)
