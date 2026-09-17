@@ -17,8 +17,8 @@
 export const BABY_TOUCH_GAME_ID = 'babyTouch' as const
 
 export type BabyMode = 'gentle' | 'funny' | 'crazy'
-export type BabyZone = 'hair' | 'cheekL' | 'cheekR' | 'palm' | 'belly' | 'feet'
-export type BabyPose = 'idle' | 'nuzzle' | 'pout' | 'grab' | 'tickle' | 'kick' | 'crazy'
+export type BabyZone = 'hair' | 'cheekL' | 'cheekR' | 'palm' | 'shoulder' | 'belly' | 'feet'
+export type BabyPose = 'idle' | 'nuzzle' | 'pout' | 'grab' | 'cuddle' | 'tickle' | 'kick' | 'crazy'
 export type CheekSide = 'left' | 'right'
 
 export const BABY_TOUCH_POINTS = {
@@ -95,6 +95,8 @@ export function poseForZone(zone: BabyZone): BabyPose {
       return 'pout'
     case 'palm':
       return 'grab'
+    case 'shoulder':
+      return 'cuddle'
     case 'belly':
       return 'tickle'
     case 'feet':
@@ -110,6 +112,8 @@ export function reactionCopyKey(pose: BabyPose): string {
       return 'babyTouch.reactCheek'
     case 'grab':
       return 'babyTouch.reactPalm'
+    case 'cuddle':
+      return 'babyTouch.reactShoulder'
     case 'tickle':
       return 'babyTouch.reactBelly'
     case 'kick':
@@ -131,6 +135,8 @@ export function zoneLabelKey(zone: BabyZone): string {
       return 'babyTouch.zoneCheekR'
     case 'palm':
       return 'babyTouch.zonePalm'
+    case 'shoulder':
+      return 'babyTouch.zoneShoulder'
     case 'belly':
       return 'babyTouch.zoneBelly'
     case 'feet':

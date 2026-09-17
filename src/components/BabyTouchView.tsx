@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
-import { ArrowLeft, Baby, Heart, Laugh, Lock, Moon, Sparkles, Volume2, VolumeX, Zap } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { ArrowLeft, Heart, Lock, Smile, Star, Volume2, VolumeX } from 'lucide-react'
 import type { PointsAccount, Session } from '../types'
 import { useI18n } from '../i18n'
 import { gameAudio } from '../lib/gameAudio'
@@ -22,40 +22,63 @@ import {
   type BabyZone,
   type CheekTap,
 } from '../lib/babyTouch'
-import { BabyEagleSprite, BabySpeechBubble, BedroomBackdrop } from './BabyTouchArt'
+import { BabySpeechBubble, NurseryScene } from './BabyTouchArt'
 
 interface BabyTouchViewProps {
   session: Session | null
   account: PointsAccount
   onRequireAuth: () => void
-  onRoundComplete: (score: number, hits: number) => void
   onBack: () => void
+  onRoundComplete: (score: number, hits: number) => void
 }
 
-const ZONE_ANCHORS: { id: BabyZone; x: number; y: number; r: number }[] = [
-  { id: 'hair', x: 200, y: 88, r: 26 },
-  { id: 'cheekL', x: 154, y: 168, r: 46 },
-  { id: 'cheekR', x: 246, y: 168, r: 46 },
-  { id: 'palm', x: 108, y: 224, r: 36 },
-  { id: 'belly', x: 200, y: 230, r: 32 },
-  { id: 'feet', x: 200, y: 312, r: 44 },
+/** Coordinate space matches the 3:4 nursery painting. */
+const SCENE_W = 400
+const SCENE_H = 533
+
+const ZONE_ANCHORS: { id: BabyZone; key: string; x: number; y: number; r: number }[] = [
+  { id: 'hair', key: 'hair', x: 205, y: 118, r: 36 },
+  { id: 'cheekL', key: 'cheekL', x: 162, y: 215, r: 34 },
+  { id: 'cheekR', key: 'cheekR', x: 250, y: 215, r: 34 },
+  { id: 'palm', key: 'palm', x: 138, y: 310, r: 38 },
+  { id: 'shoulder', key: 'shoulderL', x: 170, y: 272, r: 28 },
+  { id: 'shoulder', key: 'shoulderR', x: 258, y: 282, r: 34 },
+  { id: 'belly', key: 'belly', x: 205, y: 342, r: 36 },
+  { id: 'feet', key: 'feet', x: 205, y: 438, r: 48 },
 ]
 
-const ZONES: { id: BabyZone; style: CSSProperties }[] = ZONE_ANCHORS.map((z) => ({
+const CHIP_ZONES: BabyZone[] = ['hair', 'palm', 'shoulder', 'belly', 'feet', 'cheekL', 'cheekR']
+
+const ZONES: { id: BabyZone; key: string; style: CSSProperties }[] = ZONE_ANCHORS.map((z) => ({
   id: z.id,
+  key: z.key,
   style: {
-    left: `${(z.x / 400) * 100}%`,
-    top: `${(z.y / 420) * 100}%`,
-    width: `${((z.r * 2) / 400) * 100}%`,
-    height: `${((z.r * 2) / 420) * 100}%`,
+    left: `${(z.x / SCENE_W) * 100}%`,
+    top: `${(z.y / SCENE_H) * 100}%`,
+    width: `${((z.r * 2) / SCENE_W) * 100}%`,
+    height: `${((z.r * 2) / SCENE_H) * 100}%`,
     transform: 'translate(-50%, -50%)',
     zIndex: z.id === 'cheekL' || z.id === 'cheekR' ? 6 : 4,
   },
 }))
 
+function SpiralIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden>
+      <path
+        d="M12 12c.2-2 1.7-3.1 3.3-3.1 2.5 0 4 2.2 4 4.9 0 4.4-3.5 8-8.3 8S3 18.2 3 12.2 7.4 4 12.2 4c3.4 0 6 1.7 7.2 3.6"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
 function playPoseSfx(pose: BabyPose, intensity: number) {
   switch (pose) {
     case 'nuzzle':
+    case 'cuddle':
       gameAudio.playHum(intensity)
       break
     case 'pout':
@@ -199,8 +222,7 @@ export function BabyTouchView({
         cheekTaps.current = pruneCheekTaps([...cheekTaps.current, { side, at: now }], now)
 
         if (modeRef.current === 'crazy') {
-          const pair =
-            !!prev && prev.side !== side && now - prev.at <= BABY_COMBO_WINDOW_MS
+          const pair = !!prev && prev.side !== side && now - prev.at <= BABY_COMBO_WINDOW_MS
           const prog = comboProgress(cheekTaps.current, now)
           if (pair || prog.ready) {
             cheekTaps.current = []
@@ -251,31 +273,7 @@ export function BabyTouchView({
     onBack()
   }
 
-  if (!session) {
-    return (
-      <section className="hawk-card mx-auto max-w-lg px-6 py-14 text-center">
-        <Lock className="mx-auto mb-3 h-10 w-10 text-hawk-gold" />
-        <h1 className="text-2xl font-bold text-hawk-cream">{t('babyTouch.title')}</h1>
-        <p className="mt-2 text-sm text-hawk-muted">{t('game.locked')}</p>
-        <button
-          type="button"
-          onClick={onRequireAuth}
-          className="hawk-btn hawk-btn-primary mt-6 px-5 py-2.5 text-sm"
-        >
-          {t('auth.signIn')}
-        </button>
-        <button
-          type="button"
-          onClick={onBack}
-          className="mt-4 block w-full text-sm text-hawk-muted hover:text-hawk-cream"
-        >
-          {t('gameHub.back')}
-        </button>
-      </section>
-    )
-  }
-
-  const modeBtn = (id: BabyMode, icon: 'gentle' | 'funny' | 'crazy', label: string, hintKey: string) => (
+  const modeBtn = (id: BabyMode, icon: ReactNode, label: string, extra: string) => (
     <button
       type="button"
       onClick={() => {
@@ -286,27 +284,16 @@ export function BabyTouchView({
         setComboHint(null)
         void gameAudio.unlock()
       }}
-      className={`hawk-btn flex min-h-12 flex-1 flex-col items-center gap-0.5 px-2 py-2 text-xs sm:text-sm ${
-        mode === id ? 'hawk-btn-primary' : 'hawk-btn-ghost text-hawk-cream'
-      }`}
+      className={`baby-pill ${extra} ${mode === id ? 'is-on' : ''}`}
       aria-pressed={mode === id}
     >
-      <span className="inline-flex items-center gap-1 font-semibold">
-        {icon === 'gentle' ? (
-          <Moon className="h-3.5 w-3.5" />
-        ) : icon === 'funny' ? (
-          <Laugh className="h-3.5 w-3.5" />
-        ) : (
-          <Zap className="h-3.5 w-3.5" />
-        )}
-        {label}
-      </span>
-      <span className={mode === id ? 'opacity-80' : 'text-hawk-muted'}>{t(hintKey)}</span>
+      {icon}
+      {label}
     </button>
   )
 
-  return (
-    <section className="relative">
+  const poster = (inner: ReactNode) => (
+    <section className="relative mx-auto w-full max-w-lg">
       <button
         type="button"
         onClick={leaveToHub}
@@ -315,60 +302,57 @@ export function BabyTouchView({
         <ArrowLeft className="h-4 w-4" />
         {t('gameHub.back')}
       </button>
+      <div className="baby-poster">{inner}</div>
+    </section>
+  )
 
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="mb-1 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-hawk-gold">
-            <Baby className="h-3.5 w-3.5" />
-            {t('babyTouch.badge')}
-          </p>
-          <h1 className="text-2xl font-bold text-hawk-cream sm:text-3xl">{t('babyTouch.title')}</h1>
-          <p className="mt-1 text-sm font-medium text-hawk-gold/90">{t('babyTouch.gameName')}</p>
-          <p className="mt-2 max-w-xl text-sm text-hawk-muted">{t('babyTouch.subtitle')}</p>
-        </div>
-        <div className="rounded-xl border border-hawk-gold/30 bg-hawk-gold/10 px-4 py-3 text-right">
-          <p className="text-xs text-hawk-muted">{t('game.totalPoints')}</p>
-          <p className="text-2xl font-bold text-hawk-gold">{account.total}</p>
-        </div>
-      </div>
-
-      <div className="mb-4 flex flex-wrap gap-2 text-[11px]">
-        <span className="rounded-full border border-hawk-gold/40 bg-hawk-gold/10 px-2 py-1 text-hawk-gold">
-          {t('babyTouch.rewardHint')}
-        </span>
-        <span className="rounded-full border border-hawk-border bg-hawk-panel px-2 py-1 text-hawk-muted">
-          {t('babyTouch.tapHint')}
-        </span>
-        <span className="rounded-full border border-hawk-border bg-hawk-panel px-2 py-1 text-hawk-muted">
-          {t('babyTouch.noPressure')}
-        </span>
-      </div>
-
-      <div className="mb-4 flex flex-col gap-2 sm:flex-row">
-        {modeBtn('gentle', 'gentle', t('babyTouch.modeGentle'), 'babyTouch.modeGentleHint')}
-        {modeBtn('funny', 'funny', t('babyTouch.modeFunny'), 'babyTouch.modeFunnyHint')}
-        {modeBtn('crazy', 'crazy', t('babyTouch.modeCrazy'), 'babyTouch.modeCrazyHint')}
-      </div>
-
-      {mode === 'crazy' && (
-        <p className="mb-3 inline-flex items-center gap-1.5 text-xs text-hawk-gold">
-          <Sparkles className="h-3.5 w-3.5" />
-          {t('babyTouch.crazyHint')}
+  return poster(
+    <>
+      <CloudTitle title={t('babyTouch.posterTitle')} />
+      {!session && (
+        <button type="button" onClick={onRequireAuth} className="baby-sign-in mb-3">
+          <Lock className="h-4 w-4" />
+          {t('auth.signIn')}
+        </button>
+      )}
+      {session && (
+        <p className="mb-2 text-center text-[11px] font-semibold uppercase tracking-wide text-[#b8860b]">
+          {t('babyTouch.badge')}
         </p>
       )}
 
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs text-hawk-muted">{hint ?? t('babyTouch.tapHint')}</p>
-        <div className="flex flex-wrap items-center gap-3">
-          <label className={`flex items-center gap-2 text-sm ${muted ? 'opacity-50' : 'text-hawk-cream'}`}>
-            <span className="text-xs text-hawk-muted">{t('game.volume')}</span>
+      <p className="baby-tip">
+        <span className="baby-tip-bulb" aria-hidden>
+          💡
+        </span>
+        {t('babyTouch.subtitle')}
+      </p>
+
+      <div className="baby-mode-row">
+        <span className="baby-pill baby-pill-select">
+          <Star className="h-3.5 w-3.5 fill-current" />
+          {t('babyTouch.modeSelect')}
+        </span>
+        {modeBtn('gentle', <Heart className="h-3.5 w-3.5 fill-current" />, t('babyTouch.modeGentle'), 'baby-pill-gentle')}
+        {modeBtn('funny', <Smile className="h-3.5 w-3.5" />, t('babyTouch.modeFunny'), 'baby-pill-funny')}
+        {modeBtn('crazy', <SpiralIcon className="h-3.5 w-3.5" />, t('babyTouch.modeCrazy'), 'baby-pill-crazy')}
+      </div>
+
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#8a6a48]">
+        <span>
+          {t('babyTouch.sessionPts')} {sessionPts}/{BABY_TOUCH_SESSION_CAP} · {t('babyTouch.touches')} {touches} ·{' '}
+          {t('game.totalPoints')} {account.total}
+        </span>
+        <div className="flex items-center gap-2">
+          <label className={`flex items-center gap-1.5 ${muted ? 'opacity-50' : ''}`}>
+            <span className="sr-only">{t('game.volume')}</span>
             <input
               type="range"
               min={0}
               max={1}
               step={0.01}
               value={volume}
-              className="h-2 w-28 cursor-pointer accent-hawk-gold sm:w-36"
+              className="h-1.5 w-20 cursor-pointer accent-[#e8b85a] sm:w-24"
               onChange={(ev) => {
                 const v = Number(ev.target.value)
                 setVolume(v)
@@ -378,100 +362,74 @@ export function BabyTouchView({
           </label>
           <button
             type="button"
-            className="hawk-btn hawk-btn-ghost px-3 py-1.5 text-sm"
+            className="inline-flex items-center gap-1 rounded-full bg-white/70 px-2 py-1 text-[#7a5a40]"
             onClick={() => {
               const next = gameAudio.toggleMute()
               setMuted(next)
               if (next) gameAudio.stopBgm()
             }}
           >
-            {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-            {muted ? t('game.unmute') : t('game.mute')}
+            {muted ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+            <span className="sr-only">{muted ? t('game.unmute') : t('game.mute')}</span>
           </button>
         </div>
       </div>
 
-      <div className="mb-4 grid grid-cols-3 gap-2 sm:gap-3">
-        <div className="hawk-card px-3 py-3 text-center">
-          <p className="text-xs text-hawk-muted">{t('babyTouch.sessionPts')}</p>
-          <p className="text-xl font-bold text-hawk-gold">
-            {sessionPts}/{BABY_TOUCH_SESSION_CAP}
-          </p>
-        </div>
-        <div className="hawk-card px-3 py-3 text-center">
-          <p className="text-xs text-hawk-muted">{t('babyTouch.touches')}</p>
-          <p className="text-xl font-bold text-hawk-cream">{touches}</p>
-        </div>
-        <div className="hawk-card px-3 py-3 text-center">
-          <p className="text-xs text-hawk-muted">{t('babyTouch.badge')}</p>
-          <p className="inline-flex items-center justify-center gap-1 text-xl font-bold text-hawk-blue-bright">
-            <Heart className="h-4 w-4" />
-            {mode === 'gentle' ? '♡' : mode === 'funny' ? '✦' : '!'}
-          </p>
-        </div>
-      </div>
+      {mode === 'crazy' && <p className="mb-2 text-center text-xs font-medium text-[#7a4ec8]">{t('babyTouch.crazyHint')}</p>}
+      {hint && <p className="mb-2 text-center text-xs font-medium text-[#b8860b]">{hint}</p>}
 
-      <div className="mx-auto mb-3 w-full max-w-lg space-y-2 sm:max-w-xl">
+      <div className="mb-2 space-y-1.5">
         <BabySpeechBubble text={bubble ?? t('babyTouch.idlePrompt')} />
-        {comboHint && (
-          <p className="text-center text-xs font-medium text-hawk-gold">{comboHint}</p>
-        )}
+        {comboHint && <p className="text-center text-xs font-medium text-[#c45a7a]">{comboHint}</p>}
       </div>
 
       <div
-        className={`baby-scene relative mx-auto aspect-[400/420] w-full max-w-md overflow-hidden rounded-2xl border border-[#c9a07a]/40 shadow-[0_18px_40px_rgba(40,24,12,0.35)] sm:max-w-lg ${
+        className={`baby-scene relative mx-auto aspect-[400/533] w-full overflow-hidden rounded-[1.35rem] shadow-[0_12px_28px_rgba(120,70,30,0.18)] ${
           mode === 'gentle' ? 'baby-mode-gentle' : mode === 'crazy' ? 'baby-mode-crazy' : 'baby-mode-funny'
         }`}
         role="application"
         aria-label={t('babyTouch.scene')}
       >
-        <div className="baby-sky" />
-        <div className="hatch-grain" />
-        <svg
-          viewBox="0 0 400 420"
-          className="absolute inset-0 h-full w-full"
-          preserveAspectRatio="xMidYMid slice"
-          aria-hidden
-        >
-          <BedroomBackdrop />
-          <g transform="translate(200 168) scale(1.35)">
-            <BabyEagleSprite pose={pose} mode={mode} pinchSide={pinchSide} />
-          </g>
-        </svg>
+        <NurseryScene pose={pose} mode={mode} pinchSide={pinchSide} />
         {ZONES.map((z) => (
           <button
-            key={z.id}
+            key={z.key}
             type="button"
             className="baby-hotspot"
             style={z.style}
             aria-label={t(zoneLabelKey(z.id))}
             onClick={() => onZone(z.id)}
-          >
-            {(z.id === 'cheekL' || z.id === 'cheekR') && (
-              <span className="text-[11px] font-bold text-white drop-shadow">
-                {z.id === 'cheekL' ? 'L' : 'R'}
-              </span>
-            )}
+          />
+        ))}
+      </div>
+
+      <div className="mx-auto mt-3 grid w-full grid-cols-4 gap-1.5 sm:grid-cols-7">
+        {CHIP_ZONES.map((id) => (
+          <button key={`chip-${id}`} type="button" className="baby-chip" onClick={() => onZone(id)}>
+            {t(zoneLabelKey(id))}
           </button>
         ))}
       </div>
 
-      <div className="mx-auto mt-3 grid w-full max-w-md grid-cols-3 gap-2 sm:max-w-lg sm:grid-cols-6">
-        {ZONES.map((z) => (
-          <button
-            key={`chip-${z.id}`}
-            type="button"
-            className="hawk-btn hawk-btn-ghost min-h-11 px-2 py-2 text-[11px] text-hawk-cream sm:text-xs"
-            onClick={() => onZone(z.id)}
-          >
-            {t(zoneLabelKey(z.id))}
-          </button>
-        ))}
-      </div>
+      {capped && <p className="mt-3 text-center text-xs text-[#b8860b]">{t('babyTouch.sessionCap')}</p>}
+      <p className="mt-2 text-center text-[11px] text-[#a08060]">{t('babyTouch.rewardHint')}</p>
+    </>,
+  )
+}
 
-      {capped && (
-        <p className="mt-3 text-center text-xs text-hawk-gold">{t('babyTouch.sessionCap')}</p>
-      )}
-    </section>
+function CloudTitle({ title }: { title: string }) {
+  return (
+    <div className="baby-cloud-banner">
+      <span className="baby-deco baby-deco-star-l" aria-hidden>
+        ✦
+      </span>
+      <h1>{title}</h1>
+      <span className="baby-deco baby-deco-heart" aria-hidden>
+        ♡
+      </span>
+      <span className="baby-deco baby-deco-star-r" aria-hidden>
+        ✦
+      </span>
+    </div>
   )
 }
