@@ -43,8 +43,8 @@ function tempoClass(mode: BabyMode): string {
   return 'baby-tempo-funny'
 }
 
-/** 2–3 painted frames per tap. Times are delays from tap start (ms). */
-function clipFor(pose: BabyPose, mode: BabyMode): { srcs: string[]; at: number[]; motion: string } {
+/** 2–3 painted frames per tap. Times are delays from tap start (ms). Framing stays locked. */
+function clipFor(pose: BabyPose, mode: BabyMode): { srcs: string[]; at: number[] } {
   const t = tempoScale(mode)
   switch (pose) {
     case 'tickle':
@@ -52,35 +52,30 @@ function clipFor(pose: BabyPose, mode: BabyMode): { srcs: string[]; at: number[]
       return {
         srcs: [NURSERY_SRC, POSE_TICKLE_SIT, POSE_TICKLE_ROLL],
         at: [0, Math.round(120 * t), Math.round(420 * t)],
-        motion: 'baby-reel-pop',
       }
     case 'kick':
       return {
         srcs: [NURSERY_SRC, POSE_LAUGH, POSE_KICK],
         at: [0, Math.round(110 * t), Math.round(380 * t)],
-        motion: 'baby-reel-bounce',
       }
     case 'nuzzle':
     case 'pout':
       return {
         srcs: [NURSERY_SRC, POSE_LAUGH, POSE_NUZZLE],
         at: [0, Math.round(90 * t), Math.round(320 * t)],
-        motion: 'baby-reel-wag',
       }
     case 'grab':
       return {
         srcs: [NURSERY_SRC, POSE_LAUGH],
         at: [0, Math.round(90 * t)],
-        motion: 'baby-reel-bounce',
       }
     case 'cuddle':
       return {
         srcs: [NURSERY_SRC, POSE_LAUGH],
         at: [0, Math.round(140 * t)],
-        motion: 'baby-reel-pop',
       }
     default:
-      return { srcs: [NURSERY_SRC], at: [0], motion: '' }
+      return { srcs: [NURSERY_SRC], at: [0] }
   }
 }
 
@@ -104,7 +99,7 @@ function PoseReel({
   }, [clip, poseTick])
 
   return (
-    <div className={`baby-reel ${clip.motion}`.trim()} data-frame={index}>
+    <div className="baby-reel" data-frame={index}>
       {clip.srcs.map((src, i) => (
         <img
           key={`${src}-${i}`}
